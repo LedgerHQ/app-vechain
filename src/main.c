@@ -81,7 +81,7 @@ uint32_t set_result_get_publicKey(void);
 #define WEI_TO_ETHER 18
 
 static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
-static const uint8_t const TICKER_ETH[] = CHAINID_COINNAME " ";
+static const uint8_t const TICKER_VET[] = "VET ";
 typedef struct tokenContext_t {
     uint8_t data[4 + 32 + 32];
     uint32_t dataFieldPos;
@@ -225,7 +225,7 @@ const bagl_element_t ui_idle_blue[] = {
     /// TOP STATUS BAR
     {{BAGL_LABELINE, 0x00, 0, 45, 320, 30, 0, 0, BAGL_FILL, 0xFFFFFF, COLOR_APP,
       BAGL_FONT_OPEN_SANS_SEMIBOLD_10_13PX | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     CHAINID_UPCASE,
+     "VECHAIN",
      0,
      0,
      0,
@@ -258,9 +258,9 @@ const bagl_element_t ui_idle_blue[] = {
      NULL,
      NULL},
 
-    // BADGE_<CHAINID>.GIF
+    // BADGE.GIF
     {{BAGL_ICON, 0x00, 135, 178, 50, 50, 0, 0, BAGL_FILL, 0, COLOR_BG_1, 0, 0},
-     &NAME3(C_blue_badge_, CHAINID, ),
+     C_blue_badge,
      0,
      0,
      0,
@@ -271,7 +271,7 @@ const bagl_element_t ui_idle_blue[] = {
     {{BAGL_LABELINE, 0x00, 0, 270, 320, 30, 0, 0, BAGL_FILL, 0x000000,
       COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_LIGHT_16_22PX | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Open " CHAINID_NAME " wallet",
+     "Open VeChain wallet",
      0,
      0,
      0,
@@ -386,7 +386,7 @@ const ux_menu_entry_t menu_about[] = {
     UX_MENU_END};
 
 const ux_menu_entry_t menu_main[] = {
-    {NULL, NULL, 0, &NAME3(C_nanos_badge_, CHAINID, ), "Use wallet to",
+    {NULL, NULL, 0, &C_nanos_badge, "Use wallet to",
      "view accounts", 33, 12},
     {menu_settings, NULL, 0, NULL, "Settings", NULL, 0, 0},
     {menu_about, NULL, 0, NULL, "About", NULL, 0, 0},
@@ -2253,7 +2253,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     uint32_t i;
     uint8_t address[41];
     uint8_t decimals = WEI_TO_ETHER;
-    uint8_t *ticker = TICKER_ETH;
+    uint8_t *ticker = TICKER_VET;
     uint8_t tickerOffset = 0;
     if (p1 == P1_FIRST) {
         tmpCtx.transactionContext.pathLength = workBuffer[0];

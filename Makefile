@@ -23,26 +23,12 @@ include $(BOLOS_SDK)/Makefile.defines
 
 APPVERSION_M=1
 APPVERSION_N=0
-APPVERSION_P=22
+APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
-ifeq ($(CHAIN),ethereum)
-APP_LOAD_PARAMS += --path "44'/60'" --path "44'/61'"
-DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAINID_NAME=\"Ethereum\" CHAINID=$(CHAIN) CHAIN_TYPE_ETHEREUM
-APPNAME = Ethereum
-else ifeq ($(CHAIN),expanse)
-APP_LOAD_PARAMS += --path "44'/40'"
-DEFINES += CHAINID_UPCASE=\"EXPANSE\" CHAINID_COINNAME=\"EXP\" CHAINID_NAME=\"Expanse\" CHAINID=$(CHAIN) CHAIN_TYPE_EXPANSE
-APPNAME = Expanse
-else ifeq ($(CHAIN),ubiq)
-APP_LOAD_PARAMS += --path "44'/108'"
-DEFINES += CHAINID_UPCASE=\"UBIQ\" CHAINID_COINNAME=\"UBQ\" CHAINID_NAME=\"Ubiq\" CHAINID=$(CHAIN) CHAIN_TYPE_UBIQ
-APPNAME = Ubiq
-else
-ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, expanse, ubiq)
-endif
-endif
+APP_LOAD_PARAMS += --path "44'/818'"
+DEFINES += CHAIN_TYPE_VECHAIN
+APPNAME = VeChain
 APP_LOAD_PARAMS += --appFlags 0x40 --path "44'/1'" --curve secp256k1 $(COMMON_LOAD_PARAMS) 
 
 #prepare hsm generation
@@ -96,7 +82,7 @@ LDLIBS   += -lm -lgcc -lc
 include $(BOLOS_SDK)/Makefile.glyphs
 
 ### computed variables
-APP_SOURCE_PATH  += src_genericwallet src_common src 
+APP_SOURCE_PATH  += common src
 SDK_SOURCE_PATH  += lib_stusb
 
 
@@ -110,5 +96,5 @@ delete:
 include $(BOLOS_SDK)/Makefile.rules
 
 #add dependency on custom makefile filename
-dep/%.d: %.c Makefile.genericwallet
+dep/%.d: %.c Makefile
 
