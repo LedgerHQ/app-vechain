@@ -1,6 +1,6 @@
 import struct
 
-DEFAULT_VET_BIP32_PATH = "44'/60'/0'/0"
+DEFAULT_VET_BIP32_PATH = "44'/818'/0'/0"
 
 
 def _parse_bip32_path(path):
