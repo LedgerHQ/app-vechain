@@ -25,53 +25,27 @@ from decimal import Decimal
 from ethBase import Transaction, UnsignedTransaction
 from rlp import encode
 from rlp.utils import decode_hex, encode_hex, str_to_bytes
+from bip32 import bip32_path_message
 
-def parse_bip32_path(path):
-	if len(path) == 0:
-		return ""
-	result = ""
-	elements = path.split('/')
-	for pathElement in elements:
-		element = pathElement.split('\'')
-		if len(element) == 1:
-			result = result + struct.pack(">I", int(element[0]))			
-		else:
-			result = result + struct.pack(">I", 0x80000000 | int(element[0]))
-	return result
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--nonce', help="Nonce associated to the account")
-parser.add_argument('--gasprice', help="Network gas price")
-parser.add_argument('--startgas', help="startgas", default='21000')
-parser.add_argument('--amount', help="Amount to send in ether")
-parser.add_argument('--to', help="Destination address")
-parser.add_argument('--path', help="BIP 32 path to sign with")
-parser.add_argument('--data', help="Data to add, hex encoded")
-args = parser.parse_args()
-
-if args.path == None:
-	args.path = "44'/60'/0'/0/0"
-
-if args.data == None:
-	args.data = ""
-else:
-	args.data = decode_hex(args.data[2:])
-
-amount = Decimal(args.amount) * 10**18
+amount = Decimal(5) * 10**18
+to = "0x655fe90ea5ced47e14b01b9eabbf9827366d77c7"
+gasprice = 128
+startgas = 21000
+nonce = 0
 
 tx = Transaction(
-    nonce=int(args.nonce),
-    gasprice=int(args.gasprice),
-    startgas=int(args.startgas),
-    to=decode_hex(args.to[2:]),
+    nonce=int(nonce),
+    gasprice=int(gasprice),
+    startgas=int(startgas),
+    to=decode_hex(to[2:]),
     value=int(amount),
-    data=args.data
+    data=""
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
 
-donglePath = parse_bip32_path(args.path)
-apdu = "e0040000".decode('hex') + chr(len(donglePath) + 1 + len(encodedTx)) + chr(len(donglePath) / 4) + donglePath + encodedTx
+donglePath = bip32_path_message()
+apdu = "e0040000".decode('hex') + chr(len(donglePath) + len(encodedTx)) + donglePath + encodedTx
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))

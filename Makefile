@@ -33,9 +33,9 @@ APP_LOAD_PARAMS += --appFlags 0x40 --path "44'/1'" --curve secp256k1 $(COMMON_LO
 
 #prepare hsm generation
 ifeq ($(TARGET_NAME),TARGET_BLUE)
-ICONNAME=blue_app_$(CHAIN).gif
+ICONNAME=blue_app.gif
 else
-ICONNAME=nanos_app_$(CHAIN).gif
+ICONNAME=nanos_app.gif
 endif
 
 ################
