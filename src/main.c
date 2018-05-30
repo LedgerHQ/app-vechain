@@ -22,6 +22,7 @@
 #include "ethUtils.h"
 #include "uint256.h"
 #include "tokens.h"
+#include <blake2b.h>
 
 #include "os_io_seproxyhal.h"
 #include "string.h"
@@ -120,6 +121,7 @@ union {
     cx_sha256_t sha2;
 } tmpContent;
 
+blake2b_ctx blake;
 cx_sha3_t sha3;
 tokenContext_t tokenContext;
 // volatile uint8_t dataAllowed;
@@ -1979,6 +1981,12 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
                       tmpCtx.messageSigningContext.hash,
                       sizeof(tmpCtx.messageSigningContext.hash), signature);
 #endif
+#ifdef DEBUG_TX_HASH
+    os_memmove(G_io_apdu_buffer, tmpCtx.messageSigningContext.hash, 32);
+    tx = 32;
+    G_io_apdu_buffer[tx++] = 0x90;
+    G_io_apdu_buffer[tx++] = 0x00;
+#else
     os_memset(&privateKey, 0, sizeof(privateKey));
     G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
     rLength = signature[3];
@@ -1991,6 +1999,7 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
+#endif
 #ifdef HAVE_U2F
     if (fidoActivated) {
         u2f_proxy_response((u2f_service_t *)&u2fService, tx);
@@ -2273,7 +2282,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         }
         dataPresent = false;
         tokenContext.provisioned = false;
-        initTx(&txContext, &sha3, &tmpContent.txContent, customProcessor, NULL);
+        initTx(&txContext, &blake, &tmpContent.txContent, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -2298,8 +2307,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Store the hash
-    cx_hash((cx_hash_t *)&sha3, CX_LAST, tmpCtx.transactionContext.hash, 0,
-            tmpCtx.transactionContext.hash);
+    blake2b_final(&blake, tmpCtx.transactionContext.hash);
+
     // If there is a token to process, check if it is well known
     if (tokenContext.provisioned) {
         for (i = 0; i < NUM_TOKENS; i++) {
@@ -2450,9 +2459,8 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
-        cx_keccak_init(&sha3, 256);
-        cx_hash((cx_hash_t *)&sha3, 0, SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1,
-                NULL);
+        blake2b_init(&blake, 32, NULL, 0);
+        blake2b_update(&blake, SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1);
         for (index = 1; (((index * base) <=
                           tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
@@ -2464,7 +2472,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 ((tmpCtx.messageSigningContext.remainingLength / index) % base);
         }
         tmp[pos] = '\0';
-        cx_hash((cx_hash_t *)&sha3, 0, tmp, pos, NULL);
+        blake2b_update(&blake, tmp, pos);
         cx_sha256_init(&tmpContent.sha2);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -2475,12 +2483,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
         THROW(0x6A80);
     }
-    cx_hash((cx_hash_t *)&sha3, 0, workBuffer, dataLength, NULL);
+    blake2b_update(&blake, workBuffer, dataLength);
     cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
-        cx_hash((cx_hash_t *)&sha3, CX_LAST, workBuffer, 0,
-                tmpCtx.messageSigningContext.hash);
+        blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
         cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
                 hashMessage);
 

@@ -46,6 +46,7 @@ all: default
 # Platform #
 ############
 
+DEFINES   += DEBUG_TX_HASH
 DEFINES   += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=128
 DEFINES   += HAVE_BAGL HAVE_SPRINTF
 #DEFINES   += HAVE_PRINTF PRINTF=screen_printf
@@ -81,7 +82,7 @@ LDLIBS   += -lm -lgcc -lc
 include $(BOLOS_SDK)/Makefile.glyphs
 
 ### computed variables
-APP_SOURCE_PATH  += common src
+APP_SOURCE_PATH  += common src blake2
 SDK_SOURCE_PATH  += lib_stusb
 
 
