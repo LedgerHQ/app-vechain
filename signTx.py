@@ -18,28 +18,35 @@
 ********************************************************************************
 """
 from ledgerblue.comm import getDongle
-from ledgerblue.commException import CommException
-import argparse
-import struct
 from decimal import Decimal
-from ethBase import Transaction, UnsignedTransaction
+from vetBase import Transaction, UnsignedTransaction, Clause
 from rlp import encode
 from rlp.utils import decode_hex, encode_hex, str_to_bytes
 from bip32 import bip32_path_message
 
+
+chaintag = 207
+blockref = "0x01bd39a05de362"
+expiration = 720
+gaspricecoef = 128
+gas = 21000
+dependson = 0
+nonce = "0xc1dc42b4e7"
+
 amount = Decimal(5) * 10**18
 to = "0x655fe90ea5ced47e14b01b9eabbf9827366d77c7"
-gasprice = 128
-startgas = 21000
-nonce = 0
+data = ""
 
 tx = Transaction(
-    nonce=int(nonce),
-    gasprice=int(gasprice),
-    startgas=int(startgas),
-    to=decode_hex(to[2:]),
-    value=int(amount),
-    data=""
+    chaintag=int(chaintag),
+    blockref=decode_hex(blockref[2:]),
+    expiration=int(expiration),
+    gaspricecoef=int(gaspricecoef),
+    gas=int(gas),
+    dependson="",
+    nonce=decode_hex(nonce[2:]),
+    clauses=[Clause(to=decode_hex(to[2:]), value=int(amount), data=data)],
+    reserved=""
 )
 
 encodedTx = encode(tx, UnsignedTransaction)

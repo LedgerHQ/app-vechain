@@ -5,3 +5,4 @@ obj
 src_common/glyphs.c
 src_common/glyphs.h
 *.pyc
+.idea

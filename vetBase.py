@@ -18,7 +18,7 @@
 ********************************************************************************
 """
 
-from rlp.sedes import big_endian_int, binary, Binary
+from rlp.sedes import big_endian_int, binary, Binary, List, CountableList
 from rlp import Serializable
 
 try:
@@ -32,20 +32,33 @@ address = Binary.fixed_length(20, allow_empty=True)
 def sha3(seed):
 	return sha3_256(str(seed))
 
-class Transaction(Serializable):
+class Clause(Serializable):
 	fields = [
-		('nonce', big_endian_int),
-		('gasprice', big_endian_int),
-		('startgas', big_endian_int),
 		('to', address),
 		('value', big_endian_int),
-		('data', binary),
+		('data', binary)
+	]
+
+	def __init__(self, to, value, data):
+		super(Clause, self).__init__(to, value, data)
+
+class Transaction(Serializable):
+	fields = [
+		('chaintag', big_endian_int),
+		('blockref', binary),
+		('expiration', big_endian_int),
+		('clauses', CountableList(Clause)),
+		('gaspricecoef', big_endian_int),
+		('gas', big_endian_int),
+		('dependson', binary),
+		('nonce', binary),
+		('reserved', binary),
 		('v', big_endian_int),
 		('r', big_endian_int),
 		('s', big_endian_int),
-	]	
+	]
 
-	def __init__(self, nonce, gasprice, startgas, to, value, data, v=0, r=0, s=0):
-		super(Transaction, self).__init__(nonce, gasprice, startgas, to, value, data, v, r, s)
+	def __init__(self, chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, v=0, r=0, s=0):
+		super(Transaction, self).__init__(chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, v, r, s)
 
 UnsignedTransaction = Transaction.exclude(['v', 'r', 's'])
