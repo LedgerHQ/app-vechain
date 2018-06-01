@@ -115,9 +115,12 @@ union {
     messageSigningContext_t messageSigningContext;
 } tmpCtx;
 txContext_t txContext;
-
+clausesContext_t clausesContext;
+clauseContext_t clauseContext;
 union {
     txContent_t txContent;
+    clausesContent_t clausesContent;
+    clauseContent_t clauseContent;
     cx_sha256_t sha2;
 } tmpContent;
 
@@ -2282,7 +2285,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         }
         dataPresent = false;
         tokenContext.provisioned = false;
-        initTx(&txContext, &blake, &tmpContent.txContent, customProcessor, NULL);
+        initTx(&txContext, &tmpContent.txContent,
+               &clausesContext, &tmpContent.clausesContent,
+               &clauseContext, &tmpContent.clauseContent,
+               &blake, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -2293,7 +2299,15 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         PRINTF("Parser not initialized\n");
         THROW(0x6985);
     }
-    txResult = processTx(&txContext, workBuffer, dataLength);
+    if (clausesContext.currentField == TX_RLP_NONE) {
+        PRINTF("Parser not initialized\n");
+        THROW(0x6986);
+    }
+    if (clauseContext.currentField == TX_RLP_NONE) {
+        PRINTF("Parser not initialized\n");
+        THROW(0x6987);
+    }
+    txResult = processTx(&txContext, &clausesContext, &clauseContext, &workBuffer, dataLength);
     switch (txResult) {
     case USTREAM_FINISHED:
         break;

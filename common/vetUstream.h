@@ -19,6 +19,7 @@
 #include "cx.h"
 #include <stdbool.h>
 #include <blake2b.h>
+#include "vetClausesUstream.h"
 
 struct txContext_t;
 
@@ -27,15 +28,15 @@ typedef bool (*ustreamProcess_t)(struct txContext_t *context);
 typedef enum rlpTxField_e {
     TX_RLP_NONE = 0,
     TX_RLP_CONTENT,
+    TX_RLP_CHAINTAG,
+    TX_RLP_BLOCKREF,
+    TX_RLP_EXPIRATION,
+    TX_RLP_CLAUSES,
+    TX_RLP_GASPRICECOEF,
+    TX_RLP_GAS,
+    TX_RLP_DEPENDSON,
     TX_RLP_NONCE,
-    TX_RLP_GASPRICE,
-    TX_RLP_STARTGAS,
-    TX_RLP_TO,
-    TX_RLP_VALUE,
-    TX_RLP_DATA,
-    TX_RLP_V,
-    TX_RLP_R,
-    TX_RLP_S,
+    TX_RLP_RESERVED,
     TX_RLP_DONE
 } rlpTxField_e;
 
@@ -51,13 +52,9 @@ typedef struct txInt256_t {
 } txInt256_t;
 
 typedef struct txContent_t {
-    txInt256_t gasprice;
-    txInt256_t startgas;
-    txInt256_t value;
-    uint8_t destination[20];
-    uint8_t destinationLength;
-    uint8_t v[2];
-    uint8_t vLength;
+    txInt256_t gaspricecoef;
+    txInt256_t gas;
+    clausesContent_t clauses;
 } txContent_t;
 
 typedef struct txContext_t {
