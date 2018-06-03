@@ -19,32 +19,27 @@
 #include "cx.h"
 #include <stdbool.h>
 #include <blake2b.h>
-#include <vetClauseUstream.h>
+#include "ustream.h"
+#include "vetClauseUstream.h"
+
+#define MAX_CLAUSES_SUPPORTED 3
 
 struct clausesContext_t;
 
-typedef bool (*ustreamProcess_t)(struct clausesContext_t *context);
-
-typedef enum rlpTxField_e {
-    TX_RLP_NONE = 0,
-    TX_RLP_CONTENT,
-    TX_RLP_CLAUSE,
-    TX_RLP_DONE
-} rlpTxField_e;
-
-typedef enum parserStatus_e {
-    USTREAM_PROCESSING,
-    USTREAM_FINISHED,
-    USTREAM_FAULT
-} parserStatus_e;
+typedef enum rlpClausesField_e {
+    CLAUSES_RLP_NONE = 0,
+    CLAUSES_RLP_CONTENT,
+    CLAUSES_RLP_CLAUSE,
+    CLAUSES_RLP_DONE
+} rlpClausesField_e;
 
 typedef struct clausesContent_t {
-    clause_t* clauses[];
+    clauseContent_t* clauses[MAX_CLAUSES_SUPPORTED];
     uint8_t clausesLength;
-} txContent_t;
+} clausesContent_t;
 
 typedef struct clausesContext_t {
-    rlpTxField_e currentField;
+    rlpClausesField_e currentField;
     blake2b_ctx *blake2b;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
@@ -59,7 +54,6 @@ typedef struct clausesContext_t {
     clausesContent_t *content;
 } clausesContext_t;
 
-void initClauses(clausesContext_t *context, blake2b_ctx *blake2b, clausesContent_t *content);
-parserStatus_e processClauses(clausesContext_t *context, uint8_t *buffer, uint32_t length);
-void copyClausesData(clausesContext_t *context, uint8_t *out, uint32_t length);
-uint8_t readClausesByte(clausesContext_t *context);
+void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent, blake2b_ctx *blake2b);
+parserStatus_e processClauses(clausesContext_t *context, clauseContext_t *clauseContext, uint8_t *buffer, uint32_t length);
+void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, uint32_t length);

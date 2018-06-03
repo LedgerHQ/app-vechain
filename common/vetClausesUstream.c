@@ -15,7 +15,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
-#include "ethUstream.h"
+#include "vetClausesUstream.h"
 #include "ethUtils.h"
 
 #define MAX_INT256 32
@@ -25,34 +25,16 @@
 #define MAX_ADDRESS 20
 #define MAX_V 2
 
-void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b) {
+void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent, blake2b_ctx *blake2b) {
     os_memset(context, 0, sizeof(clausesContext_t));
     context->blake2b = blake2b;
     context->content = content;
-    context->content->clausesLength = 0
-    context->currentField = TX_RLP_CONTENT;
+    context->content->clausesLength = 0;
+    context->currentField = CLAUSES_RLP_CONTENT;
     initClause(clauseContext, clauseContent, blake2b);
 }
 
-uint8_t readByte(clausesContext_t *context) {
-    uint8_t data;
-    if (context->commandLength < 1) {
-        PRINTF("readTxByte Underflow\n");
-        THROW(EXCEPTION);
-    }
-    data = *context->workBuffer;
-    context->workBuffer++;
-    context->commandLength--;
-    if (context->processingField) {
-        context->currentFieldPos++;
-    }
-    if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
-    }
-    return data;
-}
-
-void copyClausesData(clausesContext_t *context, clauseContent_t *clauseContext, uint32_t length) {
+void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
@@ -79,7 +61,7 @@ static void processContent(clausesContext_t *context) {
     context->processingField = false;
 }
 
-static void processClause(clausesContext_t *context, clauseContext_t *clauseContext) {
+static void processClauseField(clausesContext_t *context, clauseContext_t *clauseContext) {
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CLAUSES\n");
         THROW(EXCEPTION);
@@ -95,7 +77,9 @@ static void processClause(clausesContext_t *context, clauseContext_t *clauseCont
                         copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
-        context->content->clauses[context->content->clausesLength - 1] = clauseContext->content;
+        if (context->content->clausesLength <= MAX_CLAUSES_SUPPORTED) {
+            context->content->clauses[context->content->clausesLength - 1] = clauseContext->content;
+        }
         context->processingField = false;
     }
 }
@@ -151,23 +135,14 @@ static parserStatus_e processClausesInternal(clausesContext_t *context, clauseCo
             context->currentFieldPos = 0;
             context->rlpBufferPos = 0;
             context->processingField = true;
-            if (context->content->clausesLength == 0) {
-                context->content->clausesLength = 1
-                context->content->clauses = malloc(sizeof(clauseContent_t))
-            } else {
-                context->content->clausesLength++
-                context->content->clauses = realloc(context->content->clausesLength * sizeof(clauseContent_t));
-                if (!context->content->clauses) {
-                    THROW(EXCEPTION)  // Failed to reallocate clauses array
-                }
-            }
+            context->content->clausesLength++;
         }
         switch (context->currentField) {
-        case TX_RLP_CONTENT:
+        case CLAUSES_RLP_CONTENT:
             processContent(context);
             break;
-        case TX_RLP_CLAUSE:
-            processClause(context, clauseContext);
+        case CLAUSES_RLP_CLAUSE:
+            processClauseField(context, clauseContext);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");

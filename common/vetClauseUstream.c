@@ -15,7 +15,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
-#include "ethUstream.h"
+#include "vetClauseUstream.h"
 #include "ethUtils.h"
 
 #define MAX_INT256 32
@@ -26,31 +26,13 @@
 #define MAX_V 2
 
 void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b) {
-    os_memset(context, 0, sizeof(clausesContext_t));
+    os_memset(context, 0, sizeof(clauseContext_t));
     context->blake2b = blake2b;
     context->content = content;
-    context->currentField = TX_RLP_CONTENT;
+    context->currentField = CLAUSE_RLP_CONTENT;
 }
 
-uint8_t readByte(clausesContext_t *context) {
-    uint8_t data;
-    if (context->commandLength < 1) {
-        PRINTF("readTxByte Underflow\n");
-        THROW(EXCEPTION);
-    }
-    data = *context->workBuffer;
-    context->workBuffer++;
-    context->commandLength--;
-    if (context->processingField) {
-        context->currentFieldPos++;
-    }
-    if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
-    }
-    return data;
-}
-
-void copyClauseData(clausesContext_t *context, uint8_t *out, uint32_t length) {
+void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
@@ -68,7 +50,7 @@ void copyClauseData(clausesContext_t *context, uint8_t *out, uint32_t length) {
     }
 }
 
-static void processContent(clausesContext_t *context) {
+static void processContent(clauseContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CONTENT\n");
@@ -79,7 +61,7 @@ static void processContent(clausesContext_t *context) {
     context->processingField = false;
 }
 
-static void processValue(txContext_t *context) {
+static void processValueField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_VALUE\n");
         THROW(EXCEPTION);
@@ -105,7 +87,7 @@ static void processValue(txContext_t *context) {
     }
 }
 
-static void processTo(txContext_t *context) {
+static void processToField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_TO\n");
         THROW(EXCEPTION);
@@ -131,7 +113,7 @@ static void processTo(txContext_t *context) {
     }
 }
 
-static void processData(txContext_t *context) {
+static void processDataField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
@@ -150,16 +132,10 @@ static void processData(txContext_t *context) {
     }
 }
 
-static parserStatus_e processTxInternal(clausesContext_t *context) {
+static parserStatus_e processClauseInternal(clauseContext_t *context) {
     for (;;) {
         // EIP 155 style transasction
-        if (context->currentField == TX_RLP_DONE) {
-            return USTREAM_FINISHED;
-        }
-        // Old style transaction
-        if ((context->currentField == TX_RLP_V) &&
-            (context->commandLength == 0)) {
-            context->content->vLength = 0;
+        if (context->currentField == CLAUSE_RLP_DONE) {
             return USTREAM_FINISHED;
         }
         if (context->commandLength == 0) {
@@ -213,17 +189,17 @@ static parserStatus_e processTxInternal(clausesContext_t *context) {
             context->processingField = true;
         }
         switch (context->currentField) {
-        case TX_RLP_CONTENT:
+        case CLAUSE_RLP_CONTENT:
             processContent(context);
             break;
-        case TX_RLP_VALUE:
-            processValue(context);
+        case CLAUSE_RLP_VALUE:
+            processValueField(context);
             break;
-        case TX_RLP_TO:
-            processTo(context);
+        case CLAUSE_RLP_TO:
+            processToField(context);
             break;
-        case TX_RLP_DATA:
-            processData(context);
+        case CLAUSE_RLP_DATA:
+            processDataField(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -232,14 +208,14 @@ static parserStatus_e processTxInternal(clausesContext_t *context) {
     }
 }
 
-parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
+parserStatus_e processClause(clauseContext_t *context, uint8_t *buffer,
                          uint32_t length) {
     parserStatus_e result;
     BEGIN_TRY {
         TRY {
             context->workBuffer = buffer;
             context->commandLength = length;
-            result = processTxInternal(context);
+            result = processClauseInternal(context);
         }
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;

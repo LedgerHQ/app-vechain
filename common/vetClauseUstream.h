@@ -19,39 +19,27 @@
 #include "cx.h"
 #include <stdbool.h>
 #include <blake2b.h>
+#include "ustream.h"
 
 struct clauseContext_t;
 
-typedef bool (*ustreamProcess_t)(struct clauseContext_t *context);
-
-typedef enum rlpTxField_e {
-    TX_RLP_NONE = 0,
-    TX_RLP_CONTENT,
-    TX_RLP_TO,
-    TX_RLP_VALUE,
-    TX_RLP_DATA,
-    TX_RLP_DONE
-} rlpTxField_e;
-
-typedef enum parserStatus_e {
-    USTREAM_PROCESSING,
-    USTREAM_FINISHED,
-    USTREAM_FAULT
-} parserStatus_e;
-
-typedef struct txInt256_t {
-    uint8_t* value[];
-    uint8_t length;
-} txInt256_t;
+typedef enum rlpClauseField_e {
+    CLAUSE_RLP_NONE = 0,
+    CLAUSE_RLP_CONTENT,
+    CLAUSE_RLP_TO,
+    CLAUSE_RLP_VALUE,
+    CLAUSE_RLP_DATA,
+    CLAUSE_RLP_DONE
+} rlpClauseField_e;
 
 typedef struct clauseContent_t {
-    uint8_t destination[20];
-    uint8_t destinationLength;
+    uint8_t to[20];
+    uint8_t toLength;
     txInt256_t value;
-} txContent_t
+} clauseContent_t;
 
 typedef struct clauseContext_t {
-    rlpTxField_e currentField;
+    rlpClauseField_e currentField;
     blake2b_ctx *blake2b;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
@@ -64,9 +52,8 @@ typedef struct clauseContext_t {
     uint8_t *workBuffer;
     uint32_t commandLength;
     clauseContent_t *content;
-} txContext_t;
+} clauseContext_t;
 
-void initClause(clauseContext_t *context, blake2b_ctx *blake2b, clauseContent_t *content);
+void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b);
 parserStatus_e processClause(clauseContext_t *context, uint8_t *buffer, uint32_t length);
 void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length);
-uint8_t readClauseByte(clauseContext_t *context);

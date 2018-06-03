@@ -18,7 +18,7 @@
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
-#include "ethUstream.h"
+#include "vetUstream.h"
 #include "ethUtils.h"
 #include "uint256.h"
 #include "tokens.h"
@@ -1897,20 +1897,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                       sizeof(tmpCtx.transactionContext.hash), signature);
 #endif
     os_memset(&privateKey, 0, sizeof(privateKey));
-    // Parity is present in the sequence tag in the legacy API
-    if (tmpContent.txContent.vLength == 0) {
-        // Legacy API
-        G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
-    } else {
-        // New API
-        uint8_t v;
-        if (tmpContent.txContent.vLength == 1) {
-            v = tmpContent.txContent.v[0];
-        } else {
-            v = tmpContent.txContent.v[1];
-        }
-        G_io_apdu_buffer[0] = (v * 2) + 35 + (signature[0] & 0x01);
-    }
+    G_io_apdu_buffer[0] = signature[0] & 0x01;
     rLength = signature[3];
     sLength = signature[4 + rLength + 1];
     rOffset = (rLength == 33 ? 1 : 0);
@@ -2150,7 +2137,7 @@ void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
 }
 
 bool customProcessor(txContext_t *context) {
-    if ((context->currentField == TX_RLP_DATA) &&
+    /*if ((context->currentField == TX_RLP_DATA) &&
         (context->currentFieldLength != 0)) {
         if (!N_storage.dataAllowed) {
             PRINTF("Data field forbidden\n");
@@ -2181,7 +2168,7 @@ bool customProcessor(txContext_t *context) {
                 return true;
             }
         }
-    }
+    }*/
     return false;
 }
 
@@ -2261,7 +2248,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 volatile unsigned int *tx) {
     UNUSED(tx);
     parserStatus_e txResult;
-    uint256_t gasPrice, startGas, uint256;
+    uint256_t gasPriceCoef, gas, uint256;
     uint32_t i;
     uint8_t address[41];
     uint8_t decimals = WEI_TO_ETHER;
@@ -2328,23 +2315,23 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         for (i = 0; i < NUM_TOKENS; i++) {
             tokenDefinition_t *currentToken = PIC(&TOKENS[i]);
             if (os_memcmp(currentToken->address,
-                          tmpContent.txContent.destination, 20) == 0) {
+                          tmpContent.clausesContent.clauses[0]->to, 20) == 0) {
                 dataPresent = false;
                 decimals = currentToken->decimals;
                 ticker = currentToken->ticker;
-                tmpContent.txContent.destinationLength = 20;
-                os_memmove(tmpContent.txContent.destination,
+                tmpContent.clausesContent.clauses[0]->toLength = 20;
+                os_memmove(tmpContent.clausesContent.clauses[0]->to,
                            tokenContext.data + 4 + 12, 20);
-                os_memmove(tmpContent.txContent.value.value,
+                os_memmove(tmpContent.clausesContent.clauses[0]->value.value,
                            tokenContext.data + 4 + 32, 32);
-                tmpContent.txContent.value.length = 32;
+                tmpContent.clausesContent.clauses[0]->value.length = 32;
                 break;
             }
         }
     }
     // Add address
-    if (tmpContent.txContent.destinationLength != 0) {
-        getEthAddressStringFromBinary(tmpContent.txContent.destination, address,
+    if (tmpContent.clausesContent.clauses[0]->toLength != 0) {
+        getEthAddressStringFromBinary(tmpContent.clausesContent.clauses[0]->to, address,
                                       &sha3);
         /*
         addressSummary[0] = '0';
@@ -2365,8 +2352,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         strcpy(fullAddress, "Contract");
     }
     // Add amount in ethers or tokens
-    convertUint256BE(tmpContent.txContent.value.value,
-                     tmpContent.txContent.value.length, &uint256);
+    convertUint256BE(tmpContent.clausesContent.clauses[0]->value.value,
+                     tmpContent.clausesContent.clauses[0]->value.length, &uint256);
     tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
@@ -2386,11 +2373,11 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
     fullAmount[tickerOffset + i] = '\0';
     // Compute maximum fee
-    convertUint256BE(tmpContent.txContent.gasprice.value,
-                     tmpContent.txContent.gasprice.length, &gasPrice);
-    convertUint256BE(tmpContent.txContent.startgas.value,
-                     tmpContent.txContent.startgas.length, &startGas);
-    mul256(&gasPrice, &startGas, &uint256);
+    convertUint256BE(tmpContent.txContent.gaspricecoef.value,
+                     tmpContent.txContent.gaspricecoef.length, &gasPriceCoef);
+    convertUint256BE(tmpContent.txContent.gas.value,
+                     tmpContent.txContent.gas.length, &gas);
+    mul256(&gasPriceCoef, &gas, &uint256);
     tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {

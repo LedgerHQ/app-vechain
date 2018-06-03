@@ -19,6 +19,7 @@
 #include "cx.h"
 #include <stdbool.h>
 #include <blake2b.h>
+#include "ustream.h"
 #include "vetClausesUstream.h"
 
 struct txContext_t;
@@ -40,21 +41,10 @@ typedef enum rlpTxField_e {
     TX_RLP_DONE
 } rlpTxField_e;
 
-typedef enum parserStatus_e {
-    USTREAM_PROCESSING,
-    USTREAM_FINISHED,
-    USTREAM_FAULT
-} parserStatus_e;
-
-typedef struct txInt256_t {
-    uint8_t value[32];
-    uint8_t length;
-} txInt256_t;
-
 typedef struct txContent_t {
     txInt256_t gaspricecoef;
     txInt256_t gas;
-    clausesContent_t clauses;
+    clausesContent_t *clauses;
 } txContent_t;
 
 typedef struct txContext_t {
@@ -75,9 +65,14 @@ typedef struct txContext_t {
     void *extra;
 } txContext_t;
 
-void initTx(txContext_t *context, blake2b_ctx *blake2b, txContent_t *content,
-            ustreamProcess_t customProcessor, void *extra);
-parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
+void initTx(txContext_t *context, txContent_t *content,
+            clausesContext_t *clausesContext, clausesContent_t *clausesContent,
+            clauseContext_t *clauseContext, clauseContent_t *clauseContent,
+            blake2b_ctx *blake2b, ustreamProcess_t customProcessor, void *extra);
+parserStatus_e processTx(txContext_t *context,
+                         clausesContext_t *clausesContext, 
+                         clauseContext_t *clauseContext, 
+                         uint8_t *buffer,
                          uint32_t length);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);
