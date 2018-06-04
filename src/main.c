@@ -117,10 +117,11 @@ union {
 txContext_t txContext;
 clausesContext_t clausesContext;
 clauseContext_t clauseContext;
+
 union {
     txContent_t txContent;
     clausesContent_t clausesContent;
-    clauseContent_t clauseContent;
+    clauseContent_t clauseContents[MAX_CLAUSES_SUPPORTED];
     cx_sha256_t sha2;
 } tmpContent;
 
@@ -2137,6 +2138,7 @@ void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
 }
 
 bool customProcessor(txContext_t *context) {
+    THROW(0x6660);
     /*if ((context->currentField == TX_RLP_DATA) &&
         (context->currentFieldLength != 0)) {
         if (!N_storage.dataAllowed) {
@@ -2274,7 +2276,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         tokenContext.provisioned = false;
         initTx(&txContext, &tmpContent.txContent,
                &clausesContext, &tmpContent.clausesContent,
-               &clauseContext, &tmpContent.clauseContent,
+               &clauseContext, tmpContent.clauseContents,
                &blake, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -2294,7 +2296,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         PRINTF("Parser not initialized\n");
         THROW(0x6987);
     }
-    txResult = processTx(&txContext, &clausesContext, &clauseContext, &workBuffer, dataLength);
+    txResult = processTx(&txContext, &clausesContext, &clauseContext, workBuffer, dataLength);
     switch (txResult) {
     case USTREAM_FINISHED:
         break;
@@ -2329,9 +2331,12 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             }
         }
     }
+
+    //THROW(0x6600 | tmpContent.clausesContent.clausesLength);
     // Add address
-    if (tmpContent.clausesContent.clauses[0]->toLength != 0) {
-        getEthAddressStringFromBinary(tmpContent.clausesContent.clauses[0]->to, address,
+    THROW(0x6600 | tmpContent.clauseContents[0].toLength);
+    if (tmpContent.clauseContents[0].toLength != 0) {
+        getEthAddressStringFromBinary(tmpContent.clauseContents[0].to, address,
                                       &sha3);
         /*
         addressSummary[0] = '0';
@@ -2351,9 +2356,12 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                    sizeof(CONTRACT_ADDRESS));
         strcpy(fullAddress, "Contract");
     }
+
     // Add amount in ethers or tokens
-    convertUint256BE(tmpContent.clausesContent.clauses[0]->value.value,
-                     tmpContent.clausesContent.clauses[0]->value.length, &uint256);
+    THROW(0x6600 | tmpContent.clauseContents[0].value.length);
+    convertUint256BE(tmpContent.clauseContents[0].value.value,
+                     tmpContent.clauseContents[0].value.length, &uint256);
+    THROW(0x6602);
     tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
@@ -2576,7 +2584,8 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
                 break;
             default:
                 // Internal error
-                sw = 0x6800 | (e & 0x7FF);
+                sw = e;
+                //sw = 0x6800 | (e & 0x7FF);
                 break;
             }
             // Unexpected exception => report
@@ -2636,7 +2645,8 @@ void sample_main(void) {
                     break;
                 default:
                     // Internal error
-                    sw = 0x6800 | (e & 0x7FF);
+                    sw = e;
+                    //sw = 0x6800 | (e & 0x7FF);
                     break;
                 }
                 // Unexpected exception => report

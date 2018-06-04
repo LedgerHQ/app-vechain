@@ -71,7 +71,7 @@ void initTx(txContext_t *context, txContent_t *content,
             blake2b_ctx *blake2b, ustreamProcess_t customProcessor, void *extra);
 parserStatus_e processTx(txContext_t *context,
                          clausesContext_t *clausesContext, 
-                         clauseContext_t *clauseContext, 
+                         clauseContext_t *clauseContext,
                          uint8_t *buffer,
                          uint32_t length);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);

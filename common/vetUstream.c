@@ -27,7 +27,7 @@
 
 void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
-            clauseContext_t *clauseContext, clauseContent_t *clauseContent,
+            clauseContext_t *clauseContext, clauseContent_t *clauseContents,
             blake2b_ctx *blake2b, ustreamProcess_t customProcessor, void *extra) {
     os_memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
@@ -36,14 +36,14 @@ void initTx(txContext_t *context, txContent_t *content,
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
     blake2b_init(context->blake2b, 32, NULL, 0);
-    initClauses(context, content, clausesContext, clausesContent, blake2b);
+    initClauses(clausesContext, clausesContent, clauseContext, clauseContents, blake2b);
 }
 
 uint8_t readTxByte(txContext_t *context) {
     uint8_t data;
     if (context->commandLength < 1) {
         PRINTF("readTxByte Underflow\n");
-        THROW(EXCEPTION);
+        THROW(0x6802);
     }
     data = *context->workBuffer;
     context->workBuffer++;
@@ -68,7 +68,7 @@ void copyTxDataClauses(txContext_t *context,
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
-        THROW(EXCEPTION);
+        THROW((context->currentField << 8) | length);
     }
     if (out != NULL) {
         os_memmove(out, context->workBuffer, length);
@@ -87,7 +87,7 @@ static void processContent(txContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CONTENT\n");
-        THROW(EXCEPTION);
+        THROW(0x6800 | context->workBuffer[0]);
     }
     context->dataLength = context->currentFieldLength;
     context->currentField++;
@@ -97,11 +97,11 @@ static void processContent(txContext_t *context) {
 static void processChainTagField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6805);
     }
     if (context->currentFieldLength > MAX_INT32) {
         PRINTF("Invalid length for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6806);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -120,11 +120,11 @@ static void processChainTagField(txContext_t *context) {
 static void processBlockRefField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6807);
     }
     if (context->currentFieldLength > MAX_INT64) {
         PRINTF("Invalid length for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6808);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -143,11 +143,11 @@ static void processBlockRefField(txContext_t *context) {
 static void processExpirationField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6809);
     }
     if (context->currentFieldLength > MAX_INT32) {
         PRINTF("Invalid length for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x680a);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -166,7 +166,7 @@ static void processExpirationField(txContext_t *context) {
 static void processClausesField(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CLAUSES\n");
-        THROW(EXCEPTION);
+        THROW(0x680b);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -189,11 +189,11 @@ static void processClausesField(txContext_t *context, clausesContext_t *clausesC
 static void processGasPriceCoefField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_GASPRICECOEF\n");
-        THROW(EXCEPTION);
+        THROW(0x680c);
     }
     if (context->currentFieldLength > MAX_INT8) {
         PRINTF("Invalid length for RLP_GASPRICECOEF\n");
-        THROW(EXCEPTION);
+        THROW(0x680d);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -215,12 +215,12 @@ static void processGasPriceCoefField(txContext_t *context) {
 static void processGasField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_GAS\n");
-        THROW(EXCEPTION);
+        THROW(0x680e);
     }
     if (context->currentFieldLength > MAX_INT64) {
         PRINTF("Invalid length for RLP_GAS %d\n",
                context->currentFieldLength);
-        THROW(EXCEPTION);
+        THROW(0x680f);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -242,11 +242,11 @@ static void processGasField(txContext_t *context) {
 static void processDependsOnField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6810);
     }
     if (context->currentFieldLength > MAX_INT256) {
         PRINTF("Invalid length for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6811);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -265,11 +265,11 @@ static void processDependsOnField(txContext_t *context) {
 static void processNonceField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6812);
     }
     if (context->currentFieldLength > MAX_INT64) {
         PRINTF("Invalid length for RLP_NONCE\n");
-        THROW(EXCEPTION);
+        THROW(0x6813);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -288,11 +288,11 @@ static void processNonceField(txContext_t *context) {
 static void processReservedField(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_RESERVED\n");
-        THROW(EXCEPTION);
+        THROW(0x6814);
     }
-    if (context->currentFieldLength > 0) {
+    if (context->currentFieldLength > 1 || context->commandLength > 0) {
         PRINTF("Invalid length for RLP_RESERVED\n");
-        THROW(EXCEPTION);
+        THROW(0x6815);
     }
     context->currentField++;
     context->processingField = false;
@@ -353,9 +353,9 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
             context->currentFieldPos = 0;
             context->rlpBufferPos = 0;
             context->processingField = true;
-        }
+        }   
         if (context->customProcessor != NULL) {
-            processedCustom = context->customProcessor(context);
+            processedCustom = false; //context->customProcessor(context);
         }
         if (!processedCustom) {
             switch (context->currentField) {
@@ -403,18 +403,18 @@ parserStatus_e processTx(txContext_t *context,
                          uint8_t *buffer,
                          uint32_t length) {
     parserStatus_e result;
-    BEGIN_TRY {
-        TRY {
+    /*BEGIN_TRY {
+        TRY {*/
             context->workBuffer = buffer;
             context->commandLength = length;
             result = processTxInternal(context, clausesContext, clauseContext);
-        }
+        /*}
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;
         }
         FINALLY {
         }
     }
-    END_TRY;
+    END_TRY;*/
     return result;
 }

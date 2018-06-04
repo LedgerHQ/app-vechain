@@ -52,6 +52,7 @@ typedef struct clauseContext_t {
     uint8_t *workBuffer;
     uint32_t commandLength;
     clauseContent_t *content;
+    uint8_t contentIndex;
 } clauseContext_t;
 
 void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b);

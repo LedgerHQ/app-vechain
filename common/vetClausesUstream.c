@@ -25,19 +25,18 @@
 #define MAX_ADDRESS 20
 #define MAX_V 2
 
-void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent, blake2b_ctx *blake2b) {
+void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContents, blake2b_ctx *blake2b) {
     os_memset(context, 0, sizeof(clausesContext_t));
     context->blake2b = blake2b;
     context->content = content;
     context->content->clausesLength = 0;
     context->currentField = CLAUSES_RLP_CONTENT;
-    initClause(clauseContext, clauseContent, blake2b);
 }
 
 void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
-        THROW(EXCEPTION);
+        THROW(0x6901);
     }
     processClause(clauseContext, context->workBuffer, length);
     if (!(context->processingField && context->fieldSingleByte)) {
@@ -54,7 +53,7 @@ static void processContent(clausesContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CONTENT\n");
-        THROW(EXCEPTION);
+        THROW(0x6902);
     }
     context->dataLength = context->currentFieldLength;
     context->currentField++;
@@ -64,7 +63,8 @@ static void processContent(clausesContext_t *context) {
 static void processClauseField(clausesContext_t *context, clauseContext_t *clauseContext) {
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CLAUSES\n");
-        THROW(EXCEPTION);
+        THROW((context->workBuffer[0] << 8 | context->workBuffer[1]));
+        //THROW(0x6903);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -76,12 +76,7 @@ static void processClauseField(clausesContext_t *context, clauseContext_t *claus
                         clauseContext,
                         copySize);
     }
-    if (context->currentFieldPos == context->currentFieldLength) {
-        if (context->content->clausesLength <= MAX_CLAUSES_SUPPORTED) {
-            context->content->clauses[context->content->clausesLength - 1] = clauseContext->content;
-        }
-        context->processingField = false;
-    }
+    context->processingField = false;
 }
 
 static parserStatus_e processClausesInternal(clausesContext_t *context, clauseContext_t *clauseContext) {
@@ -135,7 +130,11 @@ static parserStatus_e processClausesInternal(clausesContext_t *context, clauseCo
             context->currentFieldPos = 0;
             context->rlpBufferPos = 0;
             context->processingField = true;
-            context->content->clausesLength++;
+            if (context->content->clausesLength < MAX_CLAUSES_SUPPORTED) {
+                initClause(clauseContext, context->content->clauses[context->content->clausesLength], blake2b);
+                context->content->clausesLength++;
+            }
+            
         }
         switch (context->currentField) {
         case CLAUSES_RLP_CONTENT:
@@ -156,18 +155,18 @@ parserStatus_e processClauses(clausesContext_t *context,
                               uint8_t *buffer,
                               uint32_t length) {
     parserStatus_e result;
-    BEGIN_TRY {
-        TRY {
+    /*BEGIN_TRY {
+        TRY {*/
             context->workBuffer = buffer;
             context->commandLength = length;
             result = processClausesInternal(context, clauseContext);
-        }
+        /*}
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;
         }
         FINALLY {
         }
     }
-    END_TRY;
+    END_TRY;*/
     return result;
 }
