@@ -29,12 +29,30 @@ void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx 
     os_memset(context, 0, sizeof(clauseContext_t));
     context->blake2b = blake2b;
     context->content = content;
-    context->currentField = CLAUSE_RLP_CONTENT;
+    context->currentField = CLAUSE_RLP_TO;
+}
+
+uint8_t readClauseByte(clauseContext_t *context) {
+    uint8_t data;
+    if (context->commandLength < 1) {
+        PRINTF("readClauseByte Underflow\n");
+        THROW(0x6a08);
+    }
+    data = *context->workBuffer;
+    context->workBuffer++;
+    context->commandLength--;
+    if (context->processingField) {
+        context->currentFieldPos++;
+    }
+    if (!(context->processingField && context->fieldSingleByte)) {
+        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
+    }
+    return data;
 }
 
 void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
     if (context->commandLength < length) {
-        PRINTF("copyTxData Underflow\n");
+        PRINTF("copyClauseData Underflow\n");
         THROW(0x6a01);
     }
     if (out != NULL) {
@@ -61,32 +79,6 @@ static void processContent(clauseContext_t *context) {
     context->processingField = false;
 }
 
-static void processValueField(clauseContext_t *context) {
-    if (context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_VALUE\n");
-        THROW(0x6a03);
-    }
-    if (context->currentFieldLength > MAX_INT256) {
-        PRINTF("Invalid length for RLP_VALUE\n");
-        THROW(0x6a04);
-    }
-    if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context,
-                   context->content->value.value + context->currentFieldPos,
-                   copySize);
-    }
-    if (context->currentFieldPos == context->currentFieldLength) {
-        context->content->value.length = context->currentFieldLength;
-        context->currentField++;
-        context->processingField = false;
-    }
-}
-
 static void processToField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_TO\n");
@@ -102,12 +94,38 @@ static void processToField(clauseContext_t *context) {
                      ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context,
-                   context->content->to + context->currentFieldPos,
-                   copySize);
+        copyClauseData(context,
+                       context->content->to + context->currentFieldPos,
+                      copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         context->content->toLength = context->currentFieldLength;
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
+static void processValueField(clauseContext_t *context) {
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for RLP_VALUE\n");
+        THROW(0x6a03);
+    }
+    if (context->currentFieldLength > MAX_INT256) {
+        PRINTF("Invalid length for RLP_VALUE\n");
+        THROW(0x6a04);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            (context->commandLength <
+                     ((context->currentFieldLength - context->currentFieldPos))
+                 ? context->commandLength
+                 : context->currentFieldLength - context->currentFieldPos);
+        copyClauseData(context,
+                       context->content->value.value + context->currentFieldPos,
+                       copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->content->value.length = context->currentFieldLength;
         context->currentField++;
         context->processingField = false;
     }
@@ -124,7 +142,7 @@ static void processDataField(clauseContext_t *context) {
                      ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context, NULL, copySize);
+        copyClauseData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         context->currentField++;
@@ -148,7 +166,7 @@ static parserStatus_e processClauseInternal(clauseContext_t *context) {
                 bool valid;
                 // Feed the RLP buffer until the length can be decoded
                 context->rlpBuffer[context->rlpBufferPos++] =
-                    readTxByte(context);
+                    readClauseByte(context);
                 if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos,
                                  &valid)) {
                     // Can decode now, if valid
@@ -192,11 +210,11 @@ static parserStatus_e processClauseInternal(clauseContext_t *context) {
         case CLAUSE_RLP_CONTENT:
             processContent(context);
             break;
-        case CLAUSE_RLP_VALUE:
-            processValueField(context);
-            break;
         case CLAUSE_RLP_TO:
             processToField(context);
+            break;
+        case CLAUSE_RLP_VALUE:
+            processValueField(context);
             break;
         case CLAUSE_RLP_DATA:
             processDataField(context);

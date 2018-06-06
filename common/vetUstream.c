@@ -27,7 +27,7 @@
 
 void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
-            clauseContext_t *clauseContext, clauseContent_t *clauseContents,
+            clauseContext_t *clauseContext, clauseContent_t *clauseContent,
             blake2b_ctx *blake2b, ustreamProcess_t customProcessor, void *extra) {
     os_memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
@@ -36,7 +36,7 @@ void initTx(txContext_t *context, txContent_t *content,
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
     blake2b_init(context->blake2b, 32, NULL, 0);
-    initClauses(clausesContext, clausesContent, clauseContext, clauseContents, blake2b);
+    initClauses(clausesContext, clausesContent, clauseContext, clauseContent, blake2b);
 }
 
 uint8_t readTxByte(txContext_t *context) {
@@ -68,7 +68,7 @@ void copyTxDataClauses(txContext_t *context,
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
-        THROW((context->currentField << 8) | length);
+        THROW(0x6803);
     }
     if (out != NULL) {
         os_memmove(out, context->workBuffer, length);
@@ -87,7 +87,7 @@ static void processContent(txContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CONTENT\n");
-        THROW(0x6800 | context->workBuffer[0]);
+        THROW(0x6804);
     }
     context->dataLength = context->currentFieldLength;
     context->currentField++;

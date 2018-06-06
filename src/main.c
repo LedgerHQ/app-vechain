@@ -120,10 +120,10 @@ clauseContext_t clauseContext;
 
 union {
     txContent_t txContent;
-    clausesContent_t clausesContent;
-    clauseContent_t clauseContents[MAX_CLAUSES_SUPPORTED];
     cx_sha256_t sha2;
 } tmpContent;
+clausesContent_t clausesContent;
+clauseContent_t clauseContent;
 
 blake2b_ctx blake;
 cx_sha3_t sha3;
@@ -2138,7 +2138,6 @@ void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
 }
 
 bool customProcessor(txContext_t *context) {
-    THROW(0x6660);
     /*if ((context->currentField == TX_RLP_DATA) &&
         (context->currentFieldLength != 0)) {
         if (!N_storage.dataAllowed) {
@@ -2275,8 +2274,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         dataPresent = false;
         tokenContext.provisioned = false;
         initTx(&txContext, &tmpContent.txContent,
-               &clausesContext, &tmpContent.clausesContent,
-               &clauseContext, tmpContent.clauseContents,
+               &clausesContext, &clausesContent,
+               &clauseContext, &clauseContent,
                &blake, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -2303,10 +2302,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     case USTREAM_PROCESSING:
         THROW(0x9000);
     case USTREAM_FAULT:
-        THROW(0x6A80);
+        THROW(0x6A81);
     default:
         PRINTF("Unexpected parser status\n");
-        THROW(0x6A80);
+        THROW(0x6A82);
     }
 
     // Store the hash
@@ -2317,26 +2316,24 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         for (i = 0; i < NUM_TOKENS; i++) {
             tokenDefinition_t *currentToken = PIC(&TOKENS[i]);
             if (os_memcmp(currentToken->address,
-                          tmpContent.clausesContent.clauses[0]->to, 20) == 0) {
+                          clauseContent.to, 20) == 0) {
                 dataPresent = false;
                 decimals = currentToken->decimals;
                 ticker = currentToken->ticker;
-                tmpContent.clausesContent.clauses[0]->toLength = 20;
-                os_memmove(tmpContent.clausesContent.clauses[0]->to,
+                clauseContent.toLength = 20;
+                os_memmove(clauseContent.to,
                            tokenContext.data + 4 + 12, 20);
-                os_memmove(tmpContent.clausesContent.clauses[0]->value.value,
+                os_memmove(clauseContent.value.value,
                            tokenContext.data + 4 + 32, 32);
-                tmpContent.clausesContent.clauses[0]->value.length = 32;
+                clauseContent.value.length = 32;
                 break;
             }
         }
     }
 
-    //THROW(0x6600 | tmpContent.clausesContent.clausesLength);
     // Add address
-    THROW(0x6600 | tmpContent.clauseContents[0].toLength);
-    if (tmpContent.clauseContents[0].toLength != 0) {
-        getEthAddressStringFromBinary(tmpContent.clauseContents[0].to, address,
+    if (clauseContent.toLength != 0) {
+        getEthAddressStringFromBinary(clauseContent.to, address,
                                       &sha3);
         /*
         addressSummary[0] = '0';
@@ -2358,10 +2355,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Add amount in ethers or tokens
-    THROW(0x6600 | tmpContent.clauseContents[0].value.length);
-    convertUint256BE(tmpContent.clauseContents[0].value.value,
-                     tmpContent.clauseContents[0].value.length, &uint256);
-    THROW(0x6602);
+    convertUint256BE(clauseContent.value.value,
+                     clauseContent.value.length, &uint256);
     tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
@@ -2451,7 +2446,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
             (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            THROW(0x6a80);
+            THROW(0x6a83);
         }
         workBuffer++;
         dataLength--;
@@ -2490,7 +2485,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6B00);
     }
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(0x6A80);
+        THROW(0x6A84);
     }
     blake2b_update(&blake, workBuffer, dataLength);
     cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL);

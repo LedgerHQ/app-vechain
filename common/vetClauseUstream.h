@@ -21,40 +21,7 @@
 #include <blake2b.h>
 #include "ustream.h"
 
-struct clauseContext_t;
-
-typedef enum rlpClauseField_e {
-    CLAUSE_RLP_NONE = 0,
-    CLAUSE_RLP_CONTENT,
-    CLAUSE_RLP_TO,
-    CLAUSE_RLP_VALUE,
-    CLAUSE_RLP_DATA,
-    CLAUSE_RLP_DONE
-} rlpClauseField_e;
-
-typedef struct clauseContent_t {
-    uint8_t to[20];
-    uint8_t toLength;
-    txInt256_t value;
-} clauseContent_t;
-
-typedef struct clauseContext_t {
-    rlpClauseField_e currentField;
-    blake2b_ctx *blake2b;
-    uint32_t currentFieldLength;
-    uint32_t currentFieldPos;
-    bool currentFieldIsList;
-    bool processingField;
-    bool fieldSingleByte;
-    uint32_t dataLength;
-    uint8_t rlpBuffer[5];
-    uint32_t rlpBufferPos;
-    uint8_t *workBuffer;
-    uint32_t commandLength;
-    clauseContent_t *content;
-    uint8_t contentIndex;
-} clauseContext_t;
-
 void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b);
 parserStatus_e processClause(clauseContext_t *context, uint8_t *buffer, uint32_t length);
 void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length);
+uint8_t readClauseByte(clauseContext_t *context);

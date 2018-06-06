@@ -25,17 +25,36 @@
 #define MAX_ADDRESS 20
 #define MAX_V 2
 
-void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContents, blake2b_ctx *blake2b) {
+void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent, blake2b_ctx *blake2b) {
     os_memset(context, 0, sizeof(clausesContext_t));
     context->blake2b = blake2b;
     context->content = content;
+    context->content->firstClause = clauseContent;
     context->content->clausesLength = 0;
-    context->currentField = CLAUSES_RLP_CONTENT;
+    context->currentField = CLAUSES_RLP_CLAUSE;
+}
+
+uint8_t readClausesByte(clausesContext_t *context) {
+    uint8_t data;
+    if (context->commandLength < 1) {
+        PRINTF("readClausesByte Underflow\n");
+        THROW(0x6904);
+    }
+    data = *context->workBuffer;
+    context->workBuffer++;
+    context->commandLength--;
+    if (context->processingField) {
+        context->currentFieldPos++;
+    }
+    if (!(context->processingField && context->fieldSingleByte)) {
+        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
+    }
+    return data;
 }
 
 void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, uint32_t length) {
     if (context->commandLength < length) {
-        PRINTF("copyTxData Underflow\n");
+        PRINTF("copyClausesData Underflow\n");
         THROW(0x6901);
     }
     processClause(clauseContext, context->workBuffer, length);
@@ -63,8 +82,7 @@ static void processContent(clausesContext_t *context) {
 static void processClauseField(clausesContext_t *context, clauseContext_t *clauseContext) {
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CLAUSES\n");
-        THROW((context->workBuffer[0] << 8 | context->workBuffer[1]));
-        //THROW(0x6903);
+        THROW(0x6903);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -91,7 +109,7 @@ static parserStatus_e processClausesInternal(clausesContext_t *context, clauseCo
                 bool valid;
                 // Feed the RLP buffer until the length can be decoded
                 context->rlpBuffer[context->rlpBufferPos++] =
-                    readTxByte(context);
+                    readClausesByte(context);
                 if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos,
                                  &valid)) {
                     // Can decode now, if valid
@@ -130,11 +148,13 @@ static parserStatus_e processClausesInternal(clausesContext_t *context, clauseCo
             context->currentFieldPos = 0;
             context->rlpBufferPos = 0;
             context->processingField = true;
-            if (context->content->clausesLength < MAX_CLAUSES_SUPPORTED) {
-                initClause(clauseContext, context->content->clauses[context->content->clausesLength], blake2b);
-                context->content->clausesLength++;
+            if (context->content->clausesLength == 0) {
+                initClause(clauseContext, context->content->firstClause, context->blake2b);
+            } else {
+                clauseContent_t tmpContent;
+                initClause(clauseContext, &tmpContent, context->blake2b);
             }
-            
+            context->content->clausesLength++;
         }
         switch (context->currentField) {
         case CLAUSES_RLP_CONTENT:
