@@ -22,7 +22,32 @@
 #include "ustream.h"
 #include "vetClauseUstream.h"
 
-#define MAX_CLAUSES_SUPPORTED 3
+typedef enum rlpClausesField_e {
+    CLAUSES_RLP_NONE = 0,
+    CLAUSES_RLP_CONTENT,
+    CLAUSES_RLP_CLAUSE,
+    CLAUSES_RLP_DONE
+} rlpClausesField_e;
+
+typedef struct clausesContent_t {
+    clauseContent_t *firstClause;
+    uint8_t clausesLength;
+} clausesContent_t;
+
+typedef struct clausesContext_t {
+    rlpClausesField_e currentField;
+    uint32_t currentFieldLength;
+    uint32_t currentFieldPos;
+    bool currentFieldIsList;
+    bool processingField;
+    bool fieldSingleByte;
+    uint32_t dataLength;
+    uint8_t rlpBuffer[5];
+    uint32_t rlpBufferPos;
+    uint8_t *workBuffer;
+    uint32_t commandLength;
+    clausesContent_t *content;
+} clausesContext_t;
 
 void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent);
 parserStatus_e processClauses(clausesContext_t *context, clauseContext_t *clauseContext, uint8_t *buffer, uint32_t length);
