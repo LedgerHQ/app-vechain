@@ -57,7 +57,6 @@ typedef struct clauseContent_t {
 
 typedef struct clauseContext_t {
     rlpClauseField_e currentField;
-    blake2b_ctx *blake2b;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
     bool currentFieldIsList;
@@ -78,7 +77,6 @@ typedef struct clausesContent_t {
 
 typedef struct clausesContext_t {
     rlpClausesField_e currentField;
-    blake2b_ctx *blake2b;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
     bool currentFieldIsList;

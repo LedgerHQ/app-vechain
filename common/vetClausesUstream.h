@@ -24,7 +24,7 @@
 
 #define MAX_CLAUSES_SUPPORTED 3
 
-void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent, blake2b_ctx *blake2b);
+void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent);
 parserStatus_e processClauses(clausesContext_t *context, clauseContext_t *clauseContext, uint8_t *buffer, uint32_t length);
 void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, uint32_t length);
 uint8_t readClausesByte(clausesContext_t *context);

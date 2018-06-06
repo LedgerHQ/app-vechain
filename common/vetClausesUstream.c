@@ -25,9 +25,8 @@
 #define MAX_ADDRESS 20
 #define MAX_V 2
 
-void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent, blake2b_ctx *blake2b) {
+void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent) {
     os_memset(context, 0, sizeof(clausesContext_t));
-    context->blake2b = blake2b;
     context->content = content;
     context->content->firstClause = clauseContent;
     context->content->clausesLength = 0;
@@ -46,9 +45,6 @@ uint8_t readClausesByte(clausesContext_t *context) {
     if (context->processingField) {
         context->currentFieldPos++;
     }
-    if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
-    }
     return data;
 }
 
@@ -58,9 +54,6 @@ void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, 
         THROW(0x6901);
     }
     processClause(clauseContext, context->workBuffer, length);
-    if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, context->workBuffer, length);
-    }
     context->workBuffer += length;
     context->commandLength -= length;
     if (context->processingField) {
@@ -149,10 +142,10 @@ static parserStatus_e processClausesInternal(clausesContext_t *context, clauseCo
             context->rlpBufferPos = 0;
             context->processingField = true;
             if (context->content->clausesLength == 0) {
-                initClause(clauseContext, context->content->firstClause, context->blake2b);
+                initClause(clauseContext, context->content->firstClause);
             } else {
                 clauseContent_t tmpContent;
-                initClause(clauseContext, &tmpContent, context->blake2b);
+                initClause(clauseContext, &tmpContent);
             }
             context->content->clausesLength++;
         }

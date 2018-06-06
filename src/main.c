@@ -1897,6 +1897,12 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                       tmpCtx.transactionContext.hash,
                       sizeof(tmpCtx.transactionContext.hash), signature);
 #endif
+#ifdef DEBUG_TX_HASH
+    os_memmove(G_io_apdu_buffer, tmpCtx.messageSigningContext.hash, 32);
+    tx = 32;
+    G_io_apdu_buffer[tx++] = 0x90;
+    G_io_apdu_buffer[tx++] = 0x00;
+#else
     os_memset(&privateKey, 0, sizeof(privateKey));
     G_io_apdu_buffer[0] = signature[0] & 0x01;
     rLength = signature[3];
@@ -1909,6 +1915,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
+#endif
 #ifdef HAVE_U2F
     if (fidoActivated) {
         u2f_proxy_response((u2f_service_t *)&u2fService, tx);
@@ -1972,12 +1979,6 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
                       tmpCtx.messageSigningContext.hash,
                       sizeof(tmpCtx.messageSigningContext.hash), signature);
 #endif
-#ifdef DEBUG_TX_HASH
-    os_memmove(G_io_apdu_buffer, tmpCtx.messageSigningContext.hash, 32);
-    tx = 32;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
-#else
     os_memset(&privateKey, 0, sizeof(privateKey));
     G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
     rLength = signature[3];
@@ -1990,7 +1991,6 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
-#endif
 #ifdef HAVE_U2F
     if (fidoActivated) {
         u2f_proxy_response((u2f_service_t *)&u2fService, tx);

@@ -21,7 +21,7 @@
 #include <blake2b.h>
 #include "ustream.h"
 
-void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b);
+void initClause(clauseContext_t *context, clauseContent_t *content);
 parserStatus_e processClause(clauseContext_t *context, uint8_t *buffer, uint32_t length);
 void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readClauseByte(clauseContext_t *context);

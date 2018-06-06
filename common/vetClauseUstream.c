@@ -25,9 +25,8 @@
 #define MAX_ADDRESS 20
 #define MAX_V 2
 
-void initClause(clauseContext_t *context, clauseContent_t *content, blake2b_ctx *blake2b) {
+void initClause(clauseContext_t *context, clauseContent_t *content) {
     os_memset(context, 0, sizeof(clauseContext_t));
-    context->blake2b = blake2b;
     context->content = content;
     context->currentField = CLAUSE_RLP_TO;
 }
@@ -44,9 +43,6 @@ uint8_t readClauseByte(clauseContext_t *context) {
     if (context->processingField) {
         context->currentFieldPos++;
     }
-    if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
-    }
     return data;
 }
 
@@ -57,9 +53,6 @@ void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
     }
     if (out != NULL) {
         os_memmove(out, context->workBuffer, length);
-    }
-    if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, context->workBuffer, length);
     }
     context->workBuffer += length;
     context->commandLength -= length;

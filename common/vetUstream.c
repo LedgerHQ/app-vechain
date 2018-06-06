@@ -36,7 +36,7 @@ void initTx(txContext_t *context, txContent_t *content,
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
     blake2b_init(context->blake2b, 32, NULL, 0);
-    initClauses(clausesContext, clausesContent, clauseContext, clauseContent, blake2b);
+    initClauses(clausesContext, clausesContent, clauseContext, clauseContent);
 }
 
 uint8_t readTxByte(txContext_t *context) {
