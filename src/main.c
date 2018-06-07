@@ -1898,6 +1898,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                       sizeof(tmpCtx.transactionContext.hash), signature);
 #endif
 #ifdef DEBUG_TX_HASH
+    THROW(0x3333);
     os_memmove(G_io_apdu_buffer, tmpCtx.messageSigningContext.hash, 32);
     tx = 32;
     G_io_apdu_buffer[tx++] = 0x90;
@@ -1909,10 +1910,10 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     sLength = signature[4 + rLength + 1];
     rOffset = (rLength == 33 ? 1 : 0);
     sOffset = (sLength == 33 ? 1 : 0);
-    os_memmove(G_io_apdu_buffer + 1, signature + 4 + rOffset, 32);
-    os_memmove(G_io_apdu_buffer + 1 + 32, signature + 4 + rLength + 2 + sOffset,
-               32);
-    tx = 65;
+    os_memmove(G_io_apdu_buffer, signature + 4 + rOffset, 32);
+    os_memmove(G_io_apdu_buffer + 32, signature + 4 + rLength + 2 + sOffset, 32);
+    tx = 64;
+    G_io_apdu_buffer[tx++] = signature[0] & 0x01;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
 #endif

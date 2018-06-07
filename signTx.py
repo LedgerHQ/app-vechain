@@ -26,14 +26,14 @@ from bip32 import bip32_path_message
 
 
 chaintag = 207
-blockref = "0x01bd39a05de362"
+blockref = "0x030b04b452c5a8"
 expiration = 720
 gaspricecoef = 128
 gas = 21000
 dependson = 0
 nonce = "0xc1dc42b4e7"
 
-amount = Decimal(5) * 10**18
+amount = Decimal('0.1') * 10**18
 to = "0x655fe90ea5ced47e14b01b9eabbf9827366d77c7"
 data = ""
 
@@ -46,7 +46,7 @@ tx = Transaction(
     dependson="",
     nonce=decode_hex(nonce[2:]),
     clauses=[Clause(to=decode_hex(to[2:]), value=int(amount), data=data)],
-    reserved=""
+    reserved=[]
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
@@ -57,10 +57,19 @@ apdu = "e0040000".decode('hex') + chr(len(donglePath) + len(encodedTx)) + dongle
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 
-v = result[0]
-r = int(str(result[1:1 + 32]).encode('hex'), 16)
-s = int(str(result[1 + 32: 1 + 32 + 32]).encode('hex'), 16)
+signature = result[0:65]
 
-tx = Transaction(tx.nonce, tx.gasprice, tx.startgas, tx.to, tx.value, tx.data, v, r, s)
+tx = Transaction(
+    chaintag=tx.chaintag,
+    blockref=tx.blockref,
+    expiration=tx.expiration,
+    gaspricecoef=tx.gaspricecoef,
+    gas=tx.gas,
+    dependson=tx.dependson,
+    nonce=tx.nonce,
+    clauses=[Clause(to=clause.to, value=clause.value, data=clause.data) for clause in tx.clauses],
+    reserved=tx.reserved,
+    signature=signature
+)
 
 print "Signed transaction " + encode_hex(encode(tx))

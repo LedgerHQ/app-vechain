@@ -52,13 +52,11 @@ class Transaction(Serializable):
 		('gas', big_endian_int),
 		('dependson', binary),
 		('nonce', binary),
-		('reserved', binary),
-		('v', big_endian_int),
-		('r', big_endian_int),
-		('s', big_endian_int),
+		('reserved', CountableList(binary)),
+		('signature', binary),
 	]
 
-	def __init__(self, chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, v=0, r=0, s=0):
-		super(Transaction, self).__init__(chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, v, r, s)
+	def __init__(self, chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, signature=""):
+		super(Transaction, self).__init__(chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, signature)
 
-UnsignedTransaction = Transaction.exclude(['v', 'r', 's'])
+UnsignedTransaction = Transaction.exclude(['signature'])

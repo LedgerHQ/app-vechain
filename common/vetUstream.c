@@ -286,7 +286,7 @@ static void processNonceField(txContext_t *context) {
 }
 
 static void processReservedField(txContext_t *context) {
-    if (context->currentFieldIsList) {
+    if (!context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_RESERVED\n");
         THROW(0x6814);
     }
