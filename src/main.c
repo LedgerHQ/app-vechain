@@ -157,7 +157,7 @@ unsigned int ux_step_count;
 
 typedef struct internalStorage_t {
     uint8_t dataAllowed;
-    uint8_t multipleClausesAllowed;
+    uint8_t multiClauseAllowed;
     uint8_t fidoTransport;
     uint8_t initialized;
 } internalStorage_t;
@@ -334,8 +334,7 @@ const ux_menu_entry_t menu_main[];
 const ux_menu_entry_t menu_settings[];
 const ux_menu_entry_t menu_settings_browser[];
 const ux_menu_entry_t menu_settings_data[];
-
-#ifdef HAVE_U2F
+const ux_menu_entry_t menu_settings_clause[];
 
 // change the setting
 void menu_settings_data_change(unsigned int enabled) {
@@ -353,6 +352,22 @@ void menu_settings_data_init(unsigned int ignored) {
     UX_MENU_DISPLAY(N_storage.dataAllowed ? 1 : 0, menu_settings_data, NULL);
 }
 
+// change the setting
+void menu_settings_clause_change(unsigned int enabled) {
+    uint8_t multiClauseAllowed = enabled;
+    nvm_write(&N_storage.multiClauseAllowed, (void *)&multiClauseAllowed, sizeof(uint8_t));
+    USB_power_U2F(0, 0);
+    USB_power_U2F(1, N_storage.fidoTransport);
+    // go back to the menu entry
+    UX_MENU_DISPLAY(1, menu_settings, NULL);
+}
+
+// show the currently activated entry
+void menu_settings_clause_init(unsigned int ignored) {
+    UNUSED(ignored);
+    UX_MENU_DISPLAY(N_storage.multiClauseAllowed ? 1 : 0, menu_settings_clause, NULL);
+}
+
 #ifdef HAVE_U2F
 // change the setting
 void menu_settings_browser_change(unsigned int enabled) {
@@ -362,7 +377,7 @@ void menu_settings_browser_change(unsigned int enabled) {
     USB_power_U2F(0, 0);
     USB_power_U2F(1, N_storage.fidoTransport);
     // go back to the menu entry
-    UX_MENU_DISPLAY(1, menu_settings, NULL);
+    UX_MENU_DISPLAY(2, menu_settings, NULL);
 }
 
 // show the currently activated entry
@@ -383,14 +398,19 @@ const ux_menu_entry_t menu_settings_data[] = {
     {NULL, menu_settings_data_change, 1, NULL, "Yes", NULL, 0, 0},
     UX_MENU_END};
 
+const ux_menu_entry_t menu_settings_clause[] = {
+    {NULL, menu_settings_clause_change, 0, NULL, "No", NULL, 0, 0},
+    {NULL, menu_settings_clause_change, 1, NULL, "Yes", NULL, 0, 0},
+    UX_MENU_END};
+
 const ux_menu_entry_t menu_settings[] = {
     {NULL, menu_settings_data_init, 0, NULL, "Contract data", NULL, 0, 0},
+    {NULL, menu_settings_clause_init, 0, NULL, "Multi-clause", NULL, 0, 0},
 #ifdef HAVE_U2F
     {NULL, menu_settings_browser_init, 0, NULL, "Browser support", NULL, 0, 0},
 #endif // HAVE_U2F
     {menu_main, NULL, 1, &C_icon_back, "Back", NULL, 61, 40},
     UX_MENU_END};
-#endif // HAVE_U2F
 
 const ux_menu_entry_t menu_about[] = {
     {NULL, NULL, 0, NULL, "Version", APPVERSION, 0, 0},
