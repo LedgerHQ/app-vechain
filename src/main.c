@@ -2379,9 +2379,17 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
     // Check for data presence
     dataPresent = clauseContent.dataPresent;
+    if (dataPresent && !N_storage.dataAllowed) {
+        PRINTF("Data field forbidden\n");
+        THROW(0x6A83);
+    }
 
     // Check for multiple clauses
     multipleClauses = (clausesContent.clausesLength > 1);
+    if (multipleClauses && !N_storage.multiClauseAllowed) {
+        PRINTF("Multiple clauses forbidden\n");
+        THROW(0x6A84);
+    }
 
     // If there is a token to process, check if it is well known
     if (dataPresent && os_memcmp(clauseContent.data, TOKEN_TRANSFER_ID, 4) == 0) {
