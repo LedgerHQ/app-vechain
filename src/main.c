@@ -79,10 +79,13 @@ uint32_t set_result_get_publicKey(void);
 #define OFFSET_LC 4
 #define OFFSET_CDATA 5
 
-#define WEI_TO_ETHER 18
+#define DECIMALS_VET 18
 
+static const uint8_t const BASE_GAS_PRICE[] = {0x03, 0x8D, 0x7E, 0xA4, 0xC6, 0x80, 0x00};
+static const uint8_t const MAX_GAS_COEF[] = {0xFF};
 static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
 static const uint8_t const TICKER_VET[] = "VET ";
+
 typedef struct tokenContext_t {
     uint8_t data[4 + 32 + 32];
     uint32_t dataFieldPos;
@@ -135,7 +138,9 @@ volatile char fullAddress[43];
 volatile char fullAmount[50];
 volatile char maxFee[50];
 volatile bool dataPresent;
-volatile bool skipWarning;
+volatile bool multipleClauses;
+volatile bool skipDataWarning;
+volatile bool skipClausesWarning;
 
 bagl_element_t tmp_element;
 
@@ -152,6 +157,7 @@ unsigned int ux_step_count;
 
 typedef struct internalStorage_t {
     uint8_t dataAllowed;
+    uint8_t multipleClausesAllowed;
     uint8_t fidoTransport;
     uint8_t initialized;
 } internalStorage_t;
@@ -1601,16 +1607,16 @@ const bagl_element_t ui_approval_nanos[] = {
 
     {{BAGL_LABELINE, 0x03, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Amount",
+     "WARNING",
      0,
      0,
      0,
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x03, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
-     (char *)fullAmount,
+    {{BAGL_LABELINE, 0x03, 23, 26, 82, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Multi-clause",
      0,
      0,
      0,
@@ -1620,7 +1626,7 @@ const bagl_element_t ui_approval_nanos[] = {
 
     {{BAGL_LABELINE, 0x04, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Address",
+     "Amount",
      0,
      0,
      0,
@@ -1628,8 +1634,8 @@ const bagl_element_t ui_approval_nanos[] = {
      NULL,
      NULL},
     {{BAGL_LABELINE, 0x04, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 50},
-     (char *)fullAddress,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     (char *)fullAmount,
      0,
      0,
      0,
@@ -1639,7 +1645,7 @@ const bagl_element_t ui_approval_nanos[] = {
 
     {{BAGL_LABELINE, 0x05, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Maximum fees",
+     "Address",
      0,
      0,
      0,
@@ -1647,6 +1653,25 @@ const bagl_element_t ui_approval_nanos[] = {
      NULL,
      NULL},
     {{BAGL_LABELINE, 0x05, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 50},
+     (char *)fullAddress,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x06, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Maximum fees",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x06, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
      (char *)maxFee,
      0,
@@ -1676,14 +1701,22 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                 }
                 break;
             case 3:
-                UX_CALLBACK_SET_INTERVAL(MAX(
-                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                if (multipleClauses) {
+                    UX_CALLBACK_SET_INTERVAL(3000);
+                } else {
+                    display = 0;
+                    ux_step++; // display the next step
+                }
                 break;
             case 4:
                 UX_CALLBACK_SET_INTERVAL(MAX(
                     3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 break;
             case 5:
+                UX_CALLBACK_SET_INTERVAL(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                break;
+            case 6:
                 UX_CALLBACK_SET_INTERVAL(MAX(
                     3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 break;
@@ -1793,7 +1826,8 @@ unsigned int ui_approval_signMessage_prepro(const bagl_element_t *element) {
 #endif // #if defined(TARGET_NANOS)
 
 void ui_idle(void) {
-    skipWarning = false;
+    skipDataWarning = false;
+    skipClausesWarning = false;
 #if defined(TARGET_BLUE)
     UX_DISPLAY(ui_idle_blue, NULL);
 #elif defined(TARGET_NANOS)
@@ -2228,7 +2262,8 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
         */
 
         // prepare for a UI based reply
-        skipWarning = false;
+        skipDataWarning = false;
+        skipClausesWarning = false;
 #if defined(TARGET_BLUE)
         snprintf(fullAddress, sizeof(fullAddress), "0x%.*s", 40,
                  tmpCtx.publicKeyContext.address);
@@ -2250,10 +2285,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 volatile unsigned int *tx) {
     UNUSED(tx);
     parserStatus_e txResult;
-    uint256_t gasPriceCoef, gas, uint256;
+    uint256_t gasPriceCoef, gas, baseGasPrice, maxGasCoef, uint256a, uint256b;
     uint32_t i;
     uint8_t address[41];
-    uint8_t decimals = WEI_TO_ETHER;
+    uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = TICKER_VET;
     uint8_t tickerOffset = 0;
     if (p1 == P1_FIRST) {
@@ -2315,6 +2350,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     // Check for data presence
     dataPresent = clauseContent.dataPresent;
 
+    // Check for multiple clauses
+    multipleClauses = (clausesContent.clausesLength > 1);
+
     // If there is a token to process, check if it is well known
     if (dataPresent && os_memcmp(clauseContent.data, TOKEN_TRANSFER_ID, 4) == 0) {
         for (i = 0; i < NUM_TOKENS; i++) {
@@ -2360,8 +2398,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
     // Add amount in ethers or tokens
     convertUint256BE(clauseContent.value.value,
-                     clauseContent.value.length, &uint256);
-    tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
+                     clauseContent.value.length, &uint256a);
+    tostring256(&uint256a, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
         i++;
@@ -2380,18 +2418,30 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
     fullAmount[tickerOffset + i] = '\0';
     // Compute maximum fee
+    convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &baseGasPrice);
+    convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &maxGasCoef);
     convertUint256BE(tmpContent.txContent.gaspricecoef.value,
                      tmpContent.txContent.gaspricecoef.length, &gasPriceCoef);
     convertUint256BE(tmpContent.txContent.gas.value,
                      tmpContent.txContent.gas.length, &gas);
-    mul256(&gasPriceCoef, &gas, &uint256);
-    tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
+
+    // (BGP * GPC)
+    mul256(&gasPriceCoef, &baseGasPrice, &uint256a);
+    // (BGP / 255) * GPC
+    uint256_t out;
+    divmod256(&uint256a, &maxGasCoef, &uint256b, &out);
+    // (1 + BGP / 255) * GPC
+    add256(&uint256b, &baseGasPrice, &uint256a);
+    // (1 + BGP / 255) * GPC) * G
+    mul256(&uint256a, &gas, &uint256b);
+
+    tostring256(&uint256b, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
         i++;
     }
     adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
-                   (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
+                   (char *)G_io_apdu_buffer, 100, DECIMALS_VET);
     i = 0;
     tickerOffset = 0;
     while (ticker[tickerOffset]) {
@@ -2408,9 +2458,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 #if defined(TARGET_BLUE)
     ui_approval_transaction_blue_init();
 #elif defined(TARGET_NANOS)
-    skipWarning = !dataPresent;
+    skipDataWarning = !dataPresent;
+    skipClausesWarning = !multipleClauses;
     ux_step = 0;
-    ux_step_count = 5;
+    ux_step_count = 6;
     UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
 #endif // #if TARGET_ID
 
@@ -2700,7 +2751,10 @@ unsigned char io_event(unsigned char channel) {
     case SEPROXYHAL_TAG_TICKER_EVENT:
         UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
             if (UX_ALLOWED) {
-                if (skipWarning && (ux_step == 0)) {
+                if (skipDataWarning && (ux_step == 0)) {
+                    ux_step++;
+                }
+                if (skipClausesWarning && (ux_step == 1)) {
                     ux_step++;
                 }
 

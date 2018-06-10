@@ -87,7 +87,9 @@ static void processClauseField(clausesContext_t *context, clauseContext_t *claus
                         clauseContext,
                         copySize);
     }
-    context->processingField = false;
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->processingField = false;
+    }
 }
 
 static parserStatus_e processClausesInternal(clausesContext_t *context, clauseContext_t *clauseContext) {
