@@ -129,17 +129,25 @@ static void processDataField(clauseContext_t *context) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(0x6a07);
     }
-    if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
-        copyClauseData(context, NULL, copySize);
+    if (context->currentFieldLength != 0) {
+        context->content->dataPresent = true;
     }
-    if (context->currentFieldPos == context->currentFieldLength) {
-        context->currentField++;
-        context->processingField = false;
+    if (context->currentFieldLength == sizeof(context->content->data)) {
+        if (context->currentFieldPos < context->currentFieldLength) {
+            uint32_t copySize = (context->commandLength <
+                                            ((context->currentFieldLength -
+                                            context->currentFieldPos))
+                                        ? context->commandLength
+                                        : context->currentFieldLength -
+                                            context->currentFieldPos);
+            copyClauseData(context,
+                           context->content->data + context->currentFieldPos,
+                           copySize);
+        }
+        if (context->currentFieldPos == context->currentFieldLength) {
+            context->currentField++;
+            context->processingField = false;
+        }
     }
 }
 

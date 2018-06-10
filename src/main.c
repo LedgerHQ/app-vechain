@@ -2312,8 +2312,11 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     // Store the hash
     blake2b_final(&blake, tmpCtx.transactionContext.hash);
 
+    // Check for data presence
+    dataPresent = clauseContent.dataPresent;
+
     // If there is a token to process, check if it is well known
-    if (tokenContext.provisioned) {
+    if (dataPresent && os_memcmp(clauseContent.data, TOKEN_TRANSFER_ID, 4) == 0) {
         for (i = 0; i < NUM_TOKENS; i++) {
             tokenDefinition_t *currentToken = PIC(&TOKENS[i]);
             if (os_memcmp(currentToken->address,
@@ -2323,9 +2326,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 ticker = currentToken->ticker;
                 clauseContent.toLength = 20;
                 os_memmove(clauseContent.to,
-                           tokenContext.data + 4 + 12, 20);
+                           clauseContent.data + 4 + 12, 20);
                 os_memmove(clauseContent.value.value,
-                           tokenContext.data + 4 + 32, 32);
+                           clauseContent.data + 4 + 32, 32);
                 clauseContent.value.length = 32;
                 break;
             }

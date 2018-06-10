@@ -34,6 +34,8 @@ typedef struct clauseContent_t {
     uint8_t to[20];
     uint8_t toLength;
     txInt256_t value;
+    uint8_t data[4 + 32 + 32];
+    bool dataPresent;
 } clauseContent_t;
 
 typedef struct clauseContext_t {

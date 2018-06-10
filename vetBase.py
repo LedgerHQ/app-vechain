@@ -35,7 +35,7 @@ def sha3(seed):
 class Clause(Serializable):
 	fields = [
 		('to', address),
-		('value', big_endian_int),
+		('value', binary),
 		('data', binary)
 	]
 
