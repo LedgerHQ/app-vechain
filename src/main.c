@@ -1693,7 +1693,7 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                 UX_CALLBACK_SET_INTERVAL(2000);
                 break;
             case 2:
-                if (dataPresent) {
+                if (dataPresent && !multipleClauses) {
                     UX_CALLBACK_SET_INTERVAL(3000);
                 } else {
                     display = 0;
@@ -1709,12 +1709,22 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                 }
                 break;
             case 4:
-                UX_CALLBACK_SET_INTERVAL(MAX(
-                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                if (!multipleClauses) {
+                    UX_CALLBACK_SET_INTERVAL(MAX(
+                        3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                } else {
+                    display = 0;
+                    ux_step++; // display the next step 
+                }
                 break;
             case 5:
-                UX_CALLBACK_SET_INTERVAL(MAX(
-                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                if (!multipleClauses) {
+                    UX_CALLBACK_SET_INTERVAL(MAX(
+                        3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                } else {
+                    display = 0;
+                    ux_step++; // display the next step 
+                }
                 break;
             case 6:
                 UX_CALLBACK_SET_INTERVAL(MAX(

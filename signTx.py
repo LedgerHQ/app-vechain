@@ -90,7 +90,7 @@ tx = Transaction(
     nonce=decode_hex(nonce[2:]),
     clauses=[
         Clause(to=decode_hex(to[2:]), value=_int_to_bytes(amount), data=decode_hex(data[2:])),
-        Clause(to=decode_hex(to[2:]), value=_int_to_bytes(amount), data=decode_hex(data[2:])),
+        # Clause(to=decode_hex(to[2:]), value=_int_to_bytes(amount), data=decode_hex(data[2:])),
     ],
     reserved=[]
 )
