@@ -168,7 +168,7 @@ WIDE internalStorage_t N_storage_real;
 static const char const CONTRACT_ADDRESS[] = "New contract";
 
 static const char const SIGN_MAGIC[] = "\x19"
-                                       "Ethereum Signed Message:\n";
+                                       "VeChain Signed Message:\n";
 
 const unsigned char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                                     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
