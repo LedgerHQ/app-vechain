@@ -32,6 +32,7 @@ typedef enum rlpClausesField_e {
 typedef struct clausesContent_t {
     clauseContent_t *firstClause;
     uint8_t clausesLength;
+    bool dataPresent;
 } clausesContent_t;
 
 typedef struct clausesContext_t {

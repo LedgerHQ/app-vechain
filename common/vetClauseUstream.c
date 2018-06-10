@@ -129,9 +129,7 @@ static void processDataField(clauseContext_t *context) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(0x6a07);
     }
-    if (context->currentFieldLength != 0) {
-        context->content->dataPresent = true;
-    }
+    context->content->dataPresent = (context->currentFieldLength != 0);
     if (context->currentFieldLength == sizeof(context->content->data)) {
         if (context->currentFieldPos < context->currentFieldLength) {
             uint32_t copySize = (context->commandLength <

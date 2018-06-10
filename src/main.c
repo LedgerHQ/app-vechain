@@ -2378,7 +2378,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     blake2b_final(&blake, tmpCtx.transactionContext.hash);
 
     // Check for data presence
-    dataPresent = clauseContent.dataPresent;
+    dataPresent = clausesContent.dataPresent;
     if (dataPresent && !N_storage.dataAllowed) {
         PRINTF("Data field forbidden\n");
         THROW(0x6A83);

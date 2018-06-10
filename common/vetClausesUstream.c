@@ -30,6 +30,7 @@ void initClauses(clausesContext_t *context, clausesContent_t *content, clauseCon
     context->content = content;
     context->content->firstClause = clauseContent;
     context->content->clausesLength = 0;
+    context->content->dataPresent = false;
     context->currentField = CLAUSES_RLP_CLAUSE;
 }
 
@@ -88,6 +89,9 @@ static void processClauseField(clausesContext_t *context, clauseContext_t *claus
                         copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
+        if (clauseContext->content->dataPresent) {
+            context->content->dataPresent = true;
+        }
         context->processingField = false;
     }
 }
