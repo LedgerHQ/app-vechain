@@ -16,8 +16,8 @@
 ********************************************************************************/
 
 /**
- * @brief Utilities for an Ethereum Hardware Wallet logic
- * @file ethUtils.h
+ * @brief Utilities for an VeChain Hardware Wallet logic
+ * @file vetUtils.h
  * @author Ledger Firmware Team <hello@ledger.fr>
  * @version 1.0
  * @date 8th of March 2016
@@ -26,7 +26,7 @@
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
-#include "ethUtils.h"
+#include "vetUtils.h"
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     if (*buffer <= 0x7f) {
@@ -114,7 +114,7 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
     return true;
 }
 
-void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
+void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                           cx_sha3_t *sha3Context) {
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
@@ -149,16 +149,16 @@ char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
     }
 }
 
-void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
+void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 cx_sha3_t *sha3Context) {
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
             hashAddress);
-    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+    getVetAddressStringFromBinary(hashAddress + 12, out, sha3Context);
 }
 
-void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
+void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
                                    cx_sha3_t *sha3Context) {
     uint8_t hashChecksum[32];
     uint8_t i;
@@ -174,16 +174,16 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
 
 static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
 
-void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
+void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 cx_sha3_t *sha3Context) {
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
             hashAddress);
-    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+    getVetAddressStringFromBinary(hashAddress + 12, out, sha3Context);
 }
 
-void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
+void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
                                    cx_sha3_t *sha3Context) {
     uint8_t hashChecksum[32];
     uint8_t tmp[40];

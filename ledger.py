@@ -5,7 +5,7 @@ from rlp import encode
 from rlp.utils import binascii, struct
 
 from bip32 import bip32_path_message
-from ethBase import Transaction
+from vetBase import Transaction
 
 APDU_PREFIX_SIGN_TX_INITIAL = binascii.unhexlify('e0040000')
 APDU_PREFIX_SIGN_TX_CONTINUED = binascii.unhexlify('e0048000')

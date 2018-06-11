@@ -19,7 +19,7 @@
 #include "cx.h"
 #include <stdbool.h>
 #include "vetUstream.h"
-#include "ethUtils.h"
+#include "vetUtils.h"
 #include "uint256.h"
 #include "tokens.h"
 #include <blake2b.h>
@@ -2274,7 +2274,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
                           &privateKey, 1);
     os_memset(&privateKey, 0, sizeof(privateKey));
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
-    getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
+    getVetAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
                                tmpCtx.publicKeyContext.address, &sha3);
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_publicKey();
@@ -2413,7 +2413,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
     // Add address
     if (clauseContent.toLength != 0) {
-        getEthAddressStringFromBinary(clauseContent.to, address,
+        getVetAddressStringFromBinary(clauseContent.to, address,
                                       &sha3);
         /*
         addressSummary[0] = '0';
@@ -2434,7 +2434,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         strcpy(fullAddress, "Contract");
     }
 
-    // Add amount in ethers or tokens
+    // Add amount in VET or tokens
     convertUint256BE(clauseContent.value.value,
                      clauseContent.value.length, &uint256a);
     tostring256(&uint256a, 10, (char *)(G_io_apdu_buffer + 100), 100);

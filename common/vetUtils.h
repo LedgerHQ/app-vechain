@@ -35,13 +35,13 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
 
-void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
+void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                           cx_sha3_t *sha3Context);
 
-void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
+void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 cx_sha3_t *sha3Context);
 
-void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
+void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
                                    cx_sha3_t *sha3Context);
 
 bool adjustDecimals(char *src, uint32_t srcLength, char *target,

@@ -16,7 +16,7 @@
 ********************************************************************************/
 
 #include "vetClausesUstream.h"
-#include "ethUtils.h"
+#include "vetUtils.h"
 
 #define MAX_INT256 32
 #define MAX_INT64 8
