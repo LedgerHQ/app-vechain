@@ -1179,11 +1179,6 @@ const bagl_element_t ui_approval_blue[] = {
      NULL,
      NULL,
      NULL},
-
-    //{{BAGL_LABELINE                       , 0x05, 130, 343, 160,  30, 0, 0,
-    //BAGL_FILL, 0x666666, COLOR_BG_1,
-    //BAGL_FONT_OPEN_SANS_REGULAR_10_13PX|BAGL_FONT_ALIGNMENT_RIGHT, 0   }, "Not
-    //present", 0, 0, 0, NULL, NULL, NULL},
     {{BAGL_LABELINE, 0x06, 133, 343, 140, 30, 0, 0, BAGL_FILL, 0x666666,
       COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_REGULAR_10_13PX | BAGL_FONT_ALIGNMENT_RIGHT, 0},
@@ -1203,6 +1198,44 @@ const bagl_element_t ui_approval_blue[] = {
      NULL,
      NULL},
 
+    {{BAGL_RECTANGLE, 0x07, 30, 363, 260, 1, 1, 0, 0, 0xEEEEEE, COLOR_BG_1, 0,
+      0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x07, 30, 392, 120, 30, 0, 0, BAGL_FILL, 0x000000,
+      COLOR_BG_1, BAGL_FONT_OPEN_SANS_SEMIBOLD_8_11PX, 0},
+     "MULTIPLE CLAUSES",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x07, 133, 392, 140, 30, 0, 0, BAGL_FILL, 0x666666,
+      COLOR_BG_1,
+      BAGL_FONT_OPEN_SANS_REGULAR_10_13PX | BAGL_FONT_ALIGNMENT_RIGHT, 0},
+     "Present",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x07, 278, 382, 12, 12, 0, 0, BAGL_FILL, 0, COLOR_BG_1, 0, 0},
+     &C_icon_warning,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    
     {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 40, 414, 115, 36, 0, 18,
       BAGL_FILL, 0xCCCCCC, COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_REGULAR_11_14PX | BAGL_FONT_ALIGNMENT_CENTER |
@@ -1321,6 +1354,11 @@ const bagl_element_t *ui_approval_blue_prepro(const bagl_element_t *element) {
             return !dataPresent;
         case 0x06:
             return dataPresent;
+        case 0x07:
+            if (!dataPresent) {
+                tmp_element.component.y -= 49;
+            }
+            return &tmp_element;
         }
     }
     return element;
