@@ -29,9 +29,6 @@
 
 #include "glyphs.h"
 
-#define __NAME3(a, b, c) a##b##c
-#define NAME3(a, b, c) __NAME3(a, b, c)
-
 #ifdef HAVE_U2F
 
 #include "u2f_service.h"
@@ -2339,13 +2336,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         PRINTF("Parser not initialized\n");
         THROW(0x6985);
     }
-    if (clausesContext.currentField == TX_RLP_NONE) {
+    if (clausesContext.currentField == CLAUSES_RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(0x6986);
-    }
-    if (clauseContext.currentField == TX_RLP_NONE) {
-        PRINTF("Parser not initialized\n");
-        THROW(0x6987);
+        THROW(0x6985);
     }
     txResult = processTx(&txContext, &clausesContext, &clauseContext, workBuffer, dataLength);
     switch (txResult) {
@@ -2354,10 +2347,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     case USTREAM_PROCESSING:
         THROW(0x9000);
     case USTREAM_FAULT:
-        THROW(0x6A81);
+        THROW(0x6A80);
     default:
         PRINTF("Unexpected parser status\n");
-        THROW(0x6A82);
+        THROW(0x6A80);
     }
 
     // Store the hash
@@ -2367,14 +2360,14 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     dataPresent = clausesContent.dataPresent;
     if (dataPresent && !N_storage.dataAllowed) {
         PRINTF("Data field forbidden\n");
-        THROW(0x6A83);
+        THROW(0x6A80);
     }
 
     // Check for multiple clauses
     multipleClauses = (clausesContent.clausesLength > 1);
     if (multipleClauses && !N_storage.multiClauseAllowed) {
         PRINTF("Multiple clauses forbidden\n");
-        THROW(0x6A84);
+        THROW(0x6A80);
     }
 
     // If there is a token to process, check if it is well known
