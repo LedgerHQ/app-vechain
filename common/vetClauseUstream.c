@@ -61,17 +61,6 @@ void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
     }
 }
 
-static void processContent(clauseContext_t *context) {
-    // Keep the full length for sanity checks, move to the next field
-    if (!context->currentFieldIsList) {
-        PRINTF("Invalid type for CLAUSE_RLP_CONTENT\n");
-        THROW(EXCEPTION);
-    }
-    context->dataLength = context->currentFieldLength;
-    context->currentField++;
-    context->processingField = false;
-}
-
 static void processToField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for CLAUSE_RLP_TO\n");
@@ -206,9 +195,6 @@ static parserStatus_e processClauseInternal(clauseContext_t *context) {
             context->processingField = true;
         }
         switch (context->currentField) {
-        case CLAUSE_RLP_CONTENT:
-            processContent(context);
-            break;
         case CLAUSE_RLP_TO:
             processToField(context);
             break;

@@ -23,7 +23,6 @@
 
 typedef enum rlpClauseField_e {
     CLAUSE_RLP_NONE = 0,
-    CLAUSE_RLP_CONTENT,
     CLAUSE_RLP_TO,
     CLAUSE_RLP_VALUE,
     CLAUSE_RLP_DATA,
