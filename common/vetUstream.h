@@ -24,8 +24,6 @@
 
 struct txContext_t;
 
-typedef bool (*ustreamProcess_t)(struct txContext_t *context);
-
 typedef enum rlpTxField_e {
     TX_RLP_NONE = 0,
     TX_RLP_CONTENT,
@@ -60,7 +58,6 @@ typedef struct txContext_t {
     uint32_t rlpBufferPos;
     uint8_t *workBuffer;
     uint32_t commandLength;
-    ustreamProcess_t customProcessor;
     txContent_t *content;
     void *extra;
 } txContext_t;
@@ -68,7 +65,7 @@ typedef struct txContext_t {
 void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
             clauseContext_t *clauseContext, clauseContent_t *clauseContent,
-            blake2b_ctx *blake2b, ustreamProcess_t customProcessor, void *extra);
+            blake2b_ctx *blake2b, void *extra);
 parserStatus_e processTx(txContext_t *context,
                          clausesContext_t *clausesContext, 
                          clauseContext_t *clauseContext,

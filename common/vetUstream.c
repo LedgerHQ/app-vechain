@@ -28,11 +28,10 @@
 void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
             clauseContext_t *clauseContext, clauseContent_t *clauseContent,
-            blake2b_ctx *blake2b, ustreamProcess_t customProcessor, void *extra) {
+            blake2b_ctx *blake2b, void *extra) {
     os_memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
     context->content = content;
-    context->customProcessor = customProcessor;
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
     blake2b_init(context->blake2b, 32, NULL, 0);
@@ -354,11 +353,7 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
             context->rlpBufferPos = 0;
             context->processingField = true;
         }   
-        if (context->customProcessor != NULL) {
-            processedCustom = false; //context->customProcessor(context);
-        }
-        if (!processedCustom) {
-            switch (context->currentField) {
+        switch (context->currentField) {
             case TX_RLP_CONTENT:
                 processContent(context);
                 break;
@@ -392,7 +387,6 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
             default:
                 PRINTF("Invalid RLP decoder context\n");
                 return USTREAM_FAULT;
-            }
         }
     }
 }

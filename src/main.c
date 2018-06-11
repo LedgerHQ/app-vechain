@@ -2240,42 +2240,6 @@ void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
     readu256BE(tmp, target);
 }
 
-bool customProcessor(txContext_t *context) {
-    /*if ((context->currentField == TX_RLP_DATA) &&
-        (context->currentFieldLength != 0)) {
-        if (!N_storage.dataAllowed) {
-            PRINTF("Data field forbidden\n");
-            THROW(EXCEPTION);
-        } else {
-            dataPresent = true;
-            if (context->currentFieldLength == sizeof(tokenContext.data)) {
-                if (context->currentFieldPos < context->currentFieldLength) {
-                    uint32_t copySize = (context->commandLength <
-                                                 ((context->currentFieldLength -
-                                                   context->currentFieldPos))
-                                             ? context->commandLength
-                                             : context->currentFieldLength -
-                                                   context->currentFieldPos);
-                    copyTxData(context,
-                               tokenContext.data + context->currentFieldPos,
-                               copySize);
-                }
-                if (context->currentFieldPos == context->currentFieldLength) {
-                    context->currentField++;
-                    context->processingField = false;
-                    // Initial check to see if the token content can be
-                    // processed
-                    tokenContext.provisioned =
-                        (os_memcmp(tokenContext.data, TOKEN_TRANSFER_ID, 4) ==
-                         0);
-                }
-                return true;
-            }
-        }
-    }*/
-    return false;
-}
-
 void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
                         uint16_t dataLength, volatile unsigned int *flags,
                         volatile unsigned int *tx) {
@@ -2380,7 +2344,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         initTx(&txContext, &tmpContent.txContent,
                &clausesContext, &clausesContent,
                &clauseContext, &clauseContent,
-               &blake, customProcessor, NULL);
+               &blake, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
