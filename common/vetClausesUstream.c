@@ -38,7 +38,7 @@ uint8_t readClausesByte(clausesContext_t *context) {
     uint8_t data;
     if (context->commandLength < 1) {
         PRINTF("readClausesByte Underflow\n");
-        THROW(0x6904);
+        THROW(EXCEPTION);
     }
     data = *context->workBuffer;
     context->workBuffer++;
@@ -52,9 +52,13 @@ uint8_t readClausesByte(clausesContext_t *context) {
 void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyClausesData Underflow\n");
-        THROW(0x6901);
+        THROW(EXCEPTION);
     }
-    processClause(clauseContext, context->workBuffer, length);
+    parserStatus_e result;
+    result = processClause(clauseContext, context->workBuffer, length);
+    if (result == USTREAM_FAULT) {
+        THROW(EXCEPTION);
+    }
     context->workBuffer += length;
     context->commandLength -= length;
     if (context->processingField) {
@@ -65,8 +69,8 @@ void copyClausesData(clausesContext_t *context, clauseContext_t *clauseContext, 
 static void processContent(clausesContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_CONTENT\n");
-        THROW(0x6902);
+        PRINTF("Invalid type for CLAUSES_RLP_CONTENT\n");
+        THROW(EXCEPTION);
     }
     context->dataLength = context->currentFieldLength;
     context->currentField++;
@@ -75,8 +79,8 @@ static void processContent(clausesContext_t *context) {
 
 static void processClauseField(clausesContext_t *context, clauseContext_t *clauseContext) {
     if (!context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_CLAUSES\n");
-        THROW(0x6903);
+        PRINTF("Invalid type for CLAUSES_RLP_CLAUSES\n");
+        THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -174,18 +178,18 @@ parserStatus_e processClauses(clausesContext_t *context,
                               uint8_t *buffer,
                               uint32_t length) {
     parserStatus_e result;
-    /*BEGIN_TRY {
-        TRY {*/
+    BEGIN_TRY {
+        TRY {
             context->workBuffer = buffer;
             context->commandLength = length;
             result = processClausesInternal(context, clauseContext);
-        /*}
+        }
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;
         }
         FINALLY {
         }
     }
-    END_TRY;*/
+    END_TRY;
     return result;
 }

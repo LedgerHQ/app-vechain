@@ -35,7 +35,7 @@ uint8_t readClauseByte(clauseContext_t *context) {
     uint8_t data;
     if (context->commandLength < 1) {
         PRINTF("readClauseByte Underflow\n");
-        THROW(0x6a08);
+        THROW(EXCEPTION);
     }
     data = *context->workBuffer;
     context->workBuffer++;
@@ -49,7 +49,7 @@ uint8_t readClauseByte(clauseContext_t *context) {
 void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
     if (context->commandLength < length) {
         PRINTF("copyClauseData Underflow\n");
-        THROW(0x6a01);
+        THROW(EXCEPTION);
     }
     if (out != NULL) {
         os_memmove(out, context->workBuffer, length);
@@ -64,8 +64,8 @@ void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
 static void processContent(clauseContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_CONTENT\n");
-        THROW(0x6a02);
+        PRINTF("Invalid type for CLAUSE_RLP_CONTENT\n");
+        THROW(EXCEPTION);
     }
     context->dataLength = context->currentFieldLength;
     context->currentField++;
@@ -74,12 +74,12 @@ static void processContent(clauseContext_t *context) {
 
 static void processToField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_TO\n");
-        THROW(0x6a05);
+        PRINTF("Invalid type for CLAUSE_RLP_TO\n");
+        THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_ADDRESS) {
-        PRINTF("Invalid length for RLP_TO\n");
-        THROW(0x6a06);
+        PRINTF("Invalid length for CLAUSE_RLP_TO\n");
+        THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -100,12 +100,12 @@ static void processToField(clauseContext_t *context) {
 
 static void processValueField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_VALUE\n");
-        THROW(0x6a03);
+        PRINTF("Invalid type for CLAUSE_RLP_VALUE\n");
+        THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_INT256) {
-        PRINTF("Invalid length for RLP_VALUE\n");
-        THROW(0x6a04);
+        PRINTF("Invalid length for CLAUSE_RLP_VALUE\n");
+        THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
@@ -126,8 +126,8 @@ static void processValueField(clauseContext_t *context) {
 
 static void processDataField(clauseContext_t *context) {
     if (context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_DATA\n");
-        THROW(0x6a07);
+        PRINTF("Invalid type for CLAUSE_RLP_DATA\n");
+        THROW(EXCEPTION);
     }
     context->content->dataPresent = (context->currentFieldLength != 0);
     if (context->currentFieldLength == sizeof(context->content->data)) {
@@ -228,18 +228,18 @@ static parserStatus_e processClauseInternal(clauseContext_t *context) {
 parserStatus_e processClause(clauseContext_t *context, uint8_t *buffer,
                          uint32_t length) {
     parserStatus_e result;
-    /*BEGIN_TRY {
-        TRY {*/
+    BEGIN_TRY {
+        TRY {
             context->workBuffer = buffer;
             context->commandLength = length;
             result = processClauseInternal(context);
-        /*}
+        }
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;
         }
         FINALLY {
         }
     }
-    END_TRY;*/
+    END_TRY;
     return result;
 }

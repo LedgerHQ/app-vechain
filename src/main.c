@@ -86,12 +86,6 @@ static const uint8_t const MAX_GAS_COEF[] = {0xFF};
 static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
 static const uint8_t const TICKER_VET[] = "VET ";
 
-typedef struct tokenContext_t {
-    uint8_t data[4 + 32 + 32];
-    uint32_t dataFieldPos;
-    bool provisioned;
-} tokenContext_t;
-
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
     uint8_t address[41];
@@ -130,7 +124,6 @@ clauseContent_t clauseContent;
 
 blake2b_ctx blake;
 cx_sha3_t sha3;
-tokenContext_t tokenContext;
 // volatile uint8_t dataAllowed;
 // volatile uint8_t fidoTransport;
 volatile char addressSummary[32];
@@ -2332,7 +2325,6 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             dataLength -= 4;
         }
         dataPresent = false;
-        tokenContext.provisioned = false;
         initTx(&txContext, &tmpContent.txContent,
                &clausesContext, &clausesContent,
                &clauseContext, &clauseContent,
