@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include "vetUstream.h"
 #include "vetUtils.h"
+#include "vetDisplay.h"
 #include "uint256.h"
 #include "tokens.h"
 #include <blake2b.h>
@@ -2215,13 +2216,6 @@ uint32_t set_result_get_publicKey() {
     return tx;
 }
 
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
-    uint8_t tmp[32];
-    os_memset(tmp, 0, 32);
-    os_memmove(tmp + 32 - length, data, length);
-    readu256BE(tmp, target);
-}
-
 void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
                         uint16_t dataLength, volatile unsigned int *flags,
                         volatile unsigned int *tx) {
@@ -2299,9 +2293,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 volatile unsigned int *tx) {
     UNUSED(tx);
     parserStatus_e txResult;
-    uint256_t gasPriceCoef, gas, baseGasPrice, maxGasCoef, uint256a, uint256b;
+    //uint256_t gasPriceCoef, gas, baseGasPrice, maxGasCoef, uint256a, uint256b;
     uint32_t i;
-    uint8_t address[41];
+    //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = TICKER_VET;
     uint8_t tickerOffset = 0;
@@ -2391,86 +2385,20 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Add address
-    if (clauseContent.toLength != 0) {
-        getVetAddressStringFromBinary(clauseContent.to, address,
-                                      &sha3);
-        /*
-        addressSummary[0] = '0';
-        addressSummary[1] = 'x';
-        os_memmove((unsigned char *)(addressSummary + 2), address, 4);
-        os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
-        os_memmove((unsigned char *)(addressSummary + 9), address + 40 - 4, 4);
-        addressSummary[13] = '\0';
-        */
+    addressToDisplayString(clauseContent.to, &sha3, fullAddress);
 
-        fullAddress[0] = '0';
-        fullAddress[1] = 'x';
-        os_memmove((unsigned char *)fullAddress + 2, address, 40);
-        fullAddress[42] = '\0';
-    } else {
-        os_memmove((void *)addressSummary, CONTRACT_ADDRESS,
-                   sizeof(CONTRACT_ADDRESS));
-        strcpy(fullAddress, "Contract");
-    }
+    // Add amount in ethers or tokens
+    sendAmountToDisplayString(
+        &clauseContent.value,
+        ticker,
+        decimals,
+        fullAmount);
 
-    // Add amount in VET or tokens
-    convertUint256BE(clauseContent.value.value,
-                     clauseContent.value.length, &uint256a);
-    tostring256(&uint256a, 10, (char *)(G_io_apdu_buffer + 100), 100);
-    i = 0;
-    while (G_io_apdu_buffer[100 + i]) {
-        i++;
-    }
-    adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
-                   (char *)G_io_apdu_buffer, 100, decimals);
-    i = 0;
-    tickerOffset = 0;
-    while (ticker[tickerOffset]) {
-        fullAmount[tickerOffset] = ticker[tickerOffset];
-        tickerOffset++;
-    }
-    while (G_io_apdu_buffer[i]) {
-        fullAmount[tickerOffset + i] = G_io_apdu_buffer[i];
-        i++;
-    }
-    fullAmount[tickerOffset + i] = '\0';
     // Compute maximum fee
-    convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &baseGasPrice);
-    convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &maxGasCoef);
-    convertUint256BE(tmpContent.txContent.gaspricecoef.value,
-                     tmpContent.txContent.gaspricecoef.length, &gasPriceCoef);
-    convertUint256BE(tmpContent.txContent.gas.value,
-                     tmpContent.txContent.gas.length, &gas);
-
-    // (BGP * GPC)
-    mul256(&gasPriceCoef, &baseGasPrice, &uint256a);
-    // (BGP / 255) * GPC
-    uint256_t out;
-    divmod256(&uint256a, &maxGasCoef, &uint256b, &out);
-    // (1 + BGP / 255) * GPC
-    add256(&uint256b, &baseGasPrice, &uint256a);
-    // (1 + BGP / 255) * GPC) * G
-    mul256(&uint256a, &gas, &uint256b);
-
-    tostring256(&uint256b, 10, (char *)(G_io_apdu_buffer + 100), 100);
-    i = 0;
-    while (G_io_apdu_buffer[100 + i]) {
-        i++;
-    }
-    adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
-                   (char *)G_io_apdu_buffer, 100, DECIMALS_VET);
-    i = 0;
-    tickerOffset = 0;
-    while (ticker[tickerOffset]) {
-        maxFee[tickerOffset] = ticker[tickerOffset];
-        tickerOffset++;
-    }
-    tickerOffset++;
-    while (G_io_apdu_buffer[i]) {
-        maxFee[tickerOffset + i] = G_io_apdu_buffer[i];
-        i++;
-    }
-    maxFee[tickerOffset + i] = '\0';
+    maxFeeToDisplayString(
+        &tmpContent.txContent.gaspricecoef,
+        &tmpContent.txContent.gas,
+        maxFee);
 
 #if defined(TARGET_BLUE)
     ui_approval_transaction_blue_init();
