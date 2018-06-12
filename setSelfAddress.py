@@ -3,6 +3,7 @@
 *******************************************************************************
 *   Ledger Blue
 *   (c) 2016 Ledger
+*   (c) 2018 Totient Labs
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -40,7 +41,7 @@ parser.add_argument('--path', help="BIP 32 path to retrieve")
 args = parser.parse_args()
 
 if args.path == None:
-	args.path = "44'/60'/0'/0/0"
+	args.path = "44'/818'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
 apdu = "e0060000".decode('hex') + chr(len(donglePath) + 1) + chr(len(donglePath) / 4) + donglePath
