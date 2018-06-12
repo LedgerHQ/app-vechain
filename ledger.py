@@ -56,7 +56,6 @@ def _send_tx_to_ledger(message, dongle):
         result = dongle.exchange(apdu)
         initial_message = False
 
-    print("Result: {}".format(result))
     return result
 
 

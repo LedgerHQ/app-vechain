@@ -19,87 +19,104 @@
 ********************************************************************************
 """
 from ledgerblue.comm import getDongle
+import argparse
+import struct
 from decimal import Decimal
+
+from ledger import _send_tx_to_ledger
 from vetBase import Transaction, UnsignedTransaction, Clause
 from rlp import encode
 from rlp.utils import decode_hex, encode_hex, str_to_bytes, binascii, struct
 from bip32 import bip32_path_message
 
-APDU_MAX_DATA_BYTES = 150
-APDU_PREFIX_SIGN_TX_INITIAL = binascii.unhexlify('e0040000')
-APDU_PREFIX_SIGN_TX_CONTINUED = binascii.unhexlify('e0048000')
 
-
-def _split_message(message):
-    return [message[i:i + APDU_MAX_DATA_BYTES] for i in range(0, len(message), APDU_MAX_DATA_BYTES)]
-
-
-def _apdu(prefix, data):
-    if len(data) == 0:
-        return prefix
-
-    if len(data) > APDU_MAX_DATA_BYTES:
-        print("APDU data too long: {}".format(len(data)))
-        return None
-
-    return prefix + struct.pack(">B", len(data)) + data
-
-
-def _send_tx_to_ledger(message, dongle):
-    result = None
-    initial_message = True
-    for message in _split_message(message):
-        prefix = APDU_PREFIX_SIGN_TX_INITIAL if initial_message else APDU_PREFIX_SIGN_TX_CONTINUED
-        apdu = _apdu(prefix, message)
-        result = dongle.exchange(apdu)
-        initial_message = False
-
-    print("Result: {}".format(result))
+def parse_bip32_path(path):
+    if len(path) == 0:
+        return ""
+    result = ""
+    elements = path.split('/')
+    for pathElement in elements:
+        element = pathElement.split('\'')
+        if len(element) == 1:
+            result = result + struct.pack(">I", int(element[0]))
+        else:
+            result = result + struct.pack(">I", 0x80000000 | int(element[0]))
     return result
 
 
-def _int_to_bytes(i):
+def _decimal_to_bytes(i):
     if i is None or i == 0:
         return ""
-    hex_basic = hex(i)[2:]
+    hex_basic = hex(int(i))[2:]
     if len(hex_basic) % 2 == 1:
         hex_basic = "0{}".format(hex_basic)
     return decode_hex(hex_basic)
 
 
-chaintag = 207
-blockref = "0x030b04b452c5a8"
-expiration = 720
-gaspricecoef = 128
-gas = 21000
-dependson = 0
-nonce = "0xc1dc42b4e7"
+parser = argparse.ArgumentParser()
+parser.add_argument('--path', help="BIP 32 path to sign with")
+parser.add_argument('--chaintag', help="Chaintag")
+parser.add_argument('--blockref', help="Block reference, hex encoded")
+parser.add_argument('--expiration', help="Expiration (# of blocks)")
 
-amount = 0  # Decimal('0.1') * 10**18
-to = "0x0000000000000000000000000000456e65726779"
-data = "0xa9059cbb" +\
-      "0000000000000000000000001e57E7d3f11821B3EFACd4C2b109B65bc78e316c" +\
-      "0000000000000000000000000000000000000000000000000de0b6b3a7640000"
+parser.add_argument('--gaspricecoef', help="Network gas price coef")
+parser.add_argument('--gas', help="Gas limit", default='21000')
+parser.add_argument('--dependson', help="Tx ID, hex encoded")
+parser.add_argument('--nonce', help="Nonce associated to the account")
+
+
+parser.add_argument('--amount', help="Amount to send in ether")
+parser.add_argument('--to', help="Destination address")
+parser.add_argument('--data', help="Data to add, hex encoded")
+
+
+args = parser.parse_args()
+
+if args.chaintag is None:
+    args.chaintag = 207
+
+if args.expiration is None:
+    args.expiration = 720
+
+if args.gaspricecoef is None:
+    args.gaspricecoef = 128
+
+if args.gas is None:
+    args.gas = 21000
+
+if args.dependson is None:
+    args.dependson = ""
+else:
+    args.dependson = decode_hex(args.dependson[2:])
+
+if args.nonce is None:
+    args.nonce = "0x1234567890"
+args.nonce = decode_hex(args.nonce[2:])
+
+if args.data is None:
+    args.data = ""
+else:
+    args.data = decode_hex(args.data[2:])
+
+args.amount = _decimal_to_bytes(Decimal(args.amount) * 10**18)
 
 tx = Transaction(
-    chaintag=int(chaintag),
-    blockref=decode_hex(blockref[2:]),
-    expiration=int(expiration),
-    gaspricecoef=int(gaspricecoef),
-    gas=int(gas),
-    dependson="",
-    nonce=decode_hex(nonce[2:]),
+    chaintag=int(args.chaintag),
+    blockref=decode_hex(args.blockref[2:]),
+    expiration=int(args.expiration),
+    gaspricecoef=int(args.gaspricecoef),
+    gas=int(args.gas),
+    dependson=args.dependson,
+    nonce=args.nonce,
     clauses=[
-        Clause(to=decode_hex(to[2:]), value=_int_to_bytes(amount), data=decode_hex(data[2:])),
-        # Clause(to=decode_hex(to[2:]), value=_int_to_bytes(amount), data=decode_hex(data[2:])),
+        Clause(to=decode_hex(args.to[2:]), value=args.amount, data=args.data),
     ],
     reserved=[]
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
 
-donglePath = bip32_path_message()
-# apdu = "e0040000".decode('hex') + chr(len(donglePath) + len(encodedTx)) + donglePath + encodedTx
+donglePath = bip32_path_message(args.path)
 
 dongle = getDongle(True)
 result = _send_tx_to_ledger(donglePath + encodedTx, dongle)

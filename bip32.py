@@ -35,6 +35,8 @@ def _parse_bip32_path(path):
     return result
 
 
-def bip32_path_message(path=DEFAULT_VET_BIP32_PATH):
+def bip32_path_message(path=None):
+    if path is None:
+        path = DEFAULT_VET_BIP32_PATH
     dongle_path = _parse_bip32_path(path)
     return struct.pack(">B", int(len(dongle_path) / 4)) + dongle_path
