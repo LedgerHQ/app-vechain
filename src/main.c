@@ -109,9 +109,17 @@ union {
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
 } tmpCtx;
-txContext_t txContext;
-clausesContext_t clausesContext;
-clauseContext_t clauseContext;
+
+typedef struct txFullContext_t {
+    txContext_t txContext;
+    clausesContext_t clausesContext;
+    clauseContext_t clauseContext;
+} txFullContext_t;
+
+union {
+    txFullContext_t txFullContext;
+    feeComputationContext_t feeComputationContext;
+} displayContext;
 
 union {
     txContent_t txContent;
@@ -2316,9 +2324,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             dataLength -= 4;
         }
         dataPresent = false;
-        initTx(&txContext, &tmpContent.txContent,
-               &clausesContext, &clausesContent,
-               &clauseContext, &clauseContent,
+        initTx(&displayContext.txFullContext.txContext, &tmpContent.txContent,
+               &displayContext.txFullContext.clausesContext, &clausesContent,
+               &displayContext.txFullContext.clauseContext, &clauseContent,
                &blake, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -2326,15 +2334,19 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (p2 != 0) {
         THROW(0x6B00);
     }
-    if (txContext.currentField == TX_RLP_NONE) {
+    if (displayContext.txFullContext.txContext.currentField == TX_RLP_NONE) {
         PRINTF("Parser not initialized\n");
         THROW(0x6985);
     }
-    if (clausesContext.currentField == CLAUSES_RLP_NONE) {
+    if (displayContext.txFullContext.clausesContext.currentField == CLAUSES_RLP_NONE) {
         PRINTF("Parser not initialized\n");
         THROW(0x6985);
     }
-    txResult = processTx(&txContext, &clausesContext, &clauseContext, workBuffer, dataLength);
+    txResult = processTx(&displayContext.txFullContext.txContext,
+                         &displayContext.txFullContext.clausesContext,
+                         &displayContext.txFullContext.clauseContext,
+                         workBuffer,
+                         dataLength);
     switch (txResult) {
     case USTREAM_FINISHED:
         break;
@@ -2398,6 +2410,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     maxFeeToDisplayString(
         &tmpContent.txContent.gaspricecoef,
         &tmpContent.txContent.gas,
+        &displayContext.feeComputationContext,
         maxFee);
 
 #if defined(TARGET_BLUE)
@@ -2571,7 +2584,7 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
             case 0x6000:
                 // Wipe the transaction context and report the exception
                 sw = e;
-                os_memset(&txContext, 0, sizeof(txContext));
+                os_memset(&displayContext, 0, sizeof(displayContext));
                 break;
             case 0x9000:
                 // All is well
@@ -2632,7 +2645,7 @@ void sample_main(void) {
                 case 0x6000:
                     // Wipe the transaction context and report the exception
                     sw = e;
-                    os_memset(&txContext, 0, sizeof(txContext));
+                    os_memset(&displayContext, 0, sizeof(displayContext));
                     break;
                 case 0x9000:
                     // All is well
@@ -2738,7 +2751,7 @@ __attribute__((section(".boot"))) int main(void) {
     // exit critical section
     __asm volatile("cpsie i");
 
-    os_memset(&txContext, 0, sizeof(txContext));
+    os_memset(&displayContext, 0, sizeof(displayContext));
 
     for (;;) {
         UX_INIT();

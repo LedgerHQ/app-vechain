@@ -19,6 +19,7 @@
 static const uint8_t const BASE_GAS_PRICE[] = {0x03, 0x8D, 0x7E, 0xA4, 0xC6, 0x80, 0x00};
 static const uint8_t const MAX_GAS_COEF[] = {0xFF};
 static const uint8_t const TICKER_VET[] = "VET ";
+static const uint8_t const TICKER_VTHO[] = "VTHO ";
 
 uint32_t getStringLength(uint8_t *string) {
     uint32_t i = 0;
@@ -47,23 +48,22 @@ void sendAmountToDisplayString(txInt256_t *sendAmount, uint8_t *ticker, uint8_t 
     amountToDisplayString(&sendAmount256, ticker, decimals, displayString);
 }
 
-void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, uint8_t *displayString) {
-    uint256_t gasPriceCoef256, gas256, baseGasPrice256, maxGasCoef256, tmp256, maxFee256, divR256;
-    convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &baseGasPrice256);
-    convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &maxGasCoef256);
-    convertUint256BE(gaspricecoef->value, gaspricecoef->length, &gasPriceCoef256);
-    convertUint256BE(gas->value, gas->length, &gas256);
-
+void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputationContext_t *feeComputationContext, uint8_t *displayString) {
+    convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &feeComputationContext->maxGasCoef);
+    convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &feeComputationContext->baseGasPrice);
+    convertUint256BE(gaspricecoef->value, gaspricecoef->length, &feeComputationContext->gasPriceCoef);
+    convertUint256BE(gas->value, gas->length, &feeComputationContext->gas);
     // (BGP * GPC)
-    mul256(&gasPriceCoef256, &baseGasPrice256, &tmp256);
-    // (BGP / 255) * GPC
-    divmod256(&tmp256, &maxGasCoef256, &maxFee256, &divR256);
-    // (1 + BGP / 255) * GPC
-    add256(&maxFee256, &baseGasPrice256, &tmp256);
-    // (1 + BGP / 255) * GPC) * G
-    mul256(&tmp256, &gas256, &maxFee256);
+    mul256(&feeComputationContext->gasPriceCoef, &feeComputationContext->baseGasPrice, &feeComputationContext->tmp);
 
-    amountToDisplayString(&maxFee256, TICKER_VET, DECIMALS_VET, displayString);
+    // (BGP / 255) * GPC
+    divmod256(&feeComputationContext->tmp, &feeComputationContext->maxGasCoef, &feeComputationContext->maxFeeBonus, &feeComputationContext->gasPriceCoef);
+    // (1 + BGP / 255) * GPC
+    add256(&feeComputationContext->maxFeeBonus, &feeComputationContext->baseGasPrice, &feeComputationContext->tmp);
+    // (1 + BGP / 255) * GPC) * G
+    mul256(&feeComputationContext->tmp, &feeComputationContext->gas, &feeComputationContext->maxFee);
+
+    amountToDisplayString(&feeComputationContext->maxFee, TICKER_VTHO, DECIMALS_VTHO, displayString);
 }
 
 void amountToDisplayString(uint256_t *amount256, uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
