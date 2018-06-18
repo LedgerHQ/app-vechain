@@ -31,18 +31,6 @@
 
 #include "glyphs.h"
 
-#ifdef HAVE_U2F
-
-#include "u2f_service.h"
-#include "u2f_transport.h"
-
-volatile unsigned char u2fMessageBuffer[U2F_MAX_MESSAGE_SIZE];
-
-extern void USB_power_U2F(unsigned char enabled, unsigned char fido);
-extern bool fidoActivated;
-
-#endif
-
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 unsigned int io_seproxyhal_touch_settings(const bagl_element_t *e);
@@ -131,8 +119,6 @@ clauseContent_t clauseContent;
 
 blake2b_ctx blake;
 cx_sha3_t sha3;
-// volatile uint8_t dataAllowed;
-// volatile uint8_t fidoTransport;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
 volatile char fullAmount[50];
@@ -144,12 +130,6 @@ volatile bool skipClausesWarning;
 
 bagl_element_t tmp_element;
 
-#ifdef HAVE_U2F
-
-volatile u2f_service_t u2fService;
-
-#endif
-
 ux_state_t ux;
 // display stepped screens
 unsigned int ux_step;
@@ -158,7 +138,6 @@ unsigned int ux_step_count;
 typedef struct internalStorage_t {
     uint8_t dataAllowed;
     uint8_t multiClauseAllowed;
-    uint8_t fidoTransport;
     uint8_t initialized;
 } internalStorage_t;
 
@@ -181,19 +160,6 @@ void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     }
     *strbuf = 0; // EOS
 }
-
-#ifdef HAVE_U2F
-
-void u2f_proxy_response(u2f_service_t *service, unsigned int tx) {
-    os_memset(service->messageBuffer, 0, 5);
-    os_memmove(service->messageBuffer + 5, G_io_apdu_buffer, tx);
-    service->messageBuffer[tx + 5] = 0x90;
-    service->messageBuffer[tx + 6] = 0x00;
-    u2f_send_fragmented_response(service, U2F_CMD_MSG, service->messageBuffer,
-                                 tx + 7, true);
-}
-
-#endif
 
 const bagl_element_t *ui_menu_item_out_over(const bagl_element_t *e) {
     // the selection rectangle is after the none|touchable
@@ -332,7 +298,6 @@ unsigned int ui_idle_blue_button(unsigned int button_mask,
 
 const ux_menu_entry_t menu_main[];
 const ux_menu_entry_t menu_settings[];
-const ux_menu_entry_t menu_settings_browser[];
 const ux_menu_entry_t menu_settings_data[];
 const ux_menu_entry_t menu_settings_clause[];
 
@@ -340,8 +305,6 @@ const ux_menu_entry_t menu_settings_clause[];
 void menu_settings_data_change(unsigned int enabled) {
     uint8_t dataAllowed = enabled;
     nvm_write(&N_storage.dataAllowed, (void *)&dataAllowed, sizeof(uint8_t));
-    USB_power_U2F(0, 0);
-    USB_power_U2F(1, N_storage.fidoTransport);
     // go back to the menu entry
     UX_MENU_DISPLAY(0, menu_settings, NULL);
 }
@@ -356,8 +319,6 @@ void menu_settings_data_init(unsigned int ignored) {
 void menu_settings_clause_change(unsigned int enabled) {
     uint8_t multiClauseAllowed = enabled;
     nvm_write(&N_storage.multiClauseAllowed, (void *)&multiClauseAllowed, sizeof(uint8_t));
-    USB_power_U2F(0, 0);
-    USB_power_U2F(1, N_storage.fidoTransport);
     // go back to the menu entry
     UX_MENU_DISPLAY(1, menu_settings, NULL);
 }
@@ -367,31 +328,6 @@ void menu_settings_clause_init(unsigned int ignored) {
     UNUSED(ignored);
     UX_MENU_DISPLAY(N_storage.multiClauseAllowed ? 1 : 0, menu_settings_clause, NULL);
 }
-
-#ifdef HAVE_U2F
-// change the setting
-void menu_settings_browser_change(unsigned int enabled) {
-    uint8_t fidoTransport = enabled;
-    nvm_write(&N_storage.fidoTransport, (void *)&fidoTransport,
-              sizeof(uint8_t));
-    USB_power_U2F(0, 0);
-    USB_power_U2F(1, N_storage.fidoTransport);
-    // go back to the menu entry
-    UX_MENU_DISPLAY(2, menu_settings, NULL);
-}
-
-// show the currently activated entry
-void menu_settings_browser_init(unsigned int ignored) {
-    UNUSED(ignored);
-    UX_MENU_DISPLAY(N_storage.fidoTransport ? 1 : 0, menu_settings_browser,
-                    NULL);
-}
-
-const ux_menu_entry_t menu_settings_browser[] = {
-    {NULL, menu_settings_browser_change, 0, NULL, "No", NULL, 0, 0},
-    {NULL, menu_settings_browser_change, 1, NULL, "Yes", NULL, 0, 0},
-    UX_MENU_END};
-#endif // HAVE_U2F
 
 const ux_menu_entry_t menu_settings_data[] = {
     {NULL, menu_settings_data_change, 0, NULL, "No", NULL, 0, 0},
@@ -406,9 +342,6 @@ const ux_menu_entry_t menu_settings_clause[] = {
 const ux_menu_entry_t menu_settings[] = {
     {NULL, menu_settings_data_init, 0, NULL, "Contract data", NULL, 0, 0},
     {NULL, menu_settings_clause_init, 0, NULL, "Multi-clause", NULL, 0, 0},
-#ifdef HAVE_U2F
-    {NULL, menu_settings_browser_init, 0, NULL, "Browser support", NULL, 0, 0},
-#endif // HAVE_U2F
     {menu_main, NULL, 1, &C_icon_back, "Back", NULL, 61, 40},
     UX_MENU_END};
 
@@ -432,18 +365,6 @@ const bagl_element_t *ui_settings_blue_toggle_data(const bagl_element_t *e) {
     // swap setting and request redraw of settings elements
     uint8_t setting = N_storage.dataAllowed ? 0 : 1;
     nvm_write(&N_storage.dataAllowed, (void *)&setting, sizeof(uint8_t));
-
-    // only refresh settings mutable drawn elements
-    UX_REDISPLAY_IDX(12);
-
-    // won't redisplay the bagl_none
-    return 0;
-}
-
-const bagl_element_t *ui_settings_blue_toggle_browser(const bagl_element_t *e) {
-    // swap setting and request redraw of settings elements
-    uint8_t setting = N_storage.fidoTransport ? 0 : 1;
-    nvm_write(&N_storage.fidoTransport, (void *)&setting, sizeof(uint8_t));
 
     // only refresh settings mutable drawn elements
     UX_REDISPLAY_IDX(12);
@@ -551,56 +472,6 @@ const bagl_element_t ui_settings_blue[] = {
      ui_settings_out_over,
      ui_settings_out_over},
 
-#ifdef HAVE_U2F
-    {{BAGL_RECTANGLE, 0x00, 30, 146, 260, 1, 1, 0, 0, 0xEEEEEE, COLOR_BG_1, 0,
-      0},
-     NULL,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-
-    {{BAGL_LABELINE, 0x00, 30, 174, 160, 30, 0, 0, BAGL_FILL, 0x000000,
-      COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0},
-     "Browser support",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_LABELINE, 0x00, 30, 195, 260, 30, 0, 0, BAGL_FILL, 0x999999,
-      COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_8_11PX, 0},
-     "Enable integrated browser support",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_NONE | BAGL_FLAG_TOUCHABLE, 0x00, 0, 147, 320, 68, 0, 0, BAGL_FILL,
-      0xFFFFFF, 0x000000, 0, 0},
-     NULL,
-     0,
-     0xEEEEEE,
-     0x000000,
-     ui_settings_blue_toggle_browser,
-     ui_settings_out_over,
-     ui_settings_out_over},
-
-    // at the end to minimize the number of refreshed items upon setting change
-    {{BAGL_ICON, 0x02, 258, 167, 32, 18, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1,
-      0, 0},
-     NULL,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-#endif // HAVE_U2F
     {{BAGL_ICON, 0x01, 258, 98, 32, 18, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1,
       0, 0},
      NULL,
@@ -630,15 +501,6 @@ const bagl_element_t *ui_settings_blue_prepro(const bagl_element_t *e) {
                 tmp_element.text = &C_icon_toggle_reset;
             }
             break;
-        case 0x02:
-            // swap icon content
-            if (N_storage.fidoTransport) {
-                tmp_element.text = &C_icon_toggle_set;
-            } else {
-                tmp_element.text = &C_icon_toggle_reset;
-            }
-            break;
-        }
         return &tmp_element;
     }
     return 1;
@@ -1920,17 +1782,8 @@ unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
     uint32_t tx = set_result_get_publicKey();
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
-#ifdef HAVE_U2F
-    if (fidoActivated) {
-        u2f_proxy_response((u2f_service_t *)&u2fService, tx);
-    } else {
-        // Send back the response, do not restart the event loop
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    }
-#else  // HAVE_U2F
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-#endif // HAVE_U2F
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
@@ -1939,17 +1792,8 @@ unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
 unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e) {
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;
-#ifdef HAVE_U2F
-    if (fidoActivated) {
-        u2f_proxy_response((u2f_service_t *)&u2fService, 2);
-    } else {
-        // Send back the response, do not restart the event loop
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    }
-#else  // HAVE_U2F
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-#endif // HAVE_U2F
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
@@ -2011,17 +1855,8 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     G_io_apdu_buffer[tx++] = signature[0] & 0x01;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
-#ifdef HAVE_U2F
-    if (fidoActivated) {
-        u2f_proxy_response((u2f_service_t *)&u2fService, tx);
-    } else {
-        // Send back the response, do not restart the event loop
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    }
-#else  // HAVE_U2F
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-#endif // HAVE_U2F
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
@@ -2030,17 +1865,8 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
 unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;
-#ifdef HAVE_U2F
-    if (fidoActivated) {
-        u2f_proxy_response((u2f_service_t *)&u2fService, 2);
-    } else {
-        // Send back the response, do not restart the event loop
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    }
-#else  // HAVE_U2F
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-#endif // HAVE_U2F
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
@@ -2086,17 +1912,8 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
-#ifdef HAVE_U2F
-    if (fidoActivated) {
-        u2f_proxy_response((u2f_service_t *)&u2fService, tx);
-    } else {
-        // Send back the response, do not restart the event loop
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    }
-#else  // HAVE_U2F
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-#endif // HAVE_U2F
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
@@ -2105,17 +1922,8 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
 unsigned int io_seproxyhal_touch_signMessage_cancel(const bagl_element_t *e) {
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;
-#ifdef HAVE_U2F
-    if (fidoActivated) {
-        u2f_proxy_response((u2f_service_t *)&u2fService, 2);
-    } else {
-        // Send back the response, do not restart the event loop
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    }
-#else  // HAVE_U2F
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-#endif // HAVE_U2F
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
@@ -2767,25 +2575,14 @@ __attribute__((section(".boot"))) int main(void) {
                 if (N_storage.initialized != 0x01) {
                     internalStorage_t storage;
                     storage.dataAllowed = 0x00;
-                    storage.fidoTransport = 0x00;
+                    storage.multiClauseAllowed = 0x00;
                     storage.initialized = 0x01;
                     nvm_write(&N_storage, (void *)&storage,
                               sizeof(internalStorage_t));
                 }
 
-                USB_power_U2F(0, 0);
-#ifdef HAVE_U2F
-                os_memset((unsigned char *)&u2fService, 0, sizeof(u2fService));
-                u2fService.inputBuffer = G_io_apdu_buffer;
-                u2fService.outputBuffer = G_io_apdu_buffer;
-                u2fService.messageBuffer = (uint8_t *)u2fMessageBuffer;
-                u2fService.messageBufferSize = U2F_MAX_MESSAGE_SIZE;
-                u2f_initialize_service((u2f_service_t *)&u2fService);
-
-                USB_power_U2F(1, N_storage.fidoTransport);
-#else  // HAVE_U2F
-                USB_power_U2F(1, 0);
-#endif // HAVE_U2F
+                USB_power(0);
+                USB_power(1);
 
                 ui_idle();
 
