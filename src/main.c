@@ -18,13 +18,13 @@
 
 #include "os.h"
 #include "cx.h"
-#include <stdbool.h>
+#include "stdbool.h"
 #include "vetUstream.h"
 #include "vetUtils.h"
 #include "vetDisplay.h"
 #include "uint256.h"
 #include "tokens.h"
-#include <blake2b.h>
+#include "blake2b.h"
 
 #include "os_io_seproxyhal.h"
 #include "string.h"
@@ -122,7 +122,7 @@ cx_sha3_t sha3;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
 volatile char fullAmount[50];
-volatile char maxFee[50];
+volatile char maxFee[60];
 volatile bool dataPresent;
 volatile bool multipleClauses;
 volatile bool skipDataWarning;
@@ -2402,7 +2402,7 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
             default:
                 // Internal error
                 sw = e;
-                //sw = 0x6800 | (e & 0x7FF);
+                sw = 0x6800 | (e & 0x7FF);
                 break;
             }
             // Unexpected exception => report
@@ -2562,11 +2562,11 @@ __attribute__((section(".boot"))) int main(void) {
 
     os_memset(&displayContext, 0, sizeof(displayContext));
 
+    // ensure exception will work as planned
+    os_boot();
+
     for (;;) {
         UX_INIT();
-
-        // ensure exception will work as planned
-        os_boot();
 
         BEGIN_TRY {
             TRY {
