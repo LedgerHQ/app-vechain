@@ -18,7 +18,6 @@
 
 static const uint8_t const BASE_GAS_PRICE[] = {0x03, 0x8D, 0x7E, 0xA4, 0xC6, 0x80, 0x00};
 static const uint8_t const MAX_GAS_COEF[] = {0xFF};
-static const uint8_t const TICKER_VET[] = "VET ";
 static const uint8_t const TICKER_VTHO[] = "VTHO ";
 
 uint32_t getStringLength(uint8_t *string) {

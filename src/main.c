@@ -68,8 +68,6 @@ uint32_t set_result_get_publicKey(void);
 
 #define DECIMALS_VET 18
 
-static const uint8_t const BASE_GAS_PRICE[] = {0x03, 0x8D, 0x7E, 0xA4, 0xC6, 0x80, 0x00};
-static const uint8_t const MAX_GAS_COEF[] = {0xFF};
 static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
 static const uint8_t const TICKER_VET[] = "VET ";
 
@@ -373,6 +371,18 @@ const bagl_element_t *ui_settings_blue_toggle_data(const bagl_element_t *e) {
     return 0;
 }
 
+const bagl_element_t *ui_settings_blue_toggle_clause(const bagl_element_t *e) {
+    // swap setting and request redraw of settings elements
+    uint8_t setting = N_storage.multiClauseAllowed ? 0 : 1;
+    nvm_write(&N_storage.multiClauseAllowed, (void *)&setting, sizeof(uint8_t));
+
+    // only refresh settings mutable drawn elements
+    UX_REDISPLAY_IDX(12);
+
+    // won't redisplay the bagl_none
+    return 0;
+}
+
 // don't perform any draw/color change upon finger event over settings
 const bagl_element_t *ui_settings_out_over(const bagl_element_t *e) {
     return NULL;
@@ -481,6 +491,44 @@ const bagl_element_t ui_settings_blue[] = {
      NULL,
      NULL,
      NULL},
+
+    {{BAGL_LABELINE, 0x00, 30, 173, 160, 30, 0, 0, BAGL_FILL, 0x000000,
+      COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0},
+     "Multi-clause",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x00, 30, 194, 260, 30, 0, 0, BAGL_FILL, 0x999999,
+      COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_8_11PX, 0},
+     "Allow multiple clauses in transactions",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_NONE | BAGL_FLAG_TOUCHABLE, 0x00, 0, 146, 320, 68, 0, 0, BAGL_FILL,
+      0xFFFFFF, 0x000000, 0, 0},
+     NULL,
+     0,
+     0xEEEEEE,
+     0x000000,
+     ui_settings_blue_toggle_clause,
+     ui_settings_out_over,
+     ui_settings_out_over},
+
+    {{BAGL_ICON, 0x02, 258, 166, 32, 18, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
 };
 
 const bagl_element_t *ui_settings_blue_prepro(const bagl_element_t *e) {
@@ -496,6 +544,14 @@ const bagl_element_t *ui_settings_blue_prepro(const bagl_element_t *e) {
         case 0x01:
             // swap icon content
             if (N_storage.dataAllowed) {
+                tmp_element.text = &C_icon_toggle_set;
+            } else {
+                tmp_element.text = &C_icon_toggle_reset;
+            }
+            break;
+        case 0x02:
+            // swap icon content
+            if (N_storage.multiClauseAllowed) {
                 tmp_element.text = &C_icon_toggle_set;
             } else {
                 tmp_element.text = &C_icon_toggle_reset;
