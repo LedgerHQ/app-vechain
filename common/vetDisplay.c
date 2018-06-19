@@ -37,8 +37,8 @@ void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
 }
 
 void addressToDisplayString(uint8_t *address, cx_sha3_t *sha3Context, uint8_t *displayString) {
-    displayString[0] = '0';
-    displayString[1] = 'x';
+    displayString[0] = 'V';
+    displayString[1] = 'X';
     getVetAddressStringFromBinary(address, displayString + 2, sha3Context);
 }
 
