@@ -48,6 +48,7 @@ def _decimal_to_bytes(i):
     if i is None or i == 0:
         return ""
     hex_basic = hex(int(i))[2:]
+    hex_basic = hex_basic.replace("L", "")
     if len(hex_basic) % 2 == 1:
         hex_basic = "0{}".format(hex_basic)
     return decode_hex(hex_basic)
@@ -73,7 +74,7 @@ parser.add_argument('--data', help="Data to add, hex encoded")
 args = parser.parse_args()
 
 if args.chaintag is None:
-    args.chaintag = 207
+    args.chaintag = 154
 
 if args.expiration is None:
     args.expiration = 720
