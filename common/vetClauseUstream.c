@@ -133,6 +133,10 @@ static void processDataField(clauseContext_t *context) {
             context->currentField++;
             context->processingField = false;
         }
+    } else {
+        // If not token transaction, return immediately without reading
+        context->currentField++;
+        context->processingField = false;
     }
 }
 
