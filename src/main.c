@@ -66,6 +66,9 @@ uint32_t set_result_get_publicKey(void);
 #define OFFSET_LC 4
 #define OFFSET_CDATA 5
 
+#define CONFIG_DATA_ENABLED 0x01
+#define CONFIG_MULTICLAUSE_ENABLED 0x02
+
 #define DECIMALS_VET 18
 
 static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
@@ -2300,7 +2303,10 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     UNUSED(workBuffer);
     UNUSED(dataLength);
     UNUSED(flags);
-    G_io_apdu_buffer[0] = (N_storage.dataAllowed ? 0x01 : 0x00);
+    G_io_apdu_buffer[0] = (
+        (N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) | 
+        (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED : 0x00)
+    );
     G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
     G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
     G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
