@@ -1903,7 +1903,6 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                       sizeof(tmpCtx.transactionContext.hash), signature);
 #endif
     os_memset(&privateKey, 0, sizeof(privateKey));
-    G_io_apdu_buffer[0] = signature[0] & 0x01;
     rLength = signature[3];
     sLength = signature[4 + rLength + 1];
     rOffset = (rLength == 33 ? 1 : 0);
@@ -1960,15 +1959,14 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
                       sizeof(tmpCtx.messageSigningContext.hash), signature);
 #endif
     os_memset(&privateKey, 0, sizeof(privateKey));
-    G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
     rLength = signature[3];
     sLength = signature[4 + rLength + 1];
     rOffset = (rLength == 33 ? 1 : 0);
     sOffset = (sLength == 33 ? 1 : 0);
-    os_memmove(G_io_apdu_buffer + 1, signature + 4 + rOffset, 32);
-    os_memmove(G_io_apdu_buffer + 1 + 32, signature + 4 + rLength + 2 + sOffset,
-               32);
-    tx = 65;
+    os_memmove(G_io_apdu_buffer, signature + 4 + rOffset, 32);
+    os_memmove(G_io_apdu_buffer + 32, signature + 4 + rLength + 2 + sOffset, 32);
+    tx = 64;
+    G_io_apdu_buffer[tx++] = signature[0] & 0x01;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
     // Send back the response, do not restart the event loop
