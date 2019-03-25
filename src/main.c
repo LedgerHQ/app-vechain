@@ -142,8 +142,8 @@ typedef struct internalStorage_t {
     uint8_t initialized;
 } internalStorage_t;
 
-WIDE internalStorage_t N_storage_real;
-#define N_storage (*(WIDE internalStorage_t *)PIC(&N_storage_real))
+ internalStorage_t N_storage_real;
+#define N_storage (*( internalStorage_t *)PIC(&N_storage_real))
 
 static const char const CONTRACT_ADDRESS[] = "New contract";
 
