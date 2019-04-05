@@ -131,7 +131,14 @@ volatile bool skipClausesWarning;
 
 bagl_element_t tmp_element;
 
-ux_state_t ux;
+#ifdef TARGET_NANOX
+    #include "ux.h"
+    ux_state_t G_ux;
+    bolos_ux_params_t G_ux_params;
+#else // TARGET_NANOX
+    ux_state_t ux;
+#endif // TARGET_NANOX
+
 // display stepped screens
 unsigned int ux_step;
 unsigned int ux_step_count;
@@ -142,8 +149,8 @@ typedef struct internalStorage_t {
     uint8_t initialized;
 } internalStorage_t;
 
- internalStorage_t N_storage_real;
-#define N_storage (*( internalStorage_t *)PIC(&N_storage_real))
+const internalStorage_t const N_storage_real;
+#define N_storage (*( volatile internalStorage_t *)PIC(&N_storage_real))
 
 static const char const CONTRACT_ADDRESS[] = "New contract";
 
@@ -1814,6 +1821,341 @@ unsigned int ui_approval_signMessage_prepro(const bagl_element_t *element) {
 
 #endif // #if defined(TARGET_NANOS)
 
+#if defined(TARGET_NANOX)
+
+const char* settings_submenu_getter(unsigned int idx);
+void settings_submenu_selector(unsigned int idx);
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Contract data submenu:
+
+void settings_contract_data_change(uint8_t enabled) {
+    nvm_write((void *)&N_storage.dataAllowed, &enabled, 1);
+    ui_idle();
+}
+
+const char* const settings_contract_data_getter_values[] = {
+  "No",
+  "Yes",
+  "Back"
+};
+
+const char* settings_contract_data_getter(unsigned int idx) {
+  if (idx < ARRAYLEN(settings_contract_data_getter_values)) {
+    return settings_contract_data_getter_values[idx];
+  }
+  return NULL;
+}
+
+void settings_contract_data_selector(unsigned int idx) {
+  switch(idx) {
+    case 0:
+      settings_contract_data_change(0);
+      break;
+    case 1:
+      settings_contract_data_change(1);
+      break;
+    default:
+      ux_menulist_init(0, settings_submenu_getter, settings_submenu_selector);
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Clause change submenu:
+
+void settings_clause_change(uint8_t enabled) {
+    nvm_write((void *)&N_storage.multiClauseAllowed, &enabled, 1);
+    ui_idle();
+}
+
+const char* const settings_clause_getter_values[] = {
+  "No",
+  "Yes",
+  "Back"
+};
+
+const char* settings_clause_getter(unsigned int idx) {
+  if (idx < ARRAYLEN(settings_clause_getter_values)) {
+    return settings_clause_getter_values[idx];
+  }
+  return NULL;
+}
+
+void settings_clause_selector(unsigned int idx) {
+  switch(idx) {
+    case 0:
+      settings_clause_change(0);
+      break;
+    case 1:
+      settings_clause_change(1);
+      break;
+    default:
+      ux_menulist_init(0, settings_submenu_getter, settings_submenu_selector);
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Settings menu:
+
+const char* const settings_submenu_getter_values[] = {
+  "Contract data",
+  "Multi-clause",
+  "Back",
+};
+
+const char* settings_submenu_getter(unsigned int idx) {
+  if (idx < ARRAYLEN(settings_submenu_getter_values)) {
+    return settings_submenu_getter_values[idx];
+  }
+  return NULL;
+}
+
+void settings_submenu_selector(unsigned int idx) {
+  switch(idx) {
+    case 0:
+      ux_menulist_init_select(0, settings_contract_data_getter, settings_contract_data_selector, N_storage.dataAllowed);
+      break;
+    case 1:
+      ux_menulist_init_select(0, settings_clause_getter, settings_clause_selector, N_storage.multiClauseAllowed);
+      break;
+    default:
+      ui_idle();
+  }
+}
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_idle_flow_1_step, 
+    pnn, 
+    {
+      &C_nanox_badge,
+      "Application",
+      "is ready",
+    });
+UX_STEP_VALID(
+    ux_idle_flow_2_step,
+    pb,
+    ux_menulist_init(0, settings_submenu_getter, settings_submenu_selector),
+    {
+      &C_icon_coggle,
+      "Settings",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_3_step, 
+    bn, 
+    {
+      "Version",
+      APPVERSION,
+    });
+UX_STEP_VALID(
+    ux_idle_flow_4_step,
+    pb,
+    os_sched_exit(-1),
+    {
+      &C_icon_dashboard_x,
+      "Quit",
+    });
+UX_FLOW(ux_idle_flow,
+  &ux_idle_flow_1_step,
+  &ux_idle_flow_2_step,
+  &ux_idle_flow_3_step,
+  &ux_idle_flow_4_step
+);
+
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_display_public_flow_5_step, 
+    bnnn_paging, 
+    {
+      .title = "Address",
+      .text = (char *)fullAddress,
+    });
+UX_STEP_VALID(
+    ux_display_public_flow_6_step, 
+    pb, 
+    io_seproxyhal_touch_address_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Approve",
+    });
+UX_STEP_VALID(
+    ux_display_public_flow_7_step, 
+    pb, 
+    io_seproxyhal_touch_address_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+UX_FLOW(ux_display_public_flow,
+  &ux_display_public_flow_5_step,
+  &ux_display_public_flow_6_step,
+  &ux_display_public_flow_7_step
+);
+
+
+//////////////////////////////////////////////////////////////////////
+
+UX_STEP_NOCB(ux_confirm_full_flow_1_step, 
+    pnn, 
+    {
+      &C_icon_eye,
+      "Review",
+      "transaction",
+    });
+
+// OPTIONNAL 
+UX_STEP_NOCB(
+    ux_confirm_full_warning_data_step, 
+    pnn, 
+    {
+      &C_icon_warning_x,
+      "WARNING",
+      "Data present",
+    });
+UX_STEP_NOCB(
+    ux_confirm_full_warning_clauses_step, 
+    pnn, 
+    {
+      &C_icon_warning_x,
+      "WARNING",
+      "Multiple Clauses",
+    });
+
+// OPTIONNAL
+
+UX_STEP_NOCB(
+    ux_confirm_full_flow_2_step, 
+    bnnn_paging, 
+    {
+      .title = "Amount",
+      .text = (char *)fullAmount
+    });
+UX_STEP_NOCB(
+    ux_confirm_full_flow_3_step, 
+    bnnn_paging, 
+    {
+      .title = "Address",
+      .text = (char *)fullAddress,
+    });
+UX_STEP_NOCB(
+    ux_confirm_full_flow_4_step, 
+    bnnn_paging, 
+    {
+      .title = "Max Fees",
+      .text = (char *)maxFee,
+    });
+UX_STEP_VALID(
+    ux_confirm_full_flow_5_step, 
+    pbb, 
+    io_seproxyhal_touch_tx_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Accept",
+      "and send",
+    });
+UX_STEP_VALID(
+    ux_confirm_full_flow_6_step, 
+    pb, 
+    io_seproxyhal_touch_tx_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+// confirm_full: confirm transaction / Amount: fullAmount / Address: fullAddress / MaxFees: maxFee
+UX_FLOW(ux_confirm_full_flow,
+  &ux_confirm_full_flow_1_step,
+  &ux_confirm_full_flow_2_step,
+  &ux_confirm_full_flow_3_step,
+  &ux_confirm_full_flow_4_step,
+  &ux_confirm_full_flow_5_step,
+  &ux_confirm_full_flow_6_step
+);
+
+UX_FLOW(ux_confirm_full_data_flow,
+  &ux_confirm_full_flow_1_step,
+  &ux_confirm_full_warning_data_step,
+  FLOW_BARRIER,
+  &ux_confirm_full_flow_2_step,
+  &ux_confirm_full_flow_3_step,
+  &ux_confirm_full_flow_4_step,
+  &ux_confirm_full_flow_5_step,
+  &ux_confirm_full_flow_6_step
+);
+
+UX_FLOW(ux_confirm_full_clauses_flow,
+  &ux_confirm_full_flow_1_step,
+  &ux_confirm_full_warning_clauses_step,
+  FLOW_BARRIER,
+  &ux_confirm_full_flow_2_step,
+  &ux_confirm_full_flow_3_step,
+  &ux_confirm_full_flow_4_step,
+  &ux_confirm_full_flow_5_step,
+  &ux_confirm_full_flow_6_step
+);
+
+UX_FLOW(ux_confirm_full_data_clauses_flow,
+  &ux_confirm_full_flow_1_step,
+  &ux_confirm_full_warning_data_step,
+  FLOW_BARRIER,
+  &ux_confirm_full_warning_clauses_step,
+  FLOW_BARRIER,
+  &ux_confirm_full_flow_2_step,
+  &ux_confirm_full_flow_3_step,
+  &ux_confirm_full_flow_4_step,
+  &ux_confirm_full_flow_5_step,
+  &ux_confirm_full_flow_6_step
+);
+
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_sign_flow_1_step, 
+    pnn, 
+    {
+      &C_icon_certificate,
+      "Sign",
+      "message",
+    });
+UX_STEP_NOCB(
+    ux_sign_flow_2_step, 
+    bnnn_paging, 
+    {
+      .title = "Message hash",
+      .text = (char *)fullAddress,
+    });
+UX_STEP_VALID(
+    ux_sign_flow_3_step,
+    pbb,
+    io_seproxyhal_touch_signMessage_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Sign",
+      "message",
+    });
+UX_STEP_VALID(
+    ux_sign_flow_4_step,
+    pbb,
+    io_seproxyhal_touch_signMessage_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Cancel",
+      "signature",
+    });
+
+UX_FLOW(ux_sign_flow,
+  &ux_sign_flow_1_step,
+  &ux_sign_flow_2_step,
+  &ux_sign_flow_3_step,
+  &ux_sign_flow_4_step
+);
+
+//////////////////////////////////////////////////////////////////////
+
+
+
+#endif //TARGET_NANOX
+
 void ui_idle(void) {
     skipDataWarning = false;
     skipClausesWarning = false;
@@ -1821,6 +2163,12 @@ void ui_idle(void) {
     UX_DISPLAY(ui_idle_blue, NULL);
 #elif defined(TARGET_NANOS)
     UX_MENU_DISPLAY(0, menu_main, NULL);
+#elif defined(TARGET_NANOX)
+    // reserve a display stack slot if none yet
+    if(G_ux.stack_count == 0) {
+        ux_stack_push();
+    }
+    ux_flow_init(0, ux_idle_flow, NULL);
 #endif // #if TARGET_ID
 }
 
@@ -2146,16 +2494,21 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
         // prepare for a UI based reply
         skipDataWarning = false;
         skipClausesWarning = false;
-#if defined(TARGET_BLUE)
+
         snprintf(fullAddress, sizeof(fullAddress), "0x%.*s", 40,
-                 tmpCtx.publicKeyContext.address);
+            tmpCtx.publicKeyContext.address);
+
+#if defined(TARGET_BLUE)
         UX_DISPLAY(ui_address_blue, ui_address_blue_prepro);
 #elif defined(TARGET_NANOS)
-        snprintf(fullAddress, sizeof(fullAddress), "0x%.*s", 40,
-                 tmpCtx.publicKeyContext.address);
         ux_step = 0;
         ux_step_count = 2;
         UX_DISPLAY(ui_address_nanos, ui_address_prepro);
+#elif defined(TARGET_NANOX)
+        if(G_ux.stack_count == 0) {
+        ux_stack_push();
+        }
+        ux_flow_init(0, ux_display_public_flow, NULL);
 #endif // #if TARGET_ID
 
         *flags |= IO_ASYNCH_REPLY;
@@ -2287,6 +2640,22 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     ux_step = 0;
     ux_step_count = 6;
     UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
+#elif defined(TARGET_NANOX)
+    if(G_ux.stack_count == 0) {
+    ux_stack_push();
+    }
+    if(dataPresent && multipleClauses){
+        ux_flow_init(0, ux_confirm_full_data_clauses_flow, NULL);
+    }
+    else if(dataPresent && !multipleClauses){
+        ux_flow_init(0, ux_confirm_full_data_flow, NULL);
+    }
+    else if(!dataPresent && multipleClauses){
+        ux_flow_init(0, ux_confirm_full_clauses_flow, NULL);
+    }
+    else{
+        ux_flow_init(0, ux_confirm_full_flow, NULL);
+    }
 #endif // #if TARGET_ID
 
     *flags |= IO_ASYNCH_REPLY;
@@ -2392,6 +2761,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         ux_step_count = 2;
         UX_DISPLAY(ui_approval_signMessage_nanos,
                    ui_approval_signMessage_prepro);
+#elif defined(TARGET_NANOX)
+    if(G_ux.stack_count == 0) {
+    ux_stack_push();
+    }
+    ux_flow_init(0, ux_sign_flow, NULL);
 #endif // #if TARGET_ID
 
         *flags |= IO_ASYNCH_REPLY;
@@ -2409,6 +2783,8 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(0x6E00);
             }
+
+            PRINTF("New APDU received:\n%.*H\n", G_io_apdu_buffer[OFFSET_LC]+OFFSET_LC, G_io_apdu_buffer);
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
             case INS_GET_PUBLIC_KEY:
@@ -2637,8 +3013,7 @@ __attribute__((section(".boot"))) int main(void) {
                     storage.dataAllowed = 0x00;
                     storage.multiClauseAllowed = 0x00;
                     storage.initialized = 0x01;
-                    nvm_write(&N_storage, (void *)&storage,
-                              sizeof(internalStorage_t));
+                    nvm_write((void *)&N_storage, &storage, sizeof(internalStorage_t));
                 }
 
                 USB_power(0);
@@ -2650,7 +3025,12 @@ __attribute__((section(".boot"))) int main(void) {
                 // setup the status bar colors (remembered after wards, even
                 // more if another app does not resetup after app switch)
                 UX_SET_STATUS_BAR_COLOR(0xFFFFFF, COLOR_APP);
-#endif // #if defined(TARGET_BLUE)
+#endif // TARGET_BLUE
+
+#ifdef HAVE_BLE
+                BLE_power(0, NULL);
+                BLE_power(1, "Nano X");
+#endif // HAVE_BLE
 
                 sample_main();
             }
