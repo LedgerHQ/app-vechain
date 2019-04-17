@@ -119,7 +119,7 @@ void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
-            hashAddress);
+            hashAddress, 32);
     os_memmove(out, hashAddress + 12, 20);
 }
 
@@ -154,7 +154,7 @@ void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
-            hashAddress);
+            hashAddress, 32);
     getVetAddressStringFromBinary(hashAddress + 12, out, sha3Context);
 }
 
@@ -163,7 +163,7 @@ void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
     uint8_t hashChecksum[32];
     uint8_t i;
     cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t *)sha3Context, CX_LAST, address, 20, hashChecksum);
+    cx_hash((cx_hash_t *)sha3Context, CX_LAST, address, 20, hashChecksum, 32);
     for (i = 0; i < 40; i++) {
         out[i] = convertDigit(address, i, hashChecksum);
     }
@@ -179,7 +179,7 @@ void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
-            hashAddress);
+            hashAddress, 32);
     getVetAddressStringFromBinary(hashAddress + 12, out, sha3Context);
 }
 
@@ -194,7 +194,7 @@ void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
         tmp[2 * i + 1] = HEXDIGITS[digit & 0x0f];
     }
     cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t *)sha3Context, CX_LAST, tmp, 40, hashChecksum);
+    cx_hash((cx_hash_t *)sha3Context, CX_LAST, tmp, 40, hashChecksum, 32);
     for (i = 0; i < 40; i++) {
         uint8_t hashDigit = hashChecksum[i / 2];
         if ((i % 2) == 0) {

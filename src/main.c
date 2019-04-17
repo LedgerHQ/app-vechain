@@ -2240,7 +2240,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
                       tmpCtx.transactionContext.hash,
-                      sizeof(tmpCtx.transactionContext.hash), signature, &info);
+                      sizeof(tmpCtx.transactionContext.hash), signature, sizeof(signature), &info);
     if (info & CX_ECCINFO_PARITY_ODD) {
         signature[0] |= 0x01;
     }
@@ -2296,7 +2296,7 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     signatureLength = cx_ecdsa_sign(
         &privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
         tmpCtx.messageSigningContext.hash,
-        sizeof(tmpCtx.messageSigningContext.hash), signature, &info);
+        sizeof(tmpCtx.messageSigningContext.hash), signature, sizeof(signature), &info);
     if (info & CX_ECCINFO_PARITY_ODD) {
         signature[0] |= 0x01;
     }
@@ -2739,12 +2739,12 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
     blake2b_update(&blake, workBuffer, dataLength);
-    cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL);
+    cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
         blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
         cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
-                hashMessage);
+                hashMessage, 32);
 
 #define HASH_LENGTH 4
         array_hexstr(fullAddress, hashMessage, HASH_LENGTH / 2);
