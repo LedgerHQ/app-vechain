@@ -52,6 +52,7 @@ uint32_t set_result_get_publicKey(void);
 #define INS_SIGN 0x04
 #define INS_GET_APP_CONFIGURATION 0x06
 #define INS_SIGN_PERSONAL_MESSAGE 0x08
+#define INS_SIGN_HASH 0x09
 #define P1_CONFIRM 0x01
 #define P1_NON_CONFIRM 0x00
 #define P2_NO_CHAINCODE 0x00
@@ -94,10 +95,17 @@ typedef struct messageSigningContext_t {
     uint32_t remainingLength;
 } messageSigningContext_t;
 
+typedef struct hashSigningContext_t {
+    uint8_t pathLength;
+    uint32_t bip32Path[MAX_BIP32_PATH];
+    uint8_t hash[32];
+} hashSigningContext_t;
+
 union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
+    hashSigningContext_t hashSigningContext;
 } tmpCtx;
 
 typedef struct txFullContext_t {
@@ -809,6 +817,7 @@ ui_approval_blue_cancel_callback(const bagl_element_t *e) {
 typedef enum {
     APPROVAL_TRANSACTION,
     APPROVAL_MESSAGE,
+    APPROVAL_HASH,
 } ui_approval_blue_state_t;
 ui_approval_blue_state_t G_ui_approval_blue_state;
 // pointer to value to be displayed
@@ -824,6 +833,11 @@ const char *const ui_approval_blue_details_name[][5] = {
     /*APPROVAL_MESSAGE*/
     {
         "HASH", NULL, NULL, "SIGN MESSAGE", "Message signature",
+    },
+
+    /*APPROVAL_HASH*/
+    {
+        "HASH", NULL, NULL, "SIGN HASH", "Hash signature",
     },
 };
 
@@ -1163,7 +1177,7 @@ const bagl_element_t ui_approval_blue[] = {
      NULL,
      NULL,
      NULL},
-    
+
     {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 40, 414, 115, 36, 0, 18,
       BAGL_FILL, 0xCCCCCC, COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_REGULAR_11_14PX | BAGL_FONT_ALIGNMENT_CENTER |
@@ -1700,7 +1714,7 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                         3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 } else {
                     display = 0;
-                    ux_step++; // display the next step 
+                    ux_step++; // display the next step
                 }
                 break;
             case 5:
@@ -1709,7 +1723,7 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                         3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 } else {
                     display = 0;
-                    ux_step++; // display the next step 
+                    ux_step++; // display the next step
                 }
                 break;
             case 6:
@@ -1925,8 +1939,8 @@ void settings_submenu_selector(unsigned int idx) {
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_idle_flow_1_step, 
-    pnn, 
+    ux_idle_flow_1_step,
+    pnn,
     {
       &C_nanox_badge,
       "Application",
@@ -1941,8 +1955,8 @@ UX_STEP_VALID(
       "Settings",
     });
 UX_STEP_NOCB(
-    ux_idle_flow_3_step, 
-    bn, 
+    ux_idle_flow_3_step,
+    bn,
     {
       "Version",
       APPVERSION,
@@ -1965,23 +1979,23 @@ UX_FLOW(ux_idle_flow,
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_display_public_flow_5_step, 
-    bnnn_paging, 
+    ux_display_public_flow_5_step,
+    bnnn_paging,
     {
       .title = "Address",
       .text = (char *)fullAddress,
     });
 UX_STEP_VALID(
-    ux_display_public_flow_6_step, 
-    pb, 
+    ux_display_public_flow_6_step,
+    pb,
     io_seproxyhal_touch_address_ok(NULL),
     {
       &C_icon_validate_14,
       "Approve",
     });
 UX_STEP_VALID(
-    ux_display_public_flow_7_step, 
-    pb, 
+    ux_display_public_flow_7_step,
+    pb,
     io_seproxyhal_touch_address_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -1996,26 +2010,26 @@ UX_FLOW(ux_display_public_flow,
 
 //////////////////////////////////////////////////////////////////////
 
-UX_STEP_NOCB(ux_confirm_full_flow_1_step, 
-    pnn, 
+UX_STEP_NOCB(ux_confirm_full_flow_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Review",
       "transaction",
     });
 
-// OPTIONNAL 
+// OPTIONNAL
 UX_STEP_NOCB(
-    ux_confirm_full_warning_data_step, 
-    pnn, 
+    ux_confirm_full_warning_data_step,
+    pnn,
     {
       &C_icon_warning_x,
       "WARNING",
       "Data present",
     });
 UX_STEP_NOCB(
-    ux_confirm_full_warning_clauses_step, 
-    pnn, 
+    ux_confirm_full_warning_clauses_step,
+    pnn,
     {
       &C_icon_warning_x,
       "WARNING",
@@ -2025,29 +2039,29 @@ UX_STEP_NOCB(
 // OPTIONNAL
 
 UX_STEP_NOCB(
-    ux_confirm_full_flow_2_step, 
-    bnnn_paging, 
+    ux_confirm_full_flow_2_step,
+    bnnn_paging,
     {
       .title = "Amount",
       .text = (char *)fullAmount
     });
 UX_STEP_NOCB(
-    ux_confirm_full_flow_3_step, 
-    bnnn_paging, 
+    ux_confirm_full_flow_3_step,
+    bnnn_paging,
     {
       .title = "Address",
       .text = (char *)fullAddress,
     });
 UX_STEP_NOCB(
-    ux_confirm_full_flow_4_step, 
-    bnnn_paging, 
+    ux_confirm_full_flow_4_step,
+    bnnn_paging,
     {
       .title = "Max Fees",
       .text = (char *)maxFee,
     });
 UX_STEP_VALID(
-    ux_confirm_full_flow_5_step, 
-    pbb, 
+    ux_confirm_full_flow_5_step,
+    pbb,
     io_seproxyhal_touch_tx_ok(NULL),
     {
       &C_icon_validate_14,
@@ -2055,8 +2069,8 @@ UX_STEP_VALID(
       "and send",
     });
 UX_STEP_VALID(
-    ux_confirm_full_flow_6_step, 
-    pb, 
+    ux_confirm_full_flow_6_step,
+    pb,
     io_seproxyhal_touch_tx_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -2110,16 +2124,16 @@ UX_FLOW(ux_confirm_full_data_clauses_flow,
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_sign_flow_1_step, 
-    pnn, 
+    ux_sign_flow_1_step,
+    pnn,
     {
       &C_icon_certificate,
       "Sign",
       "message",
     });
 UX_STEP_NOCB(
-    ux_sign_flow_2_step, 
-    bnnn_paging, 
+    ux_sign_flow_2_step,
+    bnnn_paging,
     {
       .title = "Message hash",
       .text = (char *)fullAddress,
@@ -2334,6 +2348,62 @@ unsigned int io_seproxyhal_touch_signMessage_cancel(const bagl_element_t *e) {
     return 0; // do not redraw the widget
 }
 
+unsigned int io_seproxyhal_touch_signHash_ok(const bagl_element_t *e) {
+    uint8_t privateKeyData[32];
+    uint8_t signature[100];
+    uint8_t signatureLength;
+    cx_ecfp_private_key_t privateKey;
+    uint32_t tx = 0;
+    uint8_t rLength, sLength, rOffset, sOffset;
+    os_perso_derive_node_bip32(
+        CX_CURVE_256K1, tmpCtx.hashSigningContext.bip32Path,
+        tmpCtx.hashSigningContext.pathLength, privateKeyData, NULL);
+    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+    os_memset(privateKeyData, 0, sizeof(privateKeyData));
+
+#if CX_APILEVEL >= 8
+    unsigned int info = 0;
+    signatureLength = cx_ecdsa_sign(
+        &privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
+        tmpCtx.hashSigningContext.hash,
+        sizeof(tmpCtx.hashSigningContext.hash), signature, sizeof(signature), &info);
+    if (info & CX_ECCINFO_PARITY_ODD) {
+        signature[0] |= 0x01;
+    }
+#else
+    signatureLength =
+        cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
+                      tmpCtx.hashSigningContext.hash,
+                      sizeof(tmpCtx.hashSigningContext.hash), signature);
+#endif
+    os_memset(&privateKey, 0, sizeof(privateKey));
+    rLength = signature[3];
+    sLength = signature[4 + rLength + 1];
+    rOffset = (rLength == 33 ? 1 : 0);
+    sOffset = (sLength == 33 ? 1 : 0);
+    os_memmove(G_io_apdu_buffer, signature + 4 + rOffset, 32);
+    os_memmove(G_io_apdu_buffer + 32, signature + 4 + rLength + 2 + sOffset, 32);
+    tx = 64;
+    G_io_apdu_buffer[tx++] = signature[0] & 0x01;
+    G_io_apdu_buffer[tx++] = 0x90;
+    G_io_apdu_buffer[tx++] = 0x00;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    // Display back the original UX
+    ui_idle();
+    return 0; // do not redraw the widget
+}
+
+unsigned int io_seproxyhal_touch_signHash_cancel(const bagl_element_t *e) {
+    G_io_apdu_buffer[0] = 0x69;
+    G_io_apdu_buffer[1] = 0x85;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    // Display back the original UX
+    ui_idle();
+    return 0; // do not redraw the widget
+}
+
 #if defined(TARGET_BLUE)
 void ui_approval_blue_init(void) {
     UX_DISPLAY(ui_approval_blue, ui_approval_blue_prepro);
@@ -2361,6 +2431,19 @@ void ui_approval_message_sign_blue_init(void) {
     ui_approval_blue_values[2] = NULL;
     ui_approval_blue_init();
 }
+
+void ui_approval_hash_sign_blue_init(void) {
+    ui_approval_blue_ok =
+        (bagl_element_callback_t)io_seproxyhal_touch_signHash_ok;
+    ui_approval_blue_cancel =
+        (bagl_element_callback_t)io_seproxyhal_touch_signHash_cancel;
+    G_ui_approval_blue_state = APPROVAL_HASH;
+    ui_approval_blue_values[0] = fullAmount;
+    ui_approval_blue_values[1] = NULL;
+    ui_approval_blue_values[2] = NULL;
+    ui_approval_blue_init();
+}
+
 
 #elif defined(TARGET_NANOS)
 unsigned int ui_approval_nanos_button(unsigned int button_mask,
@@ -2671,7 +2754,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     UNUSED(dataLength);
     UNUSED(flags);
     G_io_apdu_buffer[0] = (
-        (N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) | 
+        (N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) |
         (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED : 0x00)
     );
     G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
@@ -2679,6 +2762,65 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
     *tx = 4;
     THROW(0x9000);
+}
+
+void handleSignHash(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
+                    uint16_t dataLength,
+                    volatile unsigned int *flags,
+                    volatile unsigned int *tx) {
+    UNUSED(tx);
+    UNUSED(dataLength);
+
+    if (p1 == P1_FIRST) {
+        uint32_t i;
+
+        tmpCtx.hashSigningContext.pathLength = workBuffer[0];
+        if ((tmpCtx.hashSigningContext.pathLength < 0x01) ||
+            (tmpCtx.hashSigningContext.pathLength > MAX_BIP32_PATH)) {
+            PRINTF("Invalid path\n");
+            THROW(0x6a83);
+        }
+        workBuffer++;
+
+        for (i = 0; i < tmpCtx.hashSigningContext.pathLength; i++) {
+            tmpCtx.hashSigningContext.bip32Path[i] =
+                (workBuffer[0] << 24) | (workBuffer[1] << 16) |
+                (workBuffer[2] << 8) | (workBuffer[3]);
+            workBuffer += 4;
+        }
+
+        for (i = 0; i < 32; i++) {
+            (tmpCtx.hashSigningContext.hash)[i] = workBuffer[i];
+        }
+    } else if (p1 != P1_MORE) {
+        THROW(0x6B00);
+    }
+    if (p2 != 0) {
+        THROW(0x6B00);
+    }
+
+#define HASH_LENGTH 4
+        array_hexstr(fullAddress, workBuffer, HASH_LENGTH / 2);
+        fullAddress[HASH_LENGTH / 2 * 2] = '.';
+        fullAddress[HASH_LENGTH / 2 * 2 + 1] = '.';
+        fullAddress[HASH_LENGTH / 2 * 2 + 2] = '.';
+        array_hexstr(fullAddress + HASH_LENGTH / 2 * 2 + 3,
+                     workBuffer + 32 - HASH_LENGTH / 2, HASH_LENGTH / 2);
+
+#if defined(TARGET_BLUE)
+        ui_approval_hash_sign_blue_init();
+#elif defined(TARGET_NANOS)
+        ux_step = 0;
+        ux_step_count = 2;
+        UX_DISPLAY(ui_approval_signMessage_nanos,
+                   ui_approval_signMessage_prepro);
+#elif defined(TARGET_NANOX)
+    if(G_ux.stack_count == 0) {
+        ux_stack_push();
+    }
+    ux_flow_init(0, ux_sign_flow, NULL);
+#endif // #if TARGET_ID
+    *flags |= IO_ASYNCH_REPLY;
 }
 
 void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
@@ -2815,6 +2957,12 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
                     G_io_apdu_buffer[OFFSET_LC], flags, tx);
                 break;
 
+            case INS_SIGN_HASH:
+                handleSignHash(
+                    G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2],
+                    G_io_apdu_buffer + OFFSET_CDATA,
+                    G_io_apdu_buffer[OFFSET_LC], flags, tx);
+                break;
 
             default:
                 THROW(0x6D00);
