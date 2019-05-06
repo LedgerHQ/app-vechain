@@ -36,11 +36,9 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 unsigned int io_seproxyhal_touch_settings(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e);
-unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e);
-unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e);
-unsigned int io_seproxyhal_touch_signMessage_cancel(const bagl_element_t *e);
+unsigned int io_seproxyhal_touch_cancel(const bagl_element_t *e);
 void ui_idle(void);
 
 uint32_t set_result_get_publicKey(void);
@@ -1377,7 +1375,7 @@ const bagl_element_t ui_address_blue[] = {
      0,
      0xB7B7B7,
      COLOR_BG_1,
-     io_seproxyhal_touch_address_cancel,
+     io_seproxyhal_touch_cancel,
      NULL,
      NULL},
     {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 165, 414, 115, 36, 0, 18,
@@ -2062,7 +2060,7 @@ UX_STEP_VALID(
 UX_STEP_VALID(
     ux_display_public_flow_7_step,
     pb,
-    io_seproxyhal_touch_address_cancel(NULL),
+    io_seproxyhal_touch_cancel(NULL),
     {
       &C_icon_crossmark,
       "Reject",
@@ -2137,7 +2135,7 @@ UX_STEP_VALID(
 UX_STEP_VALID(
     ux_confirm_full_flow_6_step,
     pb,
-    io_seproxyhal_touch_tx_cancel(NULL),
+    io_seproxyhal_touch_cancel(NULL),
     {
       &C_icon_crossmark,
       "Reject",
@@ -2216,7 +2214,7 @@ UX_STEP_VALID(
 UX_STEP_VALID(
     ux_sign_flow_4_step,
     pbb,
-    io_seproxyhal_touch_signMessage_cancel(NULL),
+    io_seproxyhal_touch_cancel(NULL),
     {
       &C_icon_crossmark,
       "Cancel",
@@ -2265,6 +2263,16 @@ unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
     return 0; // do not redraw the widget
 }
 
+unsigned int io_seproxyhal_touch_cancel(const bagl_element_t *e) {
+    G_io_apdu_buffer[0] = 0x69;
+    G_io_apdu_buffer[1] = 0x85;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    // Display back the original UX
+    ui_idle();
+    return 0; // do not redraw the widget
+}
+
 unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
     uint32_t tx = set_result_get_publicKey();
     G_io_apdu_buffer[tx++] = 0x90;
@@ -2276,22 +2284,12 @@ unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
     return 0; // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e) {
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    // Display back the original UX
-    ui_idle();
-    return 0; // do not redraw the widget
-}
-
 #if defined(TARGET_NANOS)
 unsigned int ui_address_nanos_button(unsigned int button_mask,
                                      unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT: // CANCEL
-        io_seproxyhal_touch_address_cancel(NULL);
+        io_seproxyhal_touch_cancel(NULL);
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT: { // OK
@@ -2348,16 +2346,6 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     return 0; // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    // Display back the original UX
-    ui_idle();
-    return 0; // do not redraw the widget
-}
-
 unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     uint8_t privateKeyData[32];
     uint8_t signature[100];
@@ -2404,16 +2392,6 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     return 0; // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_signMessage_cancel(const bagl_element_t *e) {
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    // Display back the original UX
-    ui_idle();
-    return 0; // do not redraw the widget
-}
-
 #if defined(TARGET_BLUE)
 void ui_approval_blue_init(void) {
     UX_DISPLAY(ui_approval_blue, ui_approval_blue_prepro);
@@ -2422,7 +2400,7 @@ void ui_approval_blue_init(void) {
 void ui_approval_transaction_blue_init(void) {
     ui_approval_blue_ok = (bagl_element_callback_t)io_seproxyhal_touch_tx_ok;
     ui_approval_blue_cancel =
-        (bagl_element_callback_t)io_seproxyhal_touch_tx_cancel;
+        (bagl_element_callback_t)io_seproxyhal_touch_cancel;
     G_ui_approval_blue_state = APPROVAL_TRANSACTION;
     ui_approval_blue_values[0] = fullAmount;
     ui_approval_blue_values[1] = fullAddress;
@@ -2434,7 +2412,7 @@ void ui_approval_message_sign_blue_init(void) {
     ui_approval_blue_ok =
         (bagl_element_callback_t)io_seproxyhal_touch_signMessage_ok;
     ui_approval_blue_cancel =
-        (bagl_element_callback_t)io_seproxyhal_touch_signMessage_cancel;
+        (bagl_element_callback_t)io_seproxyhal_touch_cancel;
     G_ui_approval_blue_state = APPROVAL_MESSAGE;
     ui_approval_blue_values[0] = fullAmount;
     ui_approval_blue_values[1] = NULL;
@@ -2447,7 +2425,7 @@ unsigned int ui_approval_nanos_button(unsigned int button_mask,
                                       unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        io_seproxyhal_touch_tx_cancel(NULL);
+        io_seproxyhal_touch_cancel(NULL);
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
@@ -2463,7 +2441,7 @@ ui_approval_signMessage_nanos_button(unsigned int button_mask,
                                      unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        io_seproxyhal_touch_signMessage_cancel(NULL);
+        io_seproxyhal_touch_cancel(NULL);
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
@@ -2479,7 +2457,7 @@ ui_approval_signCertificate_nanos_button(unsigned int button_mask,
                                      unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        io_seproxyhal_touch_signMessage_cancel(NULL);
+        io_seproxyhal_touch_cancel(NULL);
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
