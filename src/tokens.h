@@ -24,6 +24,6 @@ typedef struct tokenDefinition_t {
     uint8_t decimals;
 } tokenDefinition_t;
 
-#define NUM_TOKENS 2
+#define NUM_TOKENS 6
 
 extern tokenDefinition_t const TOKENS[NUM_TOKENS];
