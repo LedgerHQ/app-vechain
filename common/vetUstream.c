@@ -294,10 +294,6 @@ static void processReservedField(txContext_t *context) {
         PRINTF("Invalid type for TX_RLP_RESERVED\n");
         THROW(EXCEPTION);
     }
-    if (context->currentFieldLength > 1 || context->commandLength > 0) {
-        PRINTF("Invalid length for TX_RLP_RESERVED\n");
-        THROW(EXCEPTION);
-    }
     context->currentField++;
     context->processingField = false;
 }
