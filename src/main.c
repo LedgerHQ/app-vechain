@@ -1162,7 +1162,7 @@ const bagl_element_t ui_approval_blue[] = {
      NULL,
      NULL,
      NULL},
-
+    
     {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 40, 414, 115, 36, 0, 18,
       BAGL_FILL, 0xCCCCCC, COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_REGULAR_11_14PX | BAGL_FONT_ALIGNMENT_CENTER |
@@ -1699,7 +1699,7 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                         3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 } else {
                     display = 0;
-                    ux_step++; // display the next step
+                    ux_step++; // display the next step 
                 }
                 break;
             case 5:
@@ -1708,7 +1708,7 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                         3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 } else {
                     display = 0;
-                    ux_step++; // display the next step
+                    ux_step++; // display the next step 
                 }
                 break;
             case 6:
@@ -2003,8 +2003,8 @@ void settings_submenu_selector(unsigned int idx) {
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_idle_flow_1_step,
-    pnn,
+    ux_idle_flow_1_step, 
+    pnn, 
     {
       &C_nanox_badge,
       "Application",
@@ -2019,8 +2019,8 @@ UX_STEP_VALID(
       "Settings",
     });
 UX_STEP_NOCB(
-    ux_idle_flow_3_step,
-    bn,
+    ux_idle_flow_3_step, 
+    bn, 
     {
       "Version",
       APPVERSION,
@@ -2043,23 +2043,23 @@ UX_FLOW(ux_idle_flow,
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_display_public_flow_5_step,
-    bnnn_paging,
+    ux_display_public_flow_5_step, 
+    bnnn_paging, 
     {
       .title = "Address",
       .text = (char *)fullAddress,
     });
 UX_STEP_VALID(
-    ux_display_public_flow_6_step,
-    pb,
+    ux_display_public_flow_6_step, 
+    pb, 
     io_seproxyhal_touch_address_ok(NULL),
     {
       &C_icon_validate_14,
       "Approve",
     });
 UX_STEP_VALID(
-    ux_display_public_flow_7_step,
-    pb,
+    ux_display_public_flow_7_step, 
+    pb, 
     io_seproxyhal_touch_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -2074,26 +2074,26 @@ UX_FLOW(ux_display_public_flow,
 
 //////////////////////////////////////////////////////////////////////
 
-UX_STEP_NOCB(ux_confirm_full_flow_1_step,
-    pnn,
+UX_STEP_NOCB(ux_confirm_full_flow_1_step, 
+    pnn, 
     {
       &C_icon_eye,
       "Review",
       "transaction",
     });
 
-// OPTIONNAL
+// OPTIONNAL 
 UX_STEP_NOCB(
-    ux_confirm_full_warning_data_step,
-    pnn,
+    ux_confirm_full_warning_data_step, 
+    pnn, 
     {
       &C_icon_warning_x,
       "WARNING",
       "Data present",
     });
 UX_STEP_NOCB(
-    ux_confirm_full_warning_clauses_step,
-    pnn,
+    ux_confirm_full_warning_clauses_step, 
+    pnn, 
     {
       &C_icon_warning_x,
       "WARNING",
@@ -2103,29 +2103,29 @@ UX_STEP_NOCB(
 // OPTIONNAL
 
 UX_STEP_NOCB(
-    ux_confirm_full_flow_2_step,
-    bnnn_paging,
+    ux_confirm_full_flow_2_step, 
+    bnnn_paging, 
     {
       .title = "Amount",
       .text = (char *)fullAmount
     });
 UX_STEP_NOCB(
-    ux_confirm_full_flow_3_step,
-    bnnn_paging,
+    ux_confirm_full_flow_3_step, 
+    bnnn_paging, 
     {
       .title = "Address",
       .text = (char *)fullAddress,
     });
 UX_STEP_NOCB(
-    ux_confirm_full_flow_4_step,
-    bnnn_paging,
+    ux_confirm_full_flow_4_step, 
+    bnnn_paging, 
     {
       .title = "Max Fees",
       .text = (char *)maxFee,
     });
 UX_STEP_VALID(
-    ux_confirm_full_flow_5_step,
-    pbb,
+    ux_confirm_full_flow_5_step, 
+    pbb, 
     io_seproxyhal_touch_tx_ok(NULL),
     {
       &C_icon_validate_14,
@@ -2133,8 +2133,8 @@ UX_STEP_VALID(
       "and send",
     });
 UX_STEP_VALID(
-    ux_confirm_full_flow_6_step,
-    pb,
+    ux_confirm_full_flow_6_step, 
+    pb, 
     io_seproxyhal_touch_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -2188,16 +2188,16 @@ UX_FLOW(ux_confirm_full_data_clauses_flow,
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_sign_flow_1_step,
-    pnn,
+    ux_sign_flow_1_step, 
+    pnn, 
     {
       &C_icon_certificate,
       "Sign",
       "message",
     });
 UX_STEP_NOCB(
-    ux_sign_flow_2_step,
-    bnnn_paging,
+    ux_sign_flow_2_step, 
+    bnnn_paging, 
     {
       .title = "Message hash",
       .text = (char *)fullAddress,
@@ -2745,7 +2745,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     UNUSED(dataLength);
     UNUSED(flags);
     G_io_apdu_buffer[0] = (
-        (N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) |
+        (N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) | 
         (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED : 0x00)
     );
     G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
@@ -3215,3 +3215,4 @@ __attribute__((section(".boot"))) int main(void) {
 
     return 0;
 }
+
