@@ -2600,6 +2600,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = TICKER_VET;
     uint8_t tickerOffset = 0;
+    os_memset(&clausesContent, 0, sizeof(clausesContent));
+    os_memset(&clauseContent, 0, sizeof(clauseContent));
     if (p1 == P1_FIRST) {
         tmpCtx.transactionContext.pathLength = workBuffer[0];
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
