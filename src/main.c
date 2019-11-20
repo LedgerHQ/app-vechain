@@ -2308,11 +2308,13 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     uint8_t rLength, sLength, rOffset, sOffset;
+    io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(
         CX_CURVE_256K1, tmpCtx.transactionContext.bip32Path,
         tmpCtx.transactionContext.pathLength, privateKeyData, NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
+    io_seproxyhal_io_heartbeat();
 #if CX_APILEVEL >= 8
     unsigned int info = 0;
     signatureLength =
@@ -2328,6 +2330,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                       tmpCtx.transactionContext.hash,
                       sizeof(tmpCtx.transactionContext.hash), signature);
 #endif
+    io_seproxyhal_io_heartbeat();
     os_memset(&privateKey, 0, sizeof(privateKey));
     rLength = signature[3];
     sLength = signature[4 + rLength + 1];
@@ -2353,11 +2356,13 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     uint8_t rLength, sLength, rOffset, sOffset;
+    io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(
         CX_CURVE_256K1, tmpCtx.messageSigningContext.bip32Path,
         tmpCtx.messageSigningContext.pathLength, privateKeyData, NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
+    io_seproxyhal_io_heartbeat();
 
 #if CX_APILEVEL >= 8
     unsigned int info = 0;
@@ -2374,6 +2379,7 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
                       tmpCtx.messageSigningContext.hash,
                       sizeof(tmpCtx.messageSigningContext.hash), signature);
 #endif
+    io_seproxyhal_io_heartbeat();
     os_memset(&privateKey, 0, sizeof(privateKey));
     rLength = signature[3];
     sLength = signature[4 + rLength + 1];
