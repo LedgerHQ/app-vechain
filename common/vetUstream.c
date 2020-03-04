@@ -294,12 +294,18 @@ static void processReservedField(txContext_t *context) {
         PRINTF("Invalid type for TX_RLP_RESERVED\n");
         THROW(EXCEPTION);
     }
-    if (context->currentFieldLength > 1 || context->commandLength > 0) {
-        PRINTF("Invalid length for TX_RLP_RESERVED\n");
-        THROW(EXCEPTION);
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            (context->commandLength <
+                     ((context->currentFieldLength - context->currentFieldPos))
+                 ? context->commandLength
+                 : context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, NULL, copySize);
     }
-    context->currentField++;
-    context->processingField = false;
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
 }
 
 static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
