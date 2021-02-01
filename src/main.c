@@ -29,7 +29,7 @@
 #include "os_io_seproxyhal.h"
 #include "string.h"
 
-#include "glyphs.h"
+#include "ux.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
