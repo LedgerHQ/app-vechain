@@ -130,7 +130,7 @@ volatile bool skipClausesWarning;
 
 bagl_element_t tmp_element;
 
-#ifdef TARGET_NANOX
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     #include "ux.h"
     ux_state_t G_ux;
     bolos_ux_params_t G_ux_params;
@@ -1899,7 +1899,7 @@ const bagl_element_t ui_approval_signCertificate_nanos[] = {
 
 #endif // #if defined(TARGET_NANOS)
 
-#if defined(TARGET_NANOX)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 
 const char* settings_submenu_getter(unsigned int idx);
 void settings_submenu_selector(unsigned int idx);
@@ -2241,7 +2241,7 @@ void ui_idle(void) {
     UX_DISPLAY(ui_idle_blue, NULL);
 #elif defined(TARGET_NANOS)
     UX_MENU_DISPLAY(0, menu_main, NULL);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
@@ -2584,7 +2584,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
         ux_step = 0;
         ux_step_count = 2;
         UX_DISPLAY(ui_address_nanos, ui_address_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
         if(G_ux.stack_count == 0) {
         ux_stack_push();
         }
@@ -2722,7 +2722,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     ux_step = 0;
     ux_step_count = 6;
     UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     if(G_ux.stack_count == 0) {
     ux_stack_push();
     }
@@ -2836,7 +2836,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         ux_step_count = 2;
         UX_DISPLAY(ui_approval_signCertificate_nanos,
                    ui_approval_signMessage_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
         if(G_ux.stack_count == 0) {
             ux_stack_push();
         }
@@ -2928,7 +2928,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         ux_step_count = 2;
         UX_DISPLAY(ui_approval_signMessage_nanos,
                    ui_approval_signMessage_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     if(G_ux.stack_count == 0) {
     ux_stack_push();
     }

@@ -32,12 +32,10 @@ APP_LOAD_PARAMS += --appFlags 0x240 --path "44'/1'" --curve secp256k1 $(COMMON_L
 
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 	ICONNAME=blue_app_vechain.gif
+else ifeq ($(TARGET_NAME),TARGET_NANOS)
+	ICONNAME=nanos_app_vechain.gif
 else
-	ifeq ($(TARGET_NAME),TARGET_NANOX)
-		ICONNAME=nanox_app_vechain.gif
-	else
-		ICONNAME=nanos_app_vechain.gif
-	endif
+	ICONNAME=nanox_app_vechain.gif
 endif
 
 ################
@@ -65,10 +63,14 @@ WEBUSB_URL     = www.ledgerwallet.com
 DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-	DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 	DEFINES       += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 	DEFINES       += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+endif
 
+ifeq ($(TARGET_NAME),TARGET_NANOS)
+	DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=128
+else
+	DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 	DEFINES       += HAVE_GLO096
 	DEFINES       += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
 	DEFINES       += HAVE_BAGL_ELLIPSIS # long label truncation feature
@@ -76,17 +78,15 @@ ifeq ($(TARGET_NAME),TARGET_NANOX)
 	DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 	DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 	DEFINES       += HAVE_UX_FLOW
-else
-	DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
 
 # Enabling debug PRINTF
 DEBUG = 0
 ifdef DEBUG
-	ifeq ($(TARGET_NAME),TARGET_NANOX)
-		DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
-	else
+	ifeq ($(TARGET_NAME),TARGET_NANOS)
 		DEFINES   += HAVE_PRINTF PRINTF=screen_printf
+	else
+		DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
 	endif
 else
 	DEFINES   += PRINTF\(...\)=
@@ -112,7 +112,7 @@ ifeq ($(GCCPATH),)
 $(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
 endif
 
-CC       := $(CLANGPATH)clang 
+CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
 CFLAGS   += -O3 -Os
@@ -121,18 +121,17 @@ AS     := $(GCCPATH)arm-none-eabi-gcc
 
 LD       := $(GCCPATH)arm-none-eabi-gcc
 LDFLAGS  += -O3 -Os
-LDLIBS   += -lm -lgcc -lc 
+LDLIBS   += -lm -lgcc -lc
 
 # import rules to compile glyphs(/pone)
 include $(BOLOS_SDK)/Makefile.glyphs
 
 ### computed variables
 APP_SOURCE_PATH  += common src blake2
-SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
+SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f lib_ux
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 	SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-	SDK_SOURCE_PATH  += lib_ux
 endif
 
 load: all
