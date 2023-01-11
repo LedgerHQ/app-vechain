@@ -284,6 +284,21 @@ void settings_submenu_selector(unsigned int idx) {
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
+    ux_idle_flow_warning_1_step,
+    pnn,
+    {
+      &C_icon_warning_x,
+      "This is a recovery",
+      "tool",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_warning_2_step,
+    nn,
+    {
+      "Do not use for day",
+      "to day operations !",
+    });
+UX_STEP_NOCB(
     ux_idle_flow_1_step,
     pnn,
     {
@@ -315,6 +330,8 @@ UX_STEP_VALID(
       "Quit",
     });
 UX_FLOW(ux_idle_flow,
+  &ux_idle_flow_warning_1_step,
+  &ux_idle_flow_warning_2_step,
   &ux_idle_flow_1_step,
   &ux_idle_flow_2_step,
   &ux_idle_flow_3_step,
