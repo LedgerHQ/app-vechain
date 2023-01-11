@@ -358,6 +358,9 @@ const ux_menu_entry_t menu_about[] = {
     UX_MENU_END};
 
 const ux_menu_entry_t menu_main[] = {
+    {NULL, NULL, 0, &C_icon_warning_x, "This is a", "recovery tool", 0, 0},
+    {NULL, NULL, 0, NULL, "Do not use for", "day to day", 0, 0},
+    {NULL, NULL, 0, NULL, "operations !", NULL, 0, 0},
     {NULL, NULL, 0, &C_nanos_badge, "Use wallet to",
      "view accounts", 33, 12},
     {menu_settings, NULL, 0, NULL, "Settings", NULL, 0, 0},
@@ -2003,6 +2006,21 @@ void settings_submenu_selector(unsigned int idx) {
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
+    ux_idle_flow_warning_1_step,
+    pnn,
+    {
+      &C_icon_warning_x,
+      "This is a recovery",
+      "tool",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_warning_2_step,
+    nn,
+    {
+      "Do not use for day",
+      "to day operations !",
+    });
+UX_STEP_NOCB(
     ux_idle_flow_1_step,
     pnn,
     {
@@ -2034,6 +2052,8 @@ UX_STEP_VALID(
       "Quit",
     });
 UX_FLOW(ux_idle_flow,
+  &ux_idle_flow_warning_1_step,
+  &ux_idle_flow_warning_2_step,
   &ux_idle_flow_1_step,
   &ux_idle_flow_2_step,
   &ux_idle_flow_3_step,

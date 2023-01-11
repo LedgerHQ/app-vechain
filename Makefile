@@ -26,8 +26,8 @@ APPVERSION_N=0
 APPVERSION_P=7
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
-APP_LOAD_PARAMS += --path "44'/818'"
-APPNAME = VeChain
+APP_LOAD_PARAMS += --path "44'/60'"
+APPNAME = "VeChain Recovery"
 APP_LOAD_PARAMS += --appFlags 0x240 --path "44'/1'" --curve secp256k1 $(COMMON_LOAD_PARAMS) 
 
 ifeq ($(TARGET_NAME),TARGET_BLUE)
@@ -147,4 +147,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS vechain
+	@echo VARIANTS vechain_recovery
