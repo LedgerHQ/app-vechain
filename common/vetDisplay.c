@@ -16,7 +16,7 @@
 #include "os.h"
 #include "vetDisplay.h"
 
-static const uint8_t const BASE_GAS_PRICE[] = {0x03, 0x8D, 0x7E, 0xA4, 0xC6, 0x80, 0x00};
+static const uint8_t const BASE_GAS_PRICE[] = {0x09, 0x18, 0x4e, 0x72, 0xa0, 0x00};
 static const uint8_t const MAX_GAS_COEF[] = {0xFF};
 static const uint8_t const TICKER_VTHO[] = "VTHO ";
 
