@@ -147,4 +147,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS vechain_recovery
+	@echo VARIANTS COIN vechain_recovery
