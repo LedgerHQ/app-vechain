@@ -2,8 +2,10 @@ bin
 debug
 dep
 obj
+build
 src_common/glyphs.c
 src_common/glyphs.h
 *.pyc
 .idea
 .vscode
+tests/snapshots-tmp/
