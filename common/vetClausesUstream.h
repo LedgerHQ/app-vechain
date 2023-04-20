@@ -15,6 +15,7 @@
 
 #include "os.h"
 #include "cx.h"
+#include <string.h>
 #include <stdbool.h>
 #include <blake2b.h>
 #include "ustream.h"

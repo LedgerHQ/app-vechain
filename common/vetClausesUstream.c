@@ -24,7 +24,8 @@
 #define MAX_V 2
 
 void initClauses(clausesContext_t *context, clausesContent_t *content, clauseContext_t *clauseContext, clauseContent_t *clauseContent) {
-    os_memset(context, 0, sizeof(clausesContext_t));
+    UNUSED(clauseContext);
+    memset(context, 0, sizeof(clausesContext_t));
     context->content = content;
     context->content->firstClause = clauseContent;
     context->content->clausesLength = 0;

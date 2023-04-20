@@ -13,6 +13,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <string.h>
 #include "os.h"
 #include "ustream.h"
 #include "uint256.h"

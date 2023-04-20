@@ -55,6 +55,7 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
 
 bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
                      uint32_t *fieldLength, uint32_t *offset, bool *list) {
+    UNUSED(bufferLength);
     if (*buffer <= 0x7f) {
         *offset = 0;
         *fieldLength = 1;
@@ -120,15 +121,15 @@ void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
             hashAddress, 32);
-    os_memmove(out, hashAddress + 12, 20);
+    memmove(out, hashAddress + 12, 20);
 }
 
 #ifdef CHECKSUM_1
 
-static const uint8_t const HEXDIGITS[] = "0123456789ABCDEF";
+static const uint8_t HEXDIGITS[] = "0123456789ABCDEF";
 
-static const uint8_t const MASK[] = {0x80, 0x40, 0x20, 0x10,
-                                     0x08, 0x04, 0x02, 0x01};
+static const uint8_t MASK[] = {0x80, 0x40, 0x20, 0x10,
+                               0x08, 0x04, 0x02, 0x01};
 
 char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
     unsigned char digit = address[index / 2];
@@ -172,7 +173,7 @@ void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
 
 #else
 
-static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
+static const uint8_t HEXDIGITS[] = "0123456789abcdef";
 
 void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 cx_sha3_t *sha3Context) {
