@@ -15,10 +15,11 @@
 
 #include "os.h"
 #include "vetDisplay.h"
+#include "vetUtils.h"
 
-static const uint8_t const BASE_GAS_PRICE[] = {0x03, 0x8D, 0x7E, 0xA4, 0xC6, 0x80, 0x00};
-static const uint8_t const MAX_GAS_COEF[] = {0xFF};
-static const uint8_t const TICKER_VTHO[] = "VTHO ";
+static const uint8_t BASE_GAS_PRICE[] = {0x09, 0x18, 0x4e, 0x72, 0xa0, 0x00};
+static const uint8_t MAX_GAS_COEF[] = {0xFF};
+static const uint8_t TICKER_VTHO[] = "VTHO ";
 
 uint32_t getStringLength(uint8_t *string) {
     uint32_t i = 0;
@@ -30,8 +31,8 @@ uint32_t getStringLength(uint8_t *string) {
 
 void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
     uint8_t tmp[32];
-    os_memset(tmp, 0, 32);
-    os_memmove(tmp + 32 - length, data, length);
+    memset(tmp, 0, 32);
+    memmove(tmp + 32 - length, data, length);
     readu256BE(tmp, target);
 }
 
@@ -48,8 +49,8 @@ void sendAmountToDisplayString(txInt256_t *sendAmount, uint8_t *ticker, uint8_t 
 }
 
 void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputationContext_t *feeComputationContext, uint8_t *displayString) {
-    convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &feeComputationContext->maxGasCoef);
-    convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &feeComputationContext->baseGasPrice);
+    convertUint256BE((uint8_t *)MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &feeComputationContext->maxGasCoef);
+    convertUint256BE((uint8_t *)BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &feeComputationContext->baseGasPrice);
     convertUint256BE(gaspricecoef->value, gaspricecoef->length, &feeComputationContext->gasPriceCoef);
     convertUint256BE(gas->value, gas->length, &feeComputationContext->gas);
     // (BGP * GPC)
@@ -62,7 +63,7 @@ void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputa
     // (1 + BGP / 255) * GPC) * G
     mul256(&feeComputationContext->tmp, &feeComputationContext->gas, &feeComputationContext->maxFee);
 
-    amountToDisplayString(&feeComputationContext->maxFee, TICKER_VTHO, DECIMALS_VTHO, displayString);
+    amountToDisplayString(&feeComputationContext->maxFee, (uint8_t *)TICKER_VTHO, DECIMALS_VTHO, displayString);
 }
 
 void amountToDisplayString(uint256_t *amount256, uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
@@ -74,7 +75,7 @@ void amountToDisplayString(uint256_t *amount256, uint8_t *ticker, uint8_t decima
     
     uint32_t tickerLength = getStringLength(ticker);
     uint32_t adjustedAmountLength = getStringLength(adjustedAmount);
-    os_memmove(displayString, ticker, tickerLength);
-    os_memmove(displayString + tickerLength, adjustedAmount, adjustedAmountLength);
+    memmove(displayString, ticker, tickerLength);
+    memmove(displayString + tickerLength, adjustedAmount, adjustedAmountLength);
     displayString[tickerLength + adjustedAmountLength] = '\0';
 }

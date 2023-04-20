@@ -1,0 +1,2 @@
+ragger[tests,speculos]>=1.7.0
+pysha3==1.0.2
