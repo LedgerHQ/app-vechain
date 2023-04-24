@@ -35,5 +35,4 @@ void ui_display_action_sign_flow(void);
  */
 void ui_display_action_sign_msg_certif(transactionType_t p_transaction_type);
 
-
 #endif
