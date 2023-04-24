@@ -3,6 +3,8 @@ from ragger.backend import RaisePolicy, SpeculosBackend
 from utils import ROOT_SCREENSHOT_PATH
 from vechain_client import VechainClient, Errors
 
+# Tests inputs (transactions) have been generated with tests/legacy/apdu_generator.py
+
 # Input
 # chaintag = 0xAA
 # expiration = 0x2D0
