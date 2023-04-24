@@ -276,7 +276,7 @@ static void single_action_review(void)
         }
 
         // Display the warning message and ask the user to confirm 
-        nbgl_useCaseChoice(&C_icon_warning_64px,
+        nbgl_useCaseChoice(&C_warning64px,
                             warning_msg,
                             NULL,
                             "I understand, confirm","Cancel",
@@ -331,7 +331,7 @@ static void single_action_msg_certif_review(void)
     msg_certif_pair_list.pairs = msg_certif_pairs;
 
     // Info long press
-    msg_certif_info_long_press.icon = &C_icon_message_64px;
+    msg_certif_info_long_press.icon = &C_Message_64px;
     if(transaction_type == MSG_TRANSACTION)
     {
         msg_certif_info_long_press.text = "Sign message?";
@@ -358,7 +358,7 @@ void ui_display_action_sign_msg_certif(transactionType_t p_transaction_type)
         transaction_type_to_display = "Review certificate";
     }
 
-    nbgl_useCaseReviewStart(&C_icon_message_64px,
+    nbgl_useCaseReviewStart(&C_Message_64px,
                             transaction_type_to_display,
                             NULL,
                             "Reject transaction",
@@ -367,7 +367,3 @@ void ui_display_action_sign_msg_certif(transactionType_t p_transaction_type)
 }
 
 #endif
-
-
-
-
