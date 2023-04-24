@@ -29,7 +29,7 @@ uint32_t getStringLength(uint8_t *string) {
     return i;
 }
 
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
+void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target) {
     uint8_t tmp[32];
     memset(tmp, 0, 32);
     memmove(tmp + 32 - length, data, length);
@@ -49,8 +49,8 @@ void sendAmountToDisplayString(txInt256_t *sendAmount, uint8_t *ticker, uint8_t 
 }
 
 void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputationContext_t *feeComputationContext, uint8_t *displayString) {
-    convertUint256BE((uint8_t *)MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &feeComputationContext->maxGasCoef);
-    convertUint256BE((uint8_t *)BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &feeComputationContext->baseGasPrice);
+    convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &feeComputationContext->maxGasCoef);
+    convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &feeComputationContext->baseGasPrice);
     convertUint256BE(gaspricecoef->value, gaspricecoef->length, &feeComputationContext->gasPriceCoef);
     convertUint256BE(gas->value, gas->length, &feeComputationContext->gas);
     // (BGP * GPC)
