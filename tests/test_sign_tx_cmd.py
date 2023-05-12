@@ -237,6 +237,7 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
+                NavInsID.WAIT_FOR_HOME_SCREEN,
             ],
             # contract data enabled
             [
@@ -245,6 +246,7 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
+                NavInsID.WAIT_FOR_HOME_SCREEN,
             ],
             # multi-clauses enabled
             [
@@ -253,6 +255,7 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
+                NavInsID.WAIT_FOR_HOME_SCREEN,
             ]
         ]
 
