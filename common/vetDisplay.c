@@ -21,7 +21,7 @@ static const uint8_t BASE_GAS_PRICE[] = {0x09, 0x18, 0x4e, 0x72, 0xa0, 0x00};
 static const uint8_t MAX_GAS_COEF[] = {0xFF};
 static const uint8_t TICKER_VTHO[] = "VTHO ";
 
-uint32_t getStringLength(uint8_t *string) {
+uint32_t getStringLength(const uint8_t *string) {
     uint32_t i = 0;
     while (string[i]) {
         i++;
@@ -42,7 +42,7 @@ void addressToDisplayString(uint8_t *address, cx_sha3_t *sha3Context, uint8_t *d
     getVetAddressStringFromBinary(address, displayString + 2, sha3Context);
 }
 
-void sendAmountToDisplayString(txInt256_t *sendAmount, uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
+void sendAmountToDisplayString(txInt256_t *sendAmount, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
     uint256_t sendAmount256;
     convertUint256BE(sendAmount->value, sendAmount->length, &sendAmount256);
     amountToDisplayString(&sendAmount256, ticker, decimals, displayString);
@@ -63,18 +63,18 @@ void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputa
     // (1 + BGP / 255) * GPC) * G
     mul256(&feeComputationContext->tmp, &feeComputationContext->gas, &feeComputationContext->maxFee);
 
-    amountToDisplayString(&feeComputationContext->maxFee, (uint8_t *)TICKER_VTHO, DECIMALS_VTHO, displayString);
+    amountToDisplayString(&feeComputationContext->maxFee, TICKER_VTHO, DECIMALS_VTHO, displayString);
 }
 
-void amountToDisplayString(uint256_t *amount256, uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
+void amountToDisplayString(uint256_t *amount256, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
     uint8_t decimalAmount[100];
     uint8_t adjustedAmount[100];
     tostring256(amount256, 10, (char *)decimalAmount, 100);
-    adjustDecimals((char *)decimalAmount, getStringLength(decimalAmount),
+    adjustDecimals((char *)decimalAmount, getStringLength((const uint8_t *)decimalAmount),
                    (char *)adjustedAmount, 100, decimals);
     
     uint32_t tickerLength = getStringLength(ticker);
-    uint32_t adjustedAmountLength = getStringLength(adjustedAmount);
+    uint32_t adjustedAmountLength = getStringLength((const uint8_t *)adjustedAmount);
     memmove(displayString, ticker, tickerLength);
     memmove(displayString + tickerLength, adjustedAmount, adjustedAmountLength);
     displayString[tickerLength + adjustedAmountLength] = '\0';
