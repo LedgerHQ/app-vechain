@@ -70,11 +70,11 @@ void amountToDisplayString(uint256_t *amount256, const uint8_t *ticker, uint8_t 
     uint8_t decimalAmount[100];
     uint8_t adjustedAmount[100];
     tostring256(amount256, 10, (char *)decimalAmount, 100);
-    adjustDecimals((char *)decimalAmount, getStringLength((const uint8_t *)decimalAmount),
+    adjustDecimals((char *)decimalAmount, getStringLength(decimalAmount),
                    (char *)adjustedAmount, 100, decimals);
     
     uint32_t tickerLength = getStringLength(ticker);
-    uint32_t adjustedAmountLength = getStringLength((const uint8_t *)adjustedAmount);
+    uint32_t adjustedAmountLength = getStringLength(adjustedAmount);
     memmove(displayString, ticker, tickerLength);
     memmove(displayString + tickerLength, adjustedAmount, adjustedAmountLength);
     displayString[tickerLength + adjustedAmountLength] = '\0';
