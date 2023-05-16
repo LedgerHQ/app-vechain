@@ -24,7 +24,7 @@
 #define MAX_V 2
 
 void initClause(clauseContext_t *context, clauseContent_t *content) {
-    os_memset(context, 0, sizeof(clauseContext_t));
+    memset(context, 0, sizeof(clauseContext_t));
     context->content = content;
     context->currentField = CLAUSE_RLP_TO;
 }
@@ -50,7 +50,7 @@ void copyClauseData(clauseContext_t *context, uint8_t *out, uint32_t length) {
         THROW(EXCEPTION);
     }
     if (out != NULL) {
-        os_memmove(out, context->workBuffer, length);
+        memmove(out, context->workBuffer, length);
     }
     context->workBuffer += length;
     context->commandLength -= length;

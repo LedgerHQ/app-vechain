@@ -13,6 +13,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <string.h>
 #include "os.h"
 #include "ustream.h"
 #include "uint256.h"
@@ -34,9 +35,9 @@ typedef struct feeComputationContext_t {
     uint256_t maxFee;
 } feeComputationContext_t;
 
-uint32_t getStringLength(uint8_t *string);
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target);
+uint32_t getStringLength(const uint8_t *string);
+void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target);
 void addressToDisplayString(uint8_t *address, cx_sha3_t *sha3Context, uint8_t *displayString);
-void sendAmountToDisplayString(txInt256_t *sendAmount, uint8_t *ticker, uint8_t decimals, uint8_t *displayString);
+void sendAmountToDisplayString(txInt256_t *sendAmount, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString);
 void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputationContext_t *feeComputationContext, uint8_t *displayString);
-void amountToDisplayString(uint256_t *amount256, uint8_t *ticker, uint8_t decimals, uint8_t *displayString);
+void amountToDisplayString(uint256_t *amount256, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString);

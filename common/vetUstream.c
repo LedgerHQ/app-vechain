@@ -30,7 +30,7 @@ void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
             clauseContext_t *clauseContext, clauseContent_t *clauseContent,
             blake2b_ctx *blake2b, void *extra) {
-    os_memset(context, 0, sizeof(txContext_t));
+    memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
     context->content = content;
     context->extra = extra;
@@ -75,7 +75,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         THROW(EXCEPTION);
     }
     if (out != NULL) {
-        os_memmove(out, context->workBuffer, length);
+        memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
         blake2b_update((blake2b_ctx *)context->blake2b, context->workBuffer, length);
@@ -310,7 +310,6 @@ static void processReservedField(txContext_t *context) {
 
 static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
     for (;;) {
-        bool processedCustom = false;
         if (context->currentField == TX_RLP_DONE) {
             return USTREAM_FINISHED;
         }

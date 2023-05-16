@@ -17,6 +17,7 @@
 
 #include "os.h"
 #include "cx.h"
+#include <string.h>
 
 /**
  * @brief Decode an RLP encoded field - see
