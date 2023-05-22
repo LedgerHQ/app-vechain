@@ -2,8 +2,8 @@ import struct
 from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator import NavInsID
-from utils import ROOT_SCREENSHOT_PATH
-from vechain_client import VechainClient, Errors
+from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
+from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
  # Certificate to sign (Json format)
 CERTIFICATE_TO_SIGN = str({
@@ -15,8 +15,6 @@ CERTIFICATE_TO_SIGN = str({
                             'domain': 'localhost',
                             'timestamp': 15035330,
                         })
-
-REF_CERTIFICATE_SIGNATURE = bytes.fromhex("02195767525bce1c8c758eb5ae6907c2cda0865da48007f5d7b0a4f7cfe4b2d419669e810306997d15906899f7722a2eccf091fc913cd9461b0fbf1eb636cc1c01")
 
 # The path used for all tests
 path: str = "m/44'/818'/0'/0/0"
@@ -38,6 +36,9 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
     # prepare the message to send
     message_bytes = struct.pack(">I", len(message_encoded))
     message_bytes += message_encoded
+
+    response = client.get_public_key(path=path).data
+    _, public_key = unpack_get_public_key_response(response)
 
     # Send the sign device instruction.
     # As it requires on-screen validation, the function is asynchronous.
@@ -74,7 +75,7 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
     response = client.get_async_response().data
 
     if isinstance(backend, SpeculosBackend):
-        assert REF_CERTIFICATE_SIGNATURE == response
+        assert check_signature_validity(public_key, response, message_encoded)
 
 
 # In this test we send to the device a certificate to sign and cancel it on screen
