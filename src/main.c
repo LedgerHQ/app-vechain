@@ -447,7 +447,7 @@ UX_FLOW(ux_confirm_full_data_clauses_flow,
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_sign_flow_1_step,
+    ux_sign_msg_flow_1_step,
     pnn,
     {
       &C_icon_certificate,
@@ -455,14 +455,14 @@ UX_STEP_NOCB(
       "message",
     });
 UX_STEP_NOCB(
-    ux_sign_flow_2_step,
+    ux_sign_msg_flow_2_step,
     bnnn_paging,
     {
       .title = "Message hash",
       .text = (char *)fullAddress,
     });
 UX_STEP_VALID(
-    ux_sign_flow_3_step,
+    ux_sign_msg_flow_3_step,
     pbb,
     io_seproxyhal_touch_tx_ok(),
     {
@@ -471,7 +471,7 @@ UX_STEP_VALID(
       "message",
     });
 UX_STEP_VALID(
-    ux_sign_flow_4_step,
+    ux_sign_msg_flow_4_step,
     pbb,
     io_seproxyhal_touch_cancel(),
     {
@@ -480,11 +480,43 @@ UX_STEP_VALID(
       "signature",
     });
 
-UX_FLOW(ux_sign_flow,
-  &ux_sign_flow_1_step,
-  &ux_sign_flow_2_step,
-  &ux_sign_flow_3_step,
-  &ux_sign_flow_4_step
+UX_FLOW(ux_sign_msg_flow,
+  &ux_sign_msg_flow_1_step,
+  &ux_sign_msg_flow_2_step,
+  &ux_sign_msg_flow_3_step,
+  &ux_sign_msg_flow_4_step
+);
+
+UX_STEP_NOCB(
+    ux_sign_cert_flow_1_step,
+    pnn,
+    {
+      &C_icon_certificate,
+      "Sign",
+      "certificate",
+    });
+UX_STEP_NOCB(
+    ux_sign_cert_flow_2_step,
+    bnnn_paging,
+    {
+      .title = "Certificate hash",
+      .text = (char *)fullAddress,
+    });
+UX_STEP_VALID(
+    ux_sign_cert_flow_3_step,
+    pbb,
+    io_seproxyhal_touch_tx_ok(),
+    {
+      &C_icon_validate_14,
+      "Sign",
+      "certificate",
+    });
+
+UX_FLOW(ux_sign_cert_flow,
+  &ux_sign_cert_flow_1_step,
+  &ux_sign_cert_flow_2_step,
+  &ux_sign_cert_flow_3_step,
+  &ux_sign_msg_flow_4_step
 );
 
 //////////////////////////////////////////////////////////////////////
@@ -1008,7 +1040,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         if(G_ux.stack_count == 0) {
             ux_stack_push();
         }
-        ux_flow_init(0, ux_sign_flow, NULL);
+        ux_flow_init(0, ux_sign_cert_flow, NULL);
 #else
         ui_display_action_sign_msg_certif(CERTIFICATE_TRANSACTION);
 #endif
@@ -1096,7 +1128,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if(G_ux.stack_count == 0) {
     ux_stack_push();
     }
-    ux_flow_init(0, ux_sign_flow, NULL);
+    ux_flow_init(0, ux_sign_msg_flow, NULL);
 #else
         ui_display_action_sign_msg_certif(MSG_TRANSACTION);
 #endif
