@@ -24,7 +24,6 @@
 #include "vetDisplay.h"
 #include "uint256.h"
 #include "tokens.h"
-#include "blake2b.h"
 
 #include "os_io_seproxyhal.h"
 #include <string.h>
@@ -115,7 +114,7 @@ clauseContent_t clauseContent;
 
 uint8_t signature[100];
 
-blake2b_ctx blake;
+cx_blake2b_t blake2b;
 cx_sha3_t sha3;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
@@ -840,7 +839,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         initTx(&displayContext.txFullContext.txContext, &tmpContent.txContent,
                &displayContext.txFullContext.clausesContext, &clausesContent,
                &displayContext.txFullContext.clauseContext, &clauseContent,
-               &blake, NULL);
+               &blake2b, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -873,7 +872,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Store the hash
-    blake2b_final(&blake, tmpCtx.transactionContext.hash);
+    cx_hash((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.transactionContext.hash, 32);
 
     // Check for data presence
     dataPresent = clausesContent.dataPresent;
@@ -1006,7 +1005,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        blake2b_init(&blake, 32, NULL, 0);
+        cx_blake2b_init(&blake2b, 256);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1017,7 +1016,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
 
-    blake2b_update(&blake, workBuffer, dataLength);
+    cx_hash((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
 
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
@@ -1026,7 +1025,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
+        cx_hash((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
 
 #define HASH_LENGTH 4
         array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
@@ -1084,8 +1083,8 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
-        blake2b_init(&blake, 32, NULL, 0);
-        blake2b_update(&blake, SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1);
+        cx_blake2b_init(&blake2b, 256);
+        cx_hash((cx_hash_t *)&blake2b, 0, (uint8_t *)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
         for (index = 1; (((index * base) <=
                           tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
@@ -1097,7 +1096,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 ((tmpCtx.messageSigningContext.remainingLength / index) % base);
         }
         tmp[pos] = '\0';
-        blake2b_update(&blake, tmp, pos);
+        cx_hash((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0);
         cx_sha256_init(&tmpContent.sha2);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -1108,11 +1107,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
         THROW(0x6A84);
     }
-    blake2b_update(&blake, workBuffer, dataLength);
+    cx_hash((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
     cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
-        blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
+        cx_hash((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
         cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
                 hashMessage, 32);
 
