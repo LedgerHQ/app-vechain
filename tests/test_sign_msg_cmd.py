@@ -1,16 +1,20 @@
 import struct
+from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator import NavInsID
-from utils import ROOT_SCREENSHOT_PATH
-from vechain_client import VechainClient, Errors
+from utils import ROOT_SCREENSHOT_PATH,check_signature_validity
+from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
- # Message to sign (Json format)
+ # Message to sign (plain text format)
 MESSAGE_TO_SIGN = "Hello Ledger !"
 
 REF_MESSAGE_SIGNATURE = bytes.fromhex("7fb1187fe1699224ce4121765ccec1d7ee7885f098da7c66697ea9642df4179c66705366600613981702db18e52c037f5d9940113d362678576351fe23d84a9f01")
 
 # The path used for all tests
 path: str = "m/44'/818'/0'/0/0"
+
+def toPersonalMessage(msg):
+    return b"\x19VeChain Signed Message:\n"+str(len(msg)).encode()+msg.encode()
 
 # In this test we send to the device a message to sign and validate it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
@@ -19,10 +23,18 @@ def test_sign_message(firmware, backend, navigator, test_name):
     client = VechainClient(backend)
 
     message_encoded = MESSAGE_TO_SIGN.encode()
-
     # prepare the message to send
     message_bytes = struct.pack(">I", len(message_encoded))
     message_bytes += message_encoded
+
+    hash_msg = blake2b(digest_size=32)
+    hash_msg.update(toPersonalMessage(MESSAGE_TO_SIGN))
+    hash_msg = hash_msg.digest().hex()
+    hash_part_to_check = hash_msg[:4]
+
+    # get public key from device
+    response = client.get_public_key(path=path).data
+    _, public_key = unpack_get_public_key_response(response)
 
     # Send the sign device instruction.
     # As it requires on-screen validation, the function is asynchronous.
@@ -30,15 +42,18 @@ def test_sign_message(firmware, backend, navigator, test_name):
     with client.sign_message(path=path, data=message_bytes):
         # Validate the on-screen request by performing the navigation appropriate for this device
         if firmware.device.startswith("nano"):
-            if firmware.device == "nanos":
-                # for nanos only - avoid to confirm action on first information screen with the "Sign" word
-                navigator.navigate([NavInsID.RIGHT_CLICK])
+            # check that the message hash computed on device is the same as the
+            # calculated one (check only the first displayed digits)
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
                                                       [NavInsID.BOTH_CLICK],
-                                                      "Sign",
+                                                      str(hash_part_to_check).upper(),
                                                       ROOT_SCREENSHOT_PATH,
                                                       test_name,
-                                                      screen_change_before_first_instruction=False)
+                                                      screen_change_after_last_instruction=False)
+            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
+                                            [NavInsID.BOTH_CLICK],
+                                            "Sign",
+                                            screen_change_before_first_instruction=False)
         else:
             navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
                                                       [NavInsID.USE_CASE_REVIEW_CONFIRM,
@@ -52,7 +67,7 @@ def test_sign_message(firmware, backend, navigator, test_name):
     response = client.get_async_response().data
 
     if isinstance(backend, SpeculosBackend):
-        assert REF_MESSAGE_SIGNATURE == response
+        assert check_signature_validity(public_key, response, toPersonalMessage(MESSAGE_TO_SIGN))
 
 
 # In this test we send to the device a message to sign and cancel it on screen

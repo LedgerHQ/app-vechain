@@ -37,6 +37,7 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
     message_bytes = struct.pack(">I", len(message_encoded))
     message_bytes += message_encoded
 
+    # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
 

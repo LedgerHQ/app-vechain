@@ -107,7 +107,6 @@ union {
 
 union {
     txContent_t txContent;
-    cx_sha256_t sha2;
 } tmpContent;
 clausesContent_t clausesContent;
 clauseContent_t clauseContent;
@@ -1055,7 +1054,6 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *flags,
                                volatile unsigned int *tx) {
     UNUSED(tx);
-    uint8_t hashMessage[32];
     if (p1 == P1_FIRST) {
         char tmp[11];
         uint32_t index;
@@ -1097,7 +1095,6 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         }
         tmp[pos] = '\0';
         cx_hash((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0);
-        cx_sha256_init(&tmpContent.sha2);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1108,20 +1105,16 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
     cx_hash((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
-    cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
         cx_hash((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
-        cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
-                hashMessage, 32);
-
 #define HASH_LENGTH 4
-        array_hexstr((char *)fullAddress, hashMessage, HASH_LENGTH / 2);
+        array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
         fullAddress[HASH_LENGTH / 2 * 2] = '.';
         fullAddress[HASH_LENGTH / 2 * 2 + 1] = '.';
         fullAddress[HASH_LENGTH / 2 * 2 + 2] = '.';
         array_hexstr((char *)fullAddress + HASH_LENGTH / 2 * 2 + 3,
-                     hashMessage + 32 - HASH_LENGTH / 2, HASH_LENGTH / 2);
+                     tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH / 2, HASH_LENGTH / 2);
 
 #ifdef HAVE_BAGL
     if(G_ux.stack_count == 0) {
