@@ -1,10 +1,8 @@
 from pathlib import Path
-from hashlib import sha256
-from sha3 import keccak_256
+from hashlib import blake2b
 
 from ecdsa.curves import SECP256k1
 from ecdsa.keys import VerifyingKey
-from ecdsa.util import sigdecode_der
 
 
 ROOT_SCREENSHOT_PATH = Path(__file__).parent.resolve()
@@ -14,9 +12,8 @@ def check_signature_validity(public_key: bytes, signature: bytes, message: bytes
     pk: VerifyingKey = VerifyingKey.from_string(
         public_key,
         curve=SECP256k1,
-        hashfunc=sha256
     )
-    return pk.verify(signature=signature,
-                     data=message,
-                     hashfunc=keccak_256,
-                     sigdecode=sigdecode_der)
+
+    digest = blake2b(message, digest_size=32).digest()
+    return pk.verify_digest(signature=signature[:64],digest=digest)
+

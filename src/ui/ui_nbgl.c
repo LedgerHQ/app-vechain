@@ -172,17 +172,9 @@ void ui_display_public_key_flow(void) {
                             display_addr, address_verification_cancelled);
 }
 
-
 //  ----------------------------------------------------------- 
-//  ---------------- SIGN TRANSACTION FLOW --------------------
+//  ---------------- SIGN FLOW COMMON -------------------------
 //  ----------------------------------------------------------- 
-
-#define MAX_TAG_VALUE_PAIRS_DISPLAYED (3)
-static nbgl_layoutTagValue_t pairs[MAX_TAG_VALUE_PAIRS_DISPLAYED];
-static nbgl_layoutTagValueList_t pair_list = {0};
-static nbgl_pageInfoLongPress_t info_long_press;
-static const char *warning_msg;
-
 static void ui_display_action_sign_done(bool validated) 
 {
     if(validated) 
@@ -204,8 +196,17 @@ static void transaction_rejected(void) {
 static void reject_confirmation(void) {
     nbgl_useCaseConfirm("Reject transaction?", NULL, "Yes, Reject", "Go back to transaction", transaction_rejected);
 }
+//  ----------------------------------------------------------- 
+//  ---------------- SIGN TRANSACTION FLOW --------------------
+//  ----------------------------------------------------------- 
 
-// called when long press button on 2rnd page is long-touched or when reject footer is touched
+#define MAX_TAG_VALUE_PAIRS_DISPLAYED (3)
+static nbgl_layoutTagValue_t pairs[MAX_TAG_VALUE_PAIRS_DISPLAYED];
+static nbgl_layoutTagValueList_t pair_list = {0};
+static nbgl_pageInfoLongPress_t info_long_press;
+static const char *warning_msg;
+
+// called when long press button on 2nd page is long-touched or when reject footer is touched
 static void review_choice(bool confirm) {
     if (confirm) {
         io_seproxyhal_touch_tx_ok();
@@ -254,7 +255,7 @@ static void review_warning_choice(bool confirm) {
 
 static void single_action_review(void) 
 {  
-    // update the transacton flow if data or multiple clauses are present
+    // update the transaction flow if data or multiple clauses are present
     if(!dataPresent && !multipleClauses)
     {
         single_action_review_continue();
@@ -284,7 +285,7 @@ static void single_action_review(void)
     }
 }
 
-void ui_display_action_sign_flow(void) 
+void ui_display_action_sign_tx_flow(void) 
 {
     nbgl_useCaseReviewStart(&C_stax_app_vechain_64px,
                             "Review transaction\nto send VET",
@@ -298,15 +299,15 @@ void ui_display_action_sign_flow(void)
 //  --------------- SIGN MSG/CERTIFICATE FLOW -----------------
 //  ----------------------------------------------------------- 
 
-#define MSG_CERTIF_MAX_TAG_VALUE_PAIRS_DISPLAYED (1)
-static nbgl_layoutTagValue_t msg_certif_pairs[MSG_CERTIF_MAX_TAG_VALUE_PAIRS_DISPLAYED];
-static nbgl_layoutTagValueList_t msg_certif_pair_list = {0};
-static nbgl_pageInfoLongPress_t msg_certif_info_long_press;
+#define MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED (1)
+static nbgl_layoutTagValue_t msg_cert_pairs[MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED];
+static nbgl_layoutTagValueList_t msg_cert_pair_list = {0};
+static nbgl_pageInfoLongPress_t msg_cert_info_long_press;
 static const char *transaction_type_to_display;
 static transactionType_t transaction_type = MSG_TRANSACTION;
 
-// called when long press button on 2rnd page is long-touched or when reject footer is touched
-static void review_msg_certif_choice(bool confirm) {
+// called when long press button on 2nd page is long-touched or when reject footer is touched
+static void review_msg_cert_choice(bool confirm) {
     if (confirm) 
     {
         io_seproxyhal_touch_tx_ok();
@@ -319,34 +320,40 @@ static void review_msg_certif_choice(bool confirm) {
     }
 }
 
-static void single_action_msg_certif_review(void) 
+static void single_action_msg_cert_review(void) 
 {
     // Setup data to display
-    msg_certif_pairs[0].item = "Message hash";
-    msg_certif_pairs[0].value = (const char *)fullAddress;
-
-    // Setup list
-    msg_certif_pair_list.nbMaxLinesForValue = 0;
-    msg_certif_pair_list.nbPairs = MSG_CERTIF_MAX_TAG_VALUE_PAIRS_DISPLAYED;
-    msg_certif_pair_list.pairs = msg_certif_pairs;
-
-    // Info long press
-    msg_certif_info_long_press.icon = &C_Message_64px;
+    msg_cert_pairs[0].value = (const char *)fullAddress;
     if(transaction_type == MSG_TRANSACTION)
     {
-        msg_certif_info_long_press.text = "Sign message?";
+        msg_cert_pairs[0].item = "Message hash";
     }
     else
     {
-        msg_certif_info_long_press.text = "Sign certificate?";
+        msg_cert_pairs[0].item = "Certificate hash";
     }
-    msg_certif_info_long_press.longPressText = "Hold to sign";
 
-    nbgl_useCaseStaticReview(&msg_certif_pair_list, &msg_certif_info_long_press, "Reject transaction", review_msg_certif_choice);
+    // Setup list
+    msg_cert_pair_list.nbMaxLinesForValue = 0;
+    msg_cert_pair_list.nbPairs = MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED;
+    msg_cert_pair_list.pairs = msg_cert_pairs;
+
+    // Info long press
+    msg_cert_info_long_press.icon = &C_Message_64px;
+    msg_cert_info_long_press.longPressText = "Hold to sign";
+    if(transaction_type == MSG_TRANSACTION)
+    {
+        msg_cert_info_long_press.text = "Sign message?";
+    }
+    else
+    {
+        msg_cert_info_long_press.text = "Sign certificate?";
+    }
+    nbgl_useCaseStaticReview(&msg_cert_pair_list, &msg_cert_info_long_press, "Reject transaction", review_msg_cert_choice);
 }
 
-// display message or certicate sign flow depending on "p_transaction_type" value
-void ui_display_action_sign_msg_certif(transactionType_t p_transaction_type) 
+// display message or certificate sign flow depending on "p_transaction_type" value
+void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
 {
     transaction_type = p_transaction_type;
     if(transaction_type == MSG_TRANSACTION)
@@ -362,7 +369,7 @@ void ui_display_action_sign_msg_certif(transactionType_t p_transaction_type)
                             transaction_type_to_display,
                             NULL,
                             "Reject transaction",
-                            single_action_msg_certif_review,
+                            single_action_msg_cert_review,
                             reject_confirmation);
 }
 
