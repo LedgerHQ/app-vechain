@@ -941,7 +941,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         ux_flow_init(0, ux_confirm_full_flow, NULL);
     }
 #else
-    ui_display_action_sign_flow();
+    ui_display_action_sign_tx_flow();
 #endif
 
     *flags |= IO_ASYNCH_REPLY;
@@ -1040,7 +1040,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         }
         ux_flow_init(0, ux_sign_cert_flow, NULL);
 #else
-        ui_display_action_sign_msg_certif(CERTIFICATE_TRANSACTION);
+        ui_display_action_sign_msg_cert(CERTIFICATE_TRANSACTION);
 #endif
 
         *flags |= IO_ASYNCH_REPLY;
@@ -1122,7 +1122,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
     ux_flow_init(0, ux_sign_msg_flow, NULL);
 #else
-        ui_display_action_sign_msg_certif(MSG_TRANSACTION);
+        ui_display_action_sign_msg_cert(MSG_TRANSACTION);
 #endif
 
         *flags |= IO_ASYNCH_REPLY;
