@@ -30,9 +30,8 @@ def test_sign_message(firmware, backend, navigator, test_name):
     with client.sign_message(path=path, data=message_bytes):
         # Validate the on-screen request by performing the navigation appropriate for this device
         if firmware.device.startswith("nano"):
-            if firmware.device == "nanos":
-                # for nanos only - avoid to confirm action on first information screen with the "Sign" word
-                navigator.navigate([NavInsID.RIGHT_CLICK])
+            # avoid to confirm action on first information screen with the "Sign" word
+            navigator.navigate([NavInsID.RIGHT_CLICK])
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
                                                       [NavInsID.BOTH_CLICK],
                                                       "Sign",
