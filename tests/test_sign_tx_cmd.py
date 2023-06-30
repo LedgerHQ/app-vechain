@@ -221,6 +221,7 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
     else:
         settings_instructions = [
             NavInsID.USE_CASE_HOME_SETTINGS,
+            NavInsID.USE_CASE_SETTINGS_NEXT,
             NavIns(NavInsID.TOUCH, (200, 113)),
             NavIns(NavInsID.TOUCH, (200, 261)),
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
