@@ -2,7 +2,7 @@
 
 #pragma once
 
-/* type to define if the transaction to sign is a personnal message
+/* type to define if the payload to sign is a personal message
 or a certificate */
 typedef enum transactionType_e 
 {
@@ -26,13 +26,13 @@ void ui_menu_settings(void);
 void ui_display_public_key_flow(void);
 
 /**
- * Show action sign flow.
+ * Show action sign transaction flow.
  */
-void ui_display_action_sign_flow(void);
+void ui_display_action_sign_tx_flow(void);
 
 /**
- * Show message or certicate sign flow depending on "p_transaction_type" value.
+ * Show message or certificate sign flow depending on "p_transaction_type" value.
  */
-void ui_display_action_sign_msg_certif(transactionType_t p_transaction_type);
+void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type);
 
 #endif
