@@ -3,7 +3,7 @@ from vechain_client import VechainClient
 # Taken from the Makefile, to update every time the Makefile version is bumped
 MAJOR = 1
 MINOR = 1
-PATCH = 0
+PATCH = 1
 
 # multi-clauses and data not allowed by default
 DEFAULT_FLAGS_SETTING = 0x00
