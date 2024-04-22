@@ -5,6 +5,7 @@ from thor_devkit.rlp import DictWrapper, HomoListWrapper, ComplexCodec, NumericK
 import random
 import argparse
 from copy import deepcopy
+from enum import IntEnum
 
 _params = [
     ("chainTag", NumericKind(1)),
@@ -23,6 +24,67 @@ _params = [
 ]
 # Unsigned Tx Wrapper
 UnsignedTxWrapper = DictWrapper(_params)
+
+CLA = 0xE0
+MAX_APDU_LEN = 255
+
+class P1(IntEnum):
+    # Parameter 1 for first APDU number.
+    P1_START = 0x00
+    # Parameter 1 for maximum APDU number.
+    P1_MAX   = 0x03
+    # Parameter 1 for screen confirmation for GET_PUBLIC_KEY.
+    P1_CONFIRM = 0x01
+
+class P2(IntEnum):
+    # Parameter 2 for last APDU to receive.
+    P2_LAST = 0x00
+    # Parameter 2 for more APDU to receive.
+    P2_MORE = 0x80
+
+class InsType(IntEnum):
+    INS_GET_PUBLIC_KEY        = 0x02
+    INS_GET_APP_CONFIGURATION = 0x06
+    INS_SIGN                  = 0x04
+    INS_SIGN_PERSONAL_MESSAGE = 0x08
+    INS_SIGN_CERTIFICATE      = 0x09
+
+class Errors(IntEnum):
+    SW_TRANSACTION_CANCELLED  = 0x6985
+    SW_NON_ZERO_AMOUNT        = 0x6A87
+    SW_UNKNOWN_DESTINATION    = 0x6A88
+
+
+def get_packed_path_bytes(path: str) -> bytes:
+    components = path.split('/')
+    packed_path = bytearray()
+    
+    for component in components:
+        if component.startswith("m"):
+            continue
+        elif component.endswith("'"):  # Hardened key
+            index = int(component[:-1]) + 0x80000000
+        else:
+            index = int(component)
+        packed_path.extend(index.to_bytes(4, byteorder='big'))
+    
+    packed_path = bytearray.fromhex("05") + packed_path
+    return bytes(packed_path)
+
+def split_message(message: bytes, max_size: int) -> list[bytes]:
+    return [message[x:x + max_size] for x in range(0, len(message), max_size)]
+
+def split_tx(path:str, tx:transaction.Transaction):
+    return split_message(get_packed_path_bytes(path) + tx.encode(), MAX_APDU_LEN)
+
+def generateAPDUs(path, tx)-> list[str]:
+    print(f"tx: {tx.encode().hex()}")
+    print()
+    messages = split_tx(path,tx)
+    codesAPDU = []
+    for i, msg in enumerate(messages):
+        codesAPDU.append((bytes([CLA, InsType.INS_SIGN, P1.P1_START if i==0 else P2.P2_MORE, P2.P2_LAST, len(msg)]) + msg).hex())
+    return codesAPDU
 
 def randomHex(length, prefix=True):
     start = "0x" if prefix else ""
@@ -87,7 +149,6 @@ if args.amount is None:
     args.amount = random.randint(1, 9) * (10**5)
 args.blockref = "0xabe47d18daa1301d"
 
-clauses= [{"to":args.to[i], "value":args.amount, "data":args.data} for i in range(0, args.clauses)]
 # See: https://docs.vechain.org/thor/learn/transaction-model.html#model
 
 # used for the test
@@ -105,7 +166,7 @@ body = {
     "chainTag": args.chaintag, # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
     "blockRef": args.blockref,
     "expiration": int(args.expiration),
-    "clauses": clauses,
+    "clauses": [{"to":args.to[i], "value":args.amount, "data":args.data} for i in range(0, args.clauses)],
     "gasPriceCoef": int(args.gaspricecoef),
     "gas": int(args.gas),
     "dependsOn": args.dependson,
@@ -113,9 +174,7 @@ body = {
 }
 # Construct an unsigned transaction.
 tx = transaction.Transaction(body)
-txHex = tx.encode().hex()
-print("tx long: ", len(txHex))
-print("tx : ", txHex)
-raw_hash, _ = cry.blake2b256([bytes.fromhex(txHex)])
-hash_thor_devkit = tx.get_signing_hash()
-assert raw_hash == hash_thor_devkit
+path: str = "m/44'/818'/0'/0/0"
+
+for i, codeAPDU in enumerate(generateAPDUs(path, tx)):
+    print(f"{i+1} APDU: {codeAPDU}")
