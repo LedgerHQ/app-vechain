@@ -105,7 +105,7 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     else:
         # send the transaction
         with client.sing_tx_long(path=path, transaction=transaction2):
-            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, [
+            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name+ '2', [
             NavInsID.USE_CASE_REVIEW_TAP,
             NavInsID.USE_CASE_CHOICE_CONFIRM,
             NavInsID.USE_CASE_REVIEW_TAP,

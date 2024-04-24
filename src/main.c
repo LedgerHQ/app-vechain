@@ -584,13 +584,17 @@ int crypto_sign_message(uint8_t *sig_r, uint8_t *sig_s, uint8_t *v)
         sig_s,
         &info);
     explicit_bzero(&private_key, sizeof(private_key));
-    
+    PRINTF("Signature: %.*H\n", 32, sig_r);
+    PRINTF("%.*H\n", 32, sig_s);
+    PRINTF("%.*H\n", 1, &info);
+
     if (error == 0) 
     {
         if (info & CX_ECCINFO_PARITY_ODD) {
             v[0] |= 0x01;
         }
     }
+    PRINTF("%.*H\n", 1, v);
 
     return error;
 }
@@ -634,7 +638,7 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     uint32_t tx = 0;
     uint8_t sig_r[32];
     uint8_t sig_s[32];
-    uint8_t v;
+    uint8_t v = 0;
     int error;
 
     memset(signature, 0, sizeof(signature));
@@ -1126,7 +1130,7 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
                 THROW(0x6E00);
             }
 
-            PRINTF("New APDU received:\n%.*H\n", G_io_apdu_buffer[OFFSET_LC]+OFFSET_LC, G_io_apdu_buffer);
+            PRINTF("New APDU received:\n%.*H\n", G_io_apdu_buffer[OFFSET_LC] + OFFSET_LC, G_io_apdu_buffer);
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
             case INS_GET_PUBLIC_KEY:
