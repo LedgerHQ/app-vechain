@@ -78,8 +78,6 @@ def split_tx(path:str, tx:transaction.Transaction):
     return split_message(get_packed_path_bytes(path) + tx.encode(), MAX_APDU_LEN)
 
 def generateAPDUs(path, tx)-> list[str]:
-    print(f"tx: {tx.encode().hex()}")
-    print()
     messages = split_tx(path,tx)
     codesAPDU = []
     for i, msg in enumerate(messages):
@@ -175,6 +173,11 @@ body = {
 # Construct an unsigned transaction.
 tx = transaction.Transaction(body)
 path: str = "m/44'/818'/0'/0/0"
-
+print(f"tx: {tx.encode().hex()}")
+print()
 for i, codeAPDU in enumerate(generateAPDUs(path, tx)):
     print(f"{i+1} APDU: {codeAPDU}")
+    
+print()
+tx.set_signature(cry.secp256k1.sign(tx.get_signing_hash(), bytes.fromhex('C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F')))
+print(f"signature: {tx.get_signature().hex()}")
