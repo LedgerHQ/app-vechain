@@ -517,48 +517,52 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                               uint8_t *chain_code,
                               const uint32_t *bip32_path,
                               uint8_t bip32_path_len) {
-    uint8_t raw_private_key[32] = {0};
+    // must be 64, even if we only use 32
+    uint8_t raw_private_key[64] = {0};
     int error = 0;
 
-    BEGIN_TRY {
-        TRY {
-            // derive the seed with bip32_path
-            os_perso_derive_node_bip32(CX_CURVE_256K1,
-                                       bip32_path,
-                                       bip32_path_len,
-                                       raw_private_key,
-                                       chain_code);
-            // new private_key from raw
-            cx_ecfp_init_private_key(CX_CURVE_256K1,
+    error = os_derive_bip32_no_throw(CX_CURVE_256K1,
+                                     bip32_path,
+                                     bip32_path_len,
                                      raw_private_key,
-                                     sizeof(raw_private_key),
-                                     private_key);
-        }
-        CATCH_OTHER(e) {
-            error = e;
-        }
-        FINALLY {
-            explicit_bzero(&raw_private_key, sizeof(raw_private_key));
-        }
+                                     chain_code);
+    if (error != 0)
+    {
+        explicit_bzero(&raw_private_key, sizeof(raw_private_key));
+        return error;
     }
-    END_TRY;
+    error = cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1,
+                                              raw_private_key,
+                                              32,
+                                              private_key);
+    if (error != 0)
+    {
+        explicit_bzero(&raw_private_key, sizeof(raw_private_key));
+        return error;
+        }
 
     return error;
 }
 
-void crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                            cx_ecfp_public_key_t *public_key,
-                            uint8_t raw_public_key[static 64]) {
+cx_err_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
+                                cx_ecfp_public_key_t *public_key,
+                                uint8_t raw_public_key[static 64])
+{
     // generate corresponding public key
-    cx_ecfp_generate_pair(CX_CURVE_256K1, public_key, private_key, 1);
-
+    cx_err_t error = cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, public_key, private_key, 1);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
     memmove(raw_public_key, public_key->W + 1, 64);
+    return error;
 }
 
 int crypto_sign_message() 
 {
     cx_ecfp_private_key_t private_key = {0};
     uint32_t info = 0;
+    size_t sig_len = sizeof(signature);
    
     // derive private key according to BIP32 path
     int error = crypto_derive_private_key(&private_key,
@@ -570,26 +574,17 @@ int crypto_sign_message()
         return error;
     }
 
-    BEGIN_TRY {
-        TRY {
-            cx_ecdsa_sign(&private_key,
-                          CX_RND_RFC6979 | CX_LAST,
-                          CX_SHA256,
-                          tmpCtx.transactionContext.hash,
-                          sizeof(tmpCtx.transactionContext.hash),
-                          signature,
-                          sizeof(signature),
-                          &info);
-    }
-        CATCH_OTHER(e) {
-            error = e;
-        }
-        FINALLY {
-            explicit_bzero(&private_key, sizeof(private_key));
-        }
-    }
-    END_TRY;
-
+    error = cx_ecdsa_sign_no_throw(
+        &private_key,
+        CX_RND_RFC6979 | CX_LAST,
+        CX_SHA256,
+        tmpCtx.messageSigningContext.hash,
+        sizeof(tmpCtx.messageSigningContext.hash),
+        signature,
+        &sig_len,
+        &info);
+    explicit_bzero(&private_key, sizeof(private_key));
+    
     if (error == 0) 
     {
         if (info & CX_ECCINFO_PARITY_ODD) {
@@ -845,7 +840,6 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     blake2b_final(&blake, tmpCtx.transactionContext.hash);
 
     PRINTF("messageHash:\n%.*H\n", 32, tmpCtx.transactionContext.hash);
-
     // Check for data presence
     dataPresent = clausesContent.dataPresent;
     if (dataPresent && !N_storage.dataAllowed) {
@@ -1028,6 +1022,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *tx) {
     UNUSED(tx);
     uint8_t hashMessage[32];
+    int error = 0;
     if (p1 == P1_FIRST) {
         char tmp[11];
         uint32_t index;
@@ -1080,13 +1075,20 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
     blake2b_update(&blake, workBuffer, dataLength);
-    cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
+    error = cx_hash_no_throw((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
         blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
-        cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
-                hashMessage, 32);
-
+        error = cx_hash_no_throw((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
+                                 hashMessage, 32);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
 #define HASH_LENGTH 4
         array_hexstr((char *)fullAddress, hashMessage, HASH_LENGTH / 2);
         fullAddress[HASH_LENGTH / 2 * 2] = '.';
