@@ -558,11 +558,10 @@ cx_err_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
     return error;
 }
 
-int crypto_sign_message() 
+int crypto_sign_message(uint8_t *sig_r, uint8_t *sig_s, uint8_t *v)
 {
     cx_ecfp_private_key_t private_key = {0};
     uint32_t info = 0;
-    size_t sig_len = sizeof(signature);
    
     // derive private key according to BIP32 path
     int error = crypto_derive_private_key(&private_key,
@@ -574,21 +573,22 @@ int crypto_sign_message()
         return error;
     }
 
-    error = cx_ecdsa_sign_no_throw(
+    error = cx_ecdsa_sign_rs_no_throw(
         &private_key,
         CX_RND_RFC6979 | CX_LAST,
         CX_SHA256,
         tmpCtx.messageSigningContext.hash,
         sizeof(tmpCtx.messageSigningContext.hash),
-        signature,
-        &sig_len,
+        32,
+        sig_r,
+        sig_s,
         &info);
     explicit_bzero(&private_key, sizeof(private_key));
     
     if (error == 0) 
     {
         if (info & CX_ECCINFO_PARITY_ODD) {
-        signature[0] |= 0x01;
+            v[0] |= 0x01;
         }
     }
 
@@ -632,21 +632,25 @@ unsigned int io_seproxyhal_touch_address_ok() {
 
 unsigned int io_seproxyhal_touch_tx_ok() {
     uint32_t tx = 0;
-    uint8_t rLength, sLength, rOffset, sOffset;
+    uint8_t sig_r[32];
+    uint8_t sig_s[32];
+    uint8_t v;
+    int error;
 
     memset(signature, 0, sizeof(signature));
     io_seproxyhal_io_heartbeat();
-    crypto_sign_message();
+    error = crypto_sign_message(sig_r, sig_s, &v);
     io_seproxyhal_io_heartbeat();
 
-    rLength = signature[3];
-    sLength = signature[4 + rLength + 1];
-    rOffset = (rLength == 33 ? 1 : 0);
-    sOffset = (sLength == 33 ? 1 : 0);
-    memmove(G_io_apdu_buffer, signature + 4 + rOffset, 32);
-    memmove(G_io_apdu_buffer + 32, signature + 4 + rLength + 2 + sOffset, 32);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
+
+    memmove(G_io_apdu_buffer, sig_r, 32);
+    memmove(G_io_apdu_buffer + 32, sig_s, 32);
     tx = 64;
-    G_io_apdu_buffer[tx++] = signature[0] & 0x01;
+    G_io_apdu_buffer[tx++] = v & 0x01;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
     // Send back the response, do not restart the event loop
