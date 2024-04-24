@@ -785,7 +785,6 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = (uint8_t *)TICKER_VET;
-    char printBuffer[100];
 
     if (p1 == P1_FIRST) {
         memset(&clausesContent, 0, sizeof(clausesContent));
@@ -844,13 +843,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
     // Store the hash
     blake2b_final(&blake, tmpCtx.transactionContext.hash);
-    // // copy tempCtx.transactionContext.hash to printBuffer
-    for (i = 0; i < 32; i++) {
-        printBuffer[i * 2] = hex_digits[(tmpCtx.transactionContext.hash[i] >> 4) & 0x0F];
-        printBuffer[i * 2 + 1] = hex_digits[tmpCtx.transactionContext.hash[i] & 0x0F];
-    }
-    printBuffer[i*2] = '\0';
-    PRINTF("messageHash: %s\n", printBuffer);
+
+    PRINTF("messageHash:\n%.*H\n", 32, tmpCtx.transactionContext.hash);
 
     // Check for data presence
     dataPresent = clausesContent.dataPresent;
