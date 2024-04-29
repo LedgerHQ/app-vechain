@@ -111,7 +111,7 @@ include $(BOLOS_SDK)/Makefile.glyphs
 APP_SOURCE_PATH += src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 
-APP_SOURCE_PATH  += common blake2
+APP_SOURCE_PATH  += common
 SDK_SOURCE_PATH  += lib_u2f
 
 
