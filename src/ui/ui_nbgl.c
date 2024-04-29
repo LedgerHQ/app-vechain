@@ -63,8 +63,17 @@ static nbgl_layoutSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
 
 static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
     UNUSED(page);
-    // the first settings page contains 2 settings switches
+    // the first settings page contains only the version and the developer name
+    // of the app
     if (page == 0) 
+    {
+        content->type = INFOS_LIST;
+        content->infosList.nbInfos = 2;
+        content->infosList.infoTypes = INFO_TYPES;
+        content->infosList.infoContents = INFO_CONTENTS;
+    }
+    // the second settings page contains 2 settings switches
+    else if (page == 1) 
     {
         switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t)N_storage.dataAllowed;
         switches[CONTRACT_DATA_SWITCH_ID].text = "Contract data";
@@ -81,15 +90,6 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
         content->type = SWITCHES_LIST;
         content->switchesList.nbSwitches = SETTINGS_SWITCHES_NB;
         content->switchesList.switches = (nbgl_layoutSwitch_t*)switches;
-    }
-    // the second settings page contains only the version and the developer name
-    // of the app
-    else if (page == 1) 
-    {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = 2;
-        content->infosList.infoTypes = INFO_TYPES;
-        content->infosList.infoContents = INFO_CONTENTS;
     }
     else 
     {
