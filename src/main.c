@@ -810,6 +810,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = (uint8_t *)TICKER_VET;
+    int error = 0;
 
     if (p1 == P1_FIRST) {
         memset(&clausesContent, 0, sizeof(clausesContent));
@@ -867,7 +868,11 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Store the hash
-    cx_hash((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.transactionContext.hash, 32);
+    error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.transactionContext.hash, 32);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
 
     PRINTF("messageHash:\n%.*H\n", 32, tmpCtx.transactionContext.hash);
     // Check for data presence
@@ -969,6 +974,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *flags,
                                volatile unsigned int *tx) {
     UNUSED(tx);
+    int error = 0;
 
     if (p1 == P1_FIRST) {
         uint32_t i;
@@ -1001,7 +1007,10 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        cx_blake2b_init(&blake2b, 256);
+        error = cx_blake2b_init_no_throw(&blake2b, 256);
+        if (error != 0) {
+            THROW(0x6f00);
+        }
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1012,7 +1021,11 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
 
-    cx_hash((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
+    error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
 
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
@@ -1021,7 +1034,11 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        cx_hash((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
 
 #define HASH_LENGTH 4
         array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
@@ -1080,8 +1097,15 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
-        cx_blake2b_init(&blake2b, 256);
-        cx_hash((cx_hash_t *)&blake2b, 0, (uint8_t *)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
+        error = cx_blake2b_init_no_throw(&blake2b, 256);
+        if (error != 0) {
+            THROW(0x6f00);
+        }
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
         for (index = 1; (((index * base) <=
                           tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
@@ -1093,7 +1117,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 ((tmpCtx.messageSigningContext.remainingLength / index) % base);
         }
         tmp[pos] = '\0';
-        cx_hash((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0);
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1103,7 +1131,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
         THROW(0x6A84);
     }
-    error = cx_hash((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
+    error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
     if (error != 0) {
         THROW(0x6f00);
     }

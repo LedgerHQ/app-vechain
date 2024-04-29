@@ -30,16 +30,22 @@ void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
             clauseContext_t *clauseContext, clauseContent_t *clauseContent,
             cx_blake2b_t *blake2b, void *extra) {
+    int error = 0;
     memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
     context->content = content;
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
-    cx_blake2b_init(context->blake2b, 256);
+    error = cx_blake2b_init_no_throw(context->blake2b, 256);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
     initClauses(clausesContext, clausesContent, clauseContext, clauseContent);
 }
 
 uint8_t readTxByte(txContext_t *context) {
+    int error;
     uint8_t data;
     if (context->commandLength < 1) {
         PRINTF("readTxByte Underflow\n");
@@ -52,7 +58,11 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t *)(context->blake2b), 0, &data, 1, NULL, 0);
+        error = cx_hash_no_throw((cx_hash_t *)(context->blake2b), 0, &data, 1, NULL, 0);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
     }
     return data;
 }
@@ -70,7 +80,9 @@ void copyTxDataClauses(txContext_t *context,
 }
 
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
-    if (context->commandLength < length) {
+    int error;
+    if (context->commandLength < length)
+    {
         PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
     }
@@ -78,7 +90,11 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t *)(context->blake2b), 0, context->workBuffer, length, NULL, 0);
+        error = cx_hash_no_throw((cx_hash_t *)(context->blake2b), 0, context->workBuffer, length, NULL, 0);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
     }
     context->workBuffer += length;
     context->commandLength -= length;
