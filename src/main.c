@@ -24,7 +24,6 @@
 #include "vetDisplay.h"
 #include "uint256.h"
 #include "tokens.h"
-#include "blake2b.h"
 
 #include "os_io_seproxyhal.h"
 #include <string.h>
@@ -108,14 +107,13 @@ union {
 
 union {
     txContent_t txContent;
-    cx_sha256_t sha2;
 } tmpContent;
 clausesContent_t clausesContent;
 clauseContent_t clauseContent;
 
 uint8_t signature[100];
 
-blake2b_ctx blake;
+cx_blake2b_t blake2b;
 cx_sha3_t sha3;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
@@ -447,7 +445,7 @@ UX_FLOW(ux_confirm_full_data_clauses_flow,
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
-    ux_sign_flow_1_step,
+    ux_sign_msg_flow_1_step,
     pnn,
     {
       &C_icon_certificate,
@@ -455,14 +453,14 @@ UX_STEP_NOCB(
       "message",
     });
 UX_STEP_NOCB(
-    ux_sign_flow_2_step,
+    ux_sign_msg_flow_2_step,
     bnnn_paging,
     {
       .title = "Message hash",
       .text = (char *)fullAddress,
     });
 UX_STEP_VALID(
-    ux_sign_flow_3_step,
+    ux_sign_msg_flow_3_step,
     pbb,
     io_seproxyhal_touch_tx_ok(),
     {
@@ -471,7 +469,7 @@ UX_STEP_VALID(
       "message",
     });
 UX_STEP_VALID(
-    ux_sign_flow_4_step,
+    ux_sign_msg_flow_4_step,
     pbb,
     io_seproxyhal_touch_cancel(),
     {
@@ -480,11 +478,43 @@ UX_STEP_VALID(
       "signature",
     });
 
-UX_FLOW(ux_sign_flow,
-  &ux_sign_flow_1_step,
-  &ux_sign_flow_2_step,
-  &ux_sign_flow_3_step,
-  &ux_sign_flow_4_step
+UX_FLOW(ux_sign_msg_flow,
+  &ux_sign_msg_flow_1_step,
+  &ux_sign_msg_flow_2_step,
+  &ux_sign_msg_flow_3_step,
+  &ux_sign_msg_flow_4_step
+);
+
+UX_STEP_NOCB(
+    ux_sign_cert_flow_1_step,
+    pnn,
+    {
+      &C_icon_certificate,
+      "Sign",
+      "certificate",
+    });
+UX_STEP_NOCB(
+    ux_sign_cert_flow_2_step,
+    bnnn_paging,
+    {
+      .title = "Certificate hash",
+      .text = (char *)fullAddress,
+    });
+UX_STEP_VALID(
+    ux_sign_cert_flow_3_step,
+    pbb,
+    io_seproxyhal_touch_tx_ok(),
+    {
+      &C_icon_validate_14,
+      "Sign",
+      "certificate",
+    });
+
+UX_FLOW(ux_sign_cert_flow,
+  &ux_sign_cert_flow_1_step,
+  &ux_sign_cert_flow_2_step,
+  &ux_sign_cert_flow_3_step,
+  &ux_sign_msg_flow_4_step
 );
 
 //////////////////////////////////////////////////////////////////////
@@ -788,6 +818,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = (uint8_t *)TICKER_VET;
+    int error = 0;
 
     if (p1 == P1_FIRST) {
         memset(&clausesContent, 0, sizeof(clausesContent));
@@ -811,7 +842,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         initTx(&displayContext.txFullContext.txContext, &tmpContent.txContent,
                &displayContext.txFullContext.clausesContext, &clausesContent,
                &displayContext.txFullContext.clauseContext, &clauseContent,
-               &blake, NULL);
+               &blake2b, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -845,7 +876,11 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Store the hash
-    blake2b_final(&blake, tmpCtx.transactionContext.hash);
+    error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.transactionContext.hash, 32);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
 
     PRINTF("messageHash:\n%.*H\n", 32, tmpCtx.transactionContext.hash);
     // Check for data presence
@@ -916,7 +951,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         ux_flow_init(0, ux_confirm_full_flow, NULL);
     }
 #else
-    ui_display_action_sign_flow();
+    ui_display_action_sign_tx_flow();
 #endif
 
     *flags |= IO_ASYNCH_REPLY;
@@ -947,6 +982,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *flags,
                                volatile unsigned int *tx) {
     UNUSED(tx);
+    int error = 0;
 
     if (p1 == P1_FIRST) {
         uint32_t i;
@@ -979,7 +1015,10 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        blake2b_init(&blake, 32, NULL, 0);
+        error = cx_blake2b_init_no_throw(&blake2b, 256);
+        if (error != 0) {
+            THROW(0x6f00);
+        }
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -990,7 +1029,11 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
 
-    blake2b_update(&blake, workBuffer, dataLength);
+    error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
+    if (error != 0)
+    {
+        THROW(0x6f00);
+    }
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
 
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
@@ -999,7 +1042,11 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
 
 #define HASH_LENGTH 4
         array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
@@ -1013,9 +1060,9 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         if(G_ux.stack_count == 0) {
             ux_stack_push();
         }
-        ux_flow_init(0, ux_sign_flow, NULL);
+        ux_flow_init(0, ux_sign_cert_flow, NULL);
 #else
-        ui_display_action_sign_msg_certif(CERTIFICATE_TRANSACTION);
+        ui_display_action_sign_msg_cert(CERTIFICATE_TRANSACTION);
 #endif
 
         *flags |= IO_ASYNCH_REPLY;
@@ -1029,8 +1076,8 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *flags,
                                volatile unsigned int *tx) {
     UNUSED(tx);
-    uint8_t hashMessage[32];
     int error = 0;
+
     if (p1 == P1_FIRST) {
         char tmp[11];
         uint32_t index;
@@ -1058,8 +1105,15 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
-        blake2b_init(&blake, 32, NULL, 0);
-        blake2b_update(&blake, SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1);
+        error = cx_blake2b_init_no_throw(&blake2b, 256);
+        if (error != 0) {
+            THROW(0x6f00);
+        }
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
         for (index = 1; (((index * base) <=
                           tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
@@ -1071,8 +1125,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 ((tmpCtx.messageSigningContext.remainingLength / index) % base);
         }
         tmp[pos] = '\0';
-        blake2b_update(&blake, tmp, pos);
-        cx_sha256_init(&tmpContent.sha2);
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0);
+        if (error != 0)
+        {
+            THROW(0x6f00);
+        }
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1082,36 +1139,31 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
         THROW(0x6A84);
     }
-    blake2b_update(&blake, workBuffer, dataLength);
-    error = cx_hash_no_throw((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
-    if (error != 0)
-    {
+    error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
+    if (error != 0) {
         THROW(0x6f00);
     }
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
-        blake2b_final(&blake, tmpCtx.messageSigningContext.hash);
-        error = cx_hash_no_throw((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0,
-                                 hashMessage, 32);
-        if (error != 0)
-        {
+        error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
+        if (error != 0) {
             THROW(0x6f00);
         }
 #define HASH_LENGTH 4
-        array_hexstr((char *)fullAddress, hashMessage, HASH_LENGTH / 2);
+        array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
         fullAddress[HASH_LENGTH / 2 * 2] = '.';
         fullAddress[HASH_LENGTH / 2 * 2 + 1] = '.';
         fullAddress[HASH_LENGTH / 2 * 2 + 2] = '.';
         array_hexstr((char *)fullAddress + HASH_LENGTH / 2 * 2 + 3,
-                     hashMessage + 32 - HASH_LENGTH / 2, HASH_LENGTH / 2);
+                     tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH / 2, HASH_LENGTH / 2);
 
 #ifdef HAVE_BAGL
     if(G_ux.stack_count == 0) {
     ux_stack_push();
     }
-    ux_flow_init(0, ux_sign_flow, NULL);
+    ux_flow_init(0, ux_sign_msg_flow, NULL);
 #else
-        ui_display_action_sign_msg_certif(MSG_TRANSACTION);
+        ui_display_action_sign_msg_cert(MSG_TRANSACTION);
 #endif
 
         *flags |= IO_ASYNCH_REPLY;
