@@ -358,6 +358,7 @@ def test_sign_random_data_tx(firmware, backend, navigator, test_name):
     else:
         settings_instructions = [
             NavInsID.USE_CASE_HOME_SETTINGS,
+            NavInsID.USE_CASE_SETTINGS_NEXT,
             NavIns(NavInsID.TOUCH, (200, 113)),
             NavIns(NavInsID.TOUCH, (200, 261)),
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
@@ -429,6 +430,7 @@ def test_sign_random_multi_clause_tx(firmware, backend, navigator, test_name):
     else:
         settings_instructions = [
             NavInsID.USE_CASE_HOME_SETTINGS,
+            NavInsID.USE_CASE_SETTINGS_NEXT,
             NavIns(NavInsID.TOUCH, (200, 113)),
             NavIns(NavInsID.TOUCH, (200, 261)),
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
