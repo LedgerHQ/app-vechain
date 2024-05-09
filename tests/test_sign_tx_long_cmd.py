@@ -20,31 +20,31 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
     # set the correct settings
-    if firmware.device.startswith("nano"):
-        # enable data and multi-clauses
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, [
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK,
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK
-        ], screen_change_before_first_instruction=False)
-    else:
-        # enable data and multi-clauses
-        navigator.navigate([
-            NavInsID.USE_CASE_HOME_SETTINGS,
-            NavInsID.USE_CASE_SETTINGS_NEXT,
-            NavIns(NavInsID.TOUCH, (200, 113)),
-            NavIns(NavInsID.TOUCH, (200, 261)),
-            NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-            NavInsID.WAIT_FOR_HOME_SCREEN
-        ], screen_change_before_first_instruction=False)
+    # if firmware.device.startswith("nano"):
+    #     # enable data and multi-clauses
+    #     navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, [
+    #         NavInsID.RIGHT_CLICK,
+    #         NavInsID.BOTH_CLICK,
+    #         NavInsID.BOTH_CLICK,
+    #         NavInsID.RIGHT_CLICK,
+    #         NavInsID.BOTH_CLICK,
+    #         NavInsID.RIGHT_CLICK,
+    #         NavInsID.BOTH_CLICK,
+    #         NavInsID.RIGHT_CLICK,
+    #         NavInsID.BOTH_CLICK,
+    #         NavInsID.RIGHT_CLICK,
+    #         NavInsID.BOTH_CLICK
+    #     ], screen_change_before_first_instruction=False)
+    # else:
+    #     # enable data and multi-clauses
+    #     navigator.navigate([
+    #         NavInsID.USE_CASE_HOME_SETTINGS,
+    #         NavInsID.USE_CASE_SETTINGS_NEXT,
+    #         NavIns(NavInsID.TOUCH, (200, 113)),
+    #         NavIns(NavInsID.TOUCH, (200, 261)),
+    #         NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
+    #         NavInsID.WAIT_FOR_HOME_SCREEN
+    #     ], screen_change_before_first_instruction=False)
 
     # As it requires on-screen validation, the function is asynchronous 
     # Instructions are different between nano and stax.

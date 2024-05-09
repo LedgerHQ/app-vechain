@@ -1426,8 +1426,8 @@ __attribute__((section(".boot"))) int main(void) {
 
                 if (N_storage.initialized != 0x01) {
                     internalStorage_t storage;
-                    storage.dataAllowed = 0x01;
-                    storage.multiClauseAllowed = 0x01;
+                    storage.dataAllowed = CONFIG_DATA_ENABLED;
+                    storage.multiClauseAllowed = CONFIG_MULTICLAUSE_ENABLED;
                     storage.initialized = 0x01;
                     nvm_write((void *)&N_storage, &storage, sizeof(internalStorage_t));
                 }
