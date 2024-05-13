@@ -61,7 +61,7 @@ uint32_t set_result_get_publicKey(void);
 #define OFFSET_CDATA 5
 
 #define CONFIG_DATA_ENABLED 0x01
-#define CONFIG_MULTICLAUSE_ENABLED 0x02
+#define CONFIG_MULTICLAUSE_ENABLED 0x01
 
 #define DECIMALS_VET 18
 
@@ -251,8 +251,8 @@ void settings_submenu_selector(unsigned int idx) {
       ux_menulist_init_select(0, settings_contract_data_getter, settings_contract_data_selector, N_storage.dataAllowed);
       break;
     case 1:
-      ux_menulist_init_select(0, settings_clause_getter, settings_clause_selector, N_storage.multiClauseAllowed);
-      break;
+        ux_menulist_init_select(0, settings_clause_getter, settings_clause_selector, N_storage.multiClauseAllowed);
+        break;
     default:
       ui_idle();
   }
@@ -968,7 +968,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     UNUSED(flags);
     G_io_apdu_buffer[0] = (
         (N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) |
-        (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED : 0x00)
+        (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED<<1 : 0x00)
     );
     G_io_apdu_buffer[1] = MAJOR_VERSION;
     G_io_apdu_buffer[2] = MINOR_VERSION;
