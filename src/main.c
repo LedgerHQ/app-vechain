@@ -114,7 +114,6 @@ clauseContent_t clauseContent;
 uint8_t signature[100];
 
 cx_blake2b_t blake2b;
-cx_sha3_t sha3;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
 volatile char fullAmount[50];
@@ -580,12 +579,9 @@ cx_err_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
 {
     // generate corresponding public key
     cx_err_t error = cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, public_key, private_key, 1);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
+    if (error) return error;
     memmove(raw_public_key, public_key->W + 1, 64);
-    return error;
+    return 0;
 }
 
 int crypto_sign_message(uint8_t *sig_r, uint8_t *sig_s, uint8_t *v)
@@ -781,7 +777,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
     explicit_bzero(&privateKey, sizeof(privateKey));
 
     getVetAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                               tmpCtx.publicKeyContext.address, &sha3);
+                               tmpCtx.publicKeyContext.address);
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_publicKey();
         THROW(0x9000);
@@ -818,7 +814,6 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = (uint8_t *)TICKER_VET;
-    int error = 0;
 
     if (p1 == P1_FIRST) {
         memset(&clausesContent, 0, sizeof(clausesContent));
@@ -876,11 +871,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Store the hash
-    error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.transactionContext.hash, 32);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.transactionContext.hash, 32));
 
     PRINTF("messageHash:\n%.*H\n", 32, tmpCtx.transactionContext.hash);
     // Check for data presence
@@ -918,7 +909,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     // Add address
-    addressToDisplayString(clauseContent.to, &sha3, (uint8_t *)fullAddress);
+    addressToDisplayString(clauseContent.to, (uint8_t *)fullAddress);
 
     // Add amount in ethers or tokens
     sendAmountToDisplayString(
@@ -982,7 +973,6 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *flags,
                                volatile unsigned int *tx) {
     UNUSED(tx);
-    int error = 0;
 
     if (p1 == P1_FIRST) {
         uint32_t i;
@@ -1015,10 +1005,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        error = cx_blake2b_init_no_throw(&blake2b, 256);
-        if (error != 0) {
-            THROW(0x6f00);
-        }
+        CX_ASSERT(cx_blake2b_init_no_throw(&blake2b, 256));
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1029,11 +1016,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         THROW(0x6A84);
     }
 
-    error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0));
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
 
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
@@ -1042,11 +1025,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             THROW(0x6A80);
         }
 
-        error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
-        if (error != 0)
-        {
-            THROW(0x6f00);
-        }
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32));
 
 #define HASH_LENGTH 4
         array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
@@ -1076,7 +1055,6 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                                volatile unsigned int *flags,
                                volatile unsigned int *tx) {
     UNUSED(tx);
-    int error = 0;
 
     if (p1 == P1_FIRST) {
         char tmp[11];
@@ -1105,15 +1083,8 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
-        error = cx_blake2b_init_no_throw(&blake2b, 256);
-        if (error != 0) {
-            THROW(0x6f00);
-        }
-        error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
-        if (error != 0)
-        {
-            THROW(0x6f00);
-        }
+        CX_ASSERT(cx_blake2b_init_no_throw(&blake2b, 256));
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0));
         for (index = 1; (((index * base) <=
                           tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
@@ -1125,11 +1096,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 ((tmpCtx.messageSigningContext.remainingLength / index) % base);
         }
         tmp[pos] = '\0';
-        error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0);
-        if (error != 0)
-        {
-            THROW(0x6f00);
-        }
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0));
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -1139,16 +1106,10 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
         THROW(0x6A84);
     }
-    error = cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0);
-    if (error != 0) {
-        THROW(0x6f00);
-    }
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0));
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
-        error = cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32);
-        if (error != 0) {
-            THROW(0x6f00);
-        }
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32));
 #define HASH_LENGTH 4
         array_hexstr((char *)fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
         fullAddress[HASH_LENGTH / 2 * 2] = '.';

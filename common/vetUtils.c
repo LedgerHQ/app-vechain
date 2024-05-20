@@ -115,21 +115,9 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
     return true;
 }
 
-void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                          cx_sha3_t *sha3Context) {
+void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
     uint8_t hashAddress[32];
-    int error;
-    error = cx_keccak_init_no_throw(sha3Context, 256);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    };
-    error = cx_hash_no_throw((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
-                             hashAddress, 32);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
+    CX_ASSERT(cx_keccak_256_hash(publicKey->W + 1, 64, hashAddress));
     memmove(out, hashAddress + 12, 20);
 }
 
@@ -159,39 +147,16 @@ char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
     }
 }
 
-void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                cx_sha3_t *sha3Context) {
+void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
     uint8_t hashAddress[32];
-    int error;
-    error = cx_keccak_init_no_throw(sha3Context, 256);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    };
-    error = cx_hash_no_throw((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
-                             hashAddress, 32);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
-    getVetAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+    CX_ASSERT(cx_keccak_256_hash(publicKey->W + 1, 64, hashAddress));
+    getVetAddressStringFromBinary(hashAddress + 12, out);
 }
 
-void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
-                                   cx_sha3_t *sha3Context) {
+void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out) {
     uint8_t hashChecksum[32];
     uint8_t i;
-    int error;
-    error = cx_keccak_init_no_throw(sha3Context, 256);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    };
-    error = cx_hash_no_throw((cx_hash_t *)sha3Context, CX_LAST, address, 20, hashChecksum, 32);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
+    CX_ASSERT(cx_keccak_256_hash(address, 20, hashChecksum));
     for (i = 0; i < 40; i++) {
         out[i] = convertDigit(address, i, hashChecksum);
     }
@@ -202,45 +167,22 @@ void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
 
 static const uint8_t HEXDIGITS[] = "0123456789abcdef";
 
-void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                cx_sha3_t *sha3Context) {
+void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
     uint8_t hashAddress[32];
-    int error;
-    error = cx_keccak_init_no_throw(sha3Context, 256);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    };
-    error = cx_hash_no_throw((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
-                             hashAddress, 32);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
-    getVetAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+    CX_ASSERT(cx_keccak_256_hash(publicKey->W + 1, 64, hashAddress));
+    getVetAddressStringFromBinary(hashAddress + 12, out);
 }
 
-void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out,
-                                   cx_sha3_t *sha3Context) {
+void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out) {
     uint8_t hashChecksum[32];
     uint8_t tmp[40];
     uint8_t i;
-    int error;
     for (i = 0; i < 20; i++) {
         uint8_t digit = address[i];
         tmp[2 * i] = HEXDIGITS[(digit >> 4) & 0x0f];
         tmp[2 * i + 1] = HEXDIGITS[digit & 0x0f];
     }
-    error = cx_keccak_init_no_throw(sha3Context, 256);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    };
-    error = cx_hash_no_throw((cx_hash_t *)sha3Context, CX_LAST, tmp, 40, hashChecksum, 32);
-    if (error != 0)
-    {
-        THROW(0x6f00);
-    }
+    CX_ASSERT(cx_keccak_256_hash(tmp, 40, hashChecksum));
     for (i = 0; i < 40; i++) {
         uint8_t hashDigit = hashChecksum[i / 2];
         if ((i % 2) == 0) {
