@@ -65,6 +65,22 @@ uint32_t set_result_get_publicKey(void);
 
 #define DECIMALS_VET 18
 
+/* Constants related to this dependencies to send apdu codes to app-vechain
+    https://github.com/dinn2018/hw-app-vet/blob/master/src/index.ts#L137-L168
+*/
+#define HW_SW_TRANSACTION_CANCELLED 0x6985
+#define HW_TECHNICAL_PROBLEM 0x6F00
+#define HW_INCORRECT_DATA 0x6A80
+#define HW_INCORRECT_P1_P2 0x6B00
+#define HW_OK 0x9000
+#define HW_INVALID_MESSAGE_SIZE 0x6a83
+#define HW_NOT_ENOUGH_MEMORY_SPACE 0x6A84
+#define HW_CLA_NOT_SUPPORTED 0x6E00
+#define HW_INS_NOT_SUPPORTED 0x6D00
+#define HW_SECURITY_STATUS_NOT_SATISFIED 0x6982
+#define ERROR_TYPE_MASK 0xF000
+#define ERROR_TYPE_HW 0x6000
+
 static const uint8_t TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
 static const uint8_t TICKER_VET[] = "VET ";
 
@@ -140,6 +156,17 @@ static const char SIGN_MAGIC[] = "\x19"
 
 const unsigned char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                                     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+/**
+ * @brief Appends the given status word (SW) to the APDU buffer.
+ *
+ * @param[in,out] tx Pointer to the apdu buffer size.
+ * @param[in] sw The status word (SW) to be appended.
+ */
+void apdu_buffer_append_state(uint32_t tx[static 1], unsigned short sw)
+{
+    G_io_apdu_buffer[(*tx)++] = sw >> 8;
+    G_io_apdu_buffer[(*tx)++] = sw;
+}
 
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     while (len--) {
@@ -582,7 +609,7 @@ int crypto_sign_message(uint8_t *sig_r, uint8_t *sig_s, uint8_t *v)
 {
     cx_ecfp_private_key_t private_key = {0};
     uint32_t info = 0;
-   
+
     // derive private key according to BIP32 path
     int error = crypto_derive_private_key(&private_key,
                                           NULL,
@@ -629,8 +656,8 @@ unsigned int io_seproxyhal_touch_exit() {
 }
 
 unsigned int io_seproxyhal_touch_cancel() {
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
+    uint32_t tx = 0;
+    apdu_buffer_append_state(&tx, HW_SW_TRANSACTION_CANCELLED);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 #ifdef HAVE_BAGL
@@ -642,8 +669,9 @@ unsigned int io_seproxyhal_touch_cancel() {
 
 unsigned int io_seproxyhal_touch_address_ok() {
     uint32_t tx = set_result_get_publicKey();
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+
+    // Add success status code
+    apdu_buffer_append_state(&tx, HW_OK);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
 
@@ -666,17 +694,17 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     error = crypto_sign_message(sig_r, sig_s, &v);
     io_seproxyhal_io_heartbeat();
 
-    if (error != 0)
-    {
-        THROW(0x6f00);
+    if (error != 0) {
+        THROW(error);
     }
 
     memmove(G_io_apdu_buffer, sig_r, 32);
     memmove(G_io_apdu_buffer + 32, sig_s, 32);
     tx = 64;
     G_io_apdu_buffer[tx++] = v & 0x01;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+
+    // Add success status code
+    apdu_buffer_append_state(&tx, HW_OK);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
 
@@ -743,13 +771,13 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
 
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
-        THROW(0x6a80);
+        THROW(HW_INCORRECT_DATA);
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     for (i = 0; i < bip32PathLength; i++) {
         bip32Path[i] = (dataBuffer[0] << 24) | (dataBuffer[1] << 16) |
@@ -774,7 +802,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
                                tmpCtx.publicKeyContext.address);
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_publicKey();
-        THROW(0x9000);
+        THROW(HW_OK);
     } 
     else 
     {
@@ -816,7 +844,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
             (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            THROW(0x6a80);
+            THROW(HW_INCORRECT_DATA);
         }
         workBuffer++;
         dataLength--;
@@ -833,18 +861,18 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                &displayContext.txFullContext.clauseContext, &clauseContent,
                &blake2b, NULL);
     } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if (displayContext.txFullContext.txContext.currentField == TX_RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(0x6985);
+        THROW(HW_SW_TRANSACTION_CANCELLED);
     }
     if (displayContext.txFullContext.clausesContext.currentField == CLAUSES_RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(0x6985);
+        THROW(HW_SW_TRANSACTION_CANCELLED);
     }
     txResult = processTx(&displayContext.txFullContext.txContext,
                          &displayContext.txFullContext.clausesContext,
@@ -856,12 +884,12 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     case USTREAM_FINISHED:
         break;
     case USTREAM_PROCESSING:
-        THROW(0x9000);
+        THROW(HW_OK);
     case USTREAM_FAULT:
-        THROW(0x6A80);
+        THROW(HW_INCORRECT_DATA);
     default:
         PRINTF("Unexpected parser status\n");
-        THROW(0x6A80);
+        THROW(HW_INCORRECT_DATA);
     }
 
     // Store the hash
@@ -872,14 +900,14 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     dataPresent = clausesContent.dataPresent;
     if (dataPresent && !N_storage.dataAllowed) {
         PRINTF("Data field forbidden\n");
-        THROW(0x6A80);
+        THROW(HW_INCORRECT_DATA);
     }
 
     // Check for multiple clauses
     multipleClauses = (clausesContent.clausesLength > 1);
     if (multipleClauses && !N_storage.multiClauseAllowed) {
         PRINTF("Multiple clauses forbidden\n");
-        THROW(0x6A80);
+        THROW(HW_INCORRECT_DATA);
     }
 
     // If there is a token to process, check if it is well known
@@ -959,7 +987,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     G_io_apdu_buffer[2] = MINOR_VERSION;
     G_io_apdu_buffer[3] = PATCH_VERSION;
     *tx = 4;
-    THROW(0x9000);
+    THROW(HW_OK);
 }
 
 void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
@@ -975,7 +1003,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
             (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            THROW(0x6a83);
+            THROW(HW_INVALID_MESSAGE_SIZE);
         }
         workBuffer++;
         dataLength--;
@@ -996,18 +1024,18 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
         if (workBuffer[0] != '{') {
             PRINTF("Invalid json\n");
-            THROW(0x6A80);
+            THROW(HW_INCORRECT_DATA);
         }
 
         CX_ASSERT(cx_blake2b_init_no_throw(&blake2b, 256));
     } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(0x6A84);
+        THROW(HW_NOT_ENOUGH_MEMORY_SPACE);
     }
 
     CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0));
@@ -1016,7 +1044,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
         if (workBuffer[dataLength-1] != '}') {
             PRINTF("Invalid json\n");
-            THROW(0x6A80);
+            THROW(HW_INCORRECT_DATA);
         }
 
         CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, CX_LAST, NULL, 0, tmpCtx.messageSigningContext.hash, 32));
@@ -1040,7 +1068,7 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
         *flags |= IO_ASYNCH_REPLY;
     } else {
-        THROW(0x9000);
+        THROW(HW_OK);
     }
 }
 
@@ -1060,7 +1088,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
             (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            THROW(0x6a83);
+            THROW(HW_INVALID_MESSAGE_SIZE);
         }
         workBuffer++;
         dataLength--;
@@ -1092,13 +1120,13 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         tmp[pos] = '\0';
         CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, (uint8_t *)tmp, pos, NULL, 0));
     } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        THROW(HW_INCORRECT_P1_P2);
     }
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(0x6A84);
+        THROW(HW_NOT_ENOUGH_MEMORY_SPACE);
     }
     CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, workBuffer, dataLength, NULL, 0));
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
@@ -1124,7 +1152,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         *flags |= IO_ASYNCH_REPLY;
 
     } else {
-        THROW(0x9000);
+        THROW(HW_OK);
     }
 }
 
@@ -1134,7 +1162,7 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
     BEGIN_TRY {
         TRY {
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
-                THROW(0x6E00);
+                THROW(HW_CLA_NOT_SUPPORTED);
             }
 
             PRINTF("New APDU received:\n%.*H\n", G_io_apdu_buffer[OFFSET_LC] + OFFSET_LC, G_io_apdu_buffer);
@@ -1176,7 +1204,7 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
                 break;
 
             default:
-                THROW(0x6D00);
+                THROW(HW_INS_NOT_SUPPORTED);
                 break;
             }
         }
@@ -1184,13 +1212,13 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
             THROW(EXCEPTION_IO_RESET);
         }
         CATCH_OTHER(e) {
-            switch (e & 0xF000) {
-            case 0x6000:
+            switch (e & ERROR_TYPE_MASK) {
+            case ERROR_TYPE_HW:
                 // Wipe the transaction context and report the exception
                 sw = e;
                 memset(&displayContext, 0, sizeof(displayContext));
                 break;
-            case 0x9000:
+            case HW_OK:
                 // All is well
                 sw = e;
                 break;
@@ -1235,7 +1263,7 @@ void sample_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(0x6982);
+                    THROW(HW_SECURITY_STATUS_NOT_SATISFIED);
                 }
 
                 handleApdu(&flags, &tx);
@@ -1244,13 +1272,13 @@ void sample_main(void) {
                 THROW(EXCEPTION_IO_RESET);
             }
             CATCH_OTHER(e) {
-                switch (e & 0xF000) {
-                case 0x6000:
+                switch (e & ERROR_TYPE_MASK) {
+                case ERROR_TYPE_HW:
                     // Wipe the transaction context and report the exception
                     sw = e;
                     memset(&displayContext, 0, sizeof(displayContext));
                     break;
-                case 0x9000:
+                case HW_OK:
                     // All is well
                     sw = e;
                     break;
