@@ -555,8 +555,7 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                      bip32_path_len,
                                      raw_private_key,
                                      chain_code);
-    if (error != 0)
-    {
+    if (error != 0){
         explicit_bzero(&raw_private_key, sizeof(raw_private_key));
         return error;
     }
@@ -564,12 +563,7 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                               raw_private_key,
                                               32,
                                               private_key);
-    if (error != 0)
-    {
-        explicit_bzero(&raw_private_key, sizeof(raw_private_key));
-        return error;
-        }
-
+    explicit_bzero(&raw_private_key, sizeof(raw_private_key));
     return error;
 }
 
