@@ -127,8 +127,6 @@ union {
 clausesContent_t clausesContent;
 clauseContent_t clauseContent;
 
-uint8_t signature[100];
-
 cx_blake2b_t blake2b;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
@@ -586,8 +584,8 @@ void ui_idle(void)
  * @return Error code indicating the success or failure of the operation.
  */
 int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                              uint8_t *chain_code,
-                              const uint32_t *bip32_path,
+                              uint8_t *chain_code, // Can be NULL.
+                              const uint32_t bip32_path[static MAX_BIP32_PATH],
                               uint8_t bip32_path_len) {
     // must be 64, even if we only use 32
     uint8_t raw_private_key[64] = {0};
@@ -659,10 +657,13 @@ cx_err_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
  *
  * @return Error code indicating the success or failure of the operation.
  */
-int crypto_sign_message(uint8_t *sig_r, uint8_t *sig_s, uint8_t *v)
+int crypto_sign_message(uint8_t sig_r[static 32], uint8_t sig_s[static 32], uint8_t v[static 1])
 {
     cx_ecfp_private_key_t private_key = {0};
     uint32_t info = 0;
+    memset(sig_r, 0, 32);
+    memset(sig_s, 0, 32);
+    memset(v, 0, 1);
 
     // derive private key according to BIP32 path
     int error = crypto_derive_private_key(&private_key,
@@ -796,7 +797,6 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     uint8_t v = 0;
     int error;
 
-    memset(signature, 0, sizeof(signature));
     io_seproxyhal_io_heartbeat();
     // Sign the message
     error = crypto_sign_message(sig_r, sig_s, &v);
@@ -811,6 +811,11 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     memmove(G_io_apdu_buffer + 32, sig_s, 32);
     tx = 64;
     G_io_apdu_buffer[tx++] = v & 0x01;
+
+    // Clear the signature components from memory after use.
+    memset(sig_r, 0, 32);
+    memset(sig_s, 0, 32);
+    v = 0;
 
     // Add success status code
     apdu_buffer_append_state(&tx, HW_OK);
@@ -915,9 +920,10 @@ uint32_t set_result_get_publicKey() {
  * @param[in,out] flags Pointer to flags for APDU processing.
  * @param[in,out] tx Pointer to the outgoing APDU buffer size.
  */
-void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
-                        uint16_t dataLength, volatile unsigned int *flags,
-                        volatile unsigned int *tx) {
+void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t dataBuffer[static 255],
+                        uint16_t dataLength, volatile unsigned int flags[static 1],
+                        volatile unsigned int tx[static 1])
+{
     UNUSED(dataLength);
     uint8_t rawPublicKey[64]; 
     uint32_t bip32Path[MAX_BIP32_PATH];
@@ -1020,9 +1026,10 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
  * @param[in,out] flags Pointer to flags for APDU processing.
  * @param[in,out] tx Pointer to the outgoing APDU buffer size.
  */
-void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
-                uint16_t dataLength, volatile unsigned int *flags,
-                volatile unsigned int *tx) {
+void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
+                uint16_t dataLength, volatile unsigned int flags[static 1],
+                volatile unsigned int tx[static 1])
+{
     UNUSED(tx);
     parserStatus_e txResult;
     //uint256_t gasPriceCoef, gas, baseGasPrice, maxGasCoef, uint256a, uint256b;
@@ -1187,10 +1194,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
  * @param[in,out] flags Pointer to flags for APDU processing (currently unused).
  * @param[in,out] tx Pointer to the outgoing APDU buffer size.
  */
-void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
+void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
                                uint16_t dataLength,
-                               volatile unsigned int *flags,
-                               volatile unsigned int *tx) {
+                               volatile unsigned int flags[static 1],
+                               volatile unsigned int tx[static 1]) {
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(workBuffer);
@@ -1239,10 +1246,11 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
  * @param[in,out] tx Pointer to the outgoing APDU buffer size.
  *
  */
-void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
-                               uint16_t dataLength,
-                               volatile unsigned int *flags,
-                               volatile unsigned int *tx) {
+void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
+                           uint16_t dataLength,
+                           volatile unsigned int flags[static 1],
+                           volatile unsigned int tx[static 1])
+{
     UNUSED(tx);
 
     // Process the first part of the certificate signing operation
@@ -1357,10 +1365,11 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
  * @param[in,out] flags Pointer to flags for APDU processing.
  * @param[in,out] tx Pointer to the outgoing APDU buffer size (currently unused).
  */
-void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
+void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
                                uint16_t dataLength,
-                               volatile unsigned int *flags,
-                               volatile unsigned int *tx) {
+                               volatile unsigned int flags[static 1],
+                               volatile unsigned int tx[static 1])
+{
     UNUSED(tx);
 
     if (p1 == P1_FIRST) {
@@ -1493,7 +1502,8 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
  *
  * @return void
  */
-void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleApdu(volatile unsigned int flags[static 1], volatile unsigned int tx[static 1])
+{
     unsigned short sw = 0;
 
     BEGIN_TRY {
