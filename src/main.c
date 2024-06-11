@@ -705,6 +705,51 @@ int crypto_sign_message(uint8_t sig_r[static 32], uint8_t sig_s[static 32], uint
     return error;
 }
 
+/**
+ * @brief Parses a BIP32 path from a buffer and save it with its path length,
+ * updating the buffer pointer and data length.
+ *
+ * @details
+ * The function proceeds as follows:
+ * - Reads the path length from the first byte of the work buffer.
+ * - Checks if the path length is within the valid range.
+ * - Parses each 4-byte component of the BIP32 path from the buffer and stores it in the bip32Path array.
+ * - Updates the work buffer pointer and data length to reflect the bytes consumed during parsing.
+ *
+ * @param[in,out] pWorkBuffer Pointer to the pointer of the work buffer containing the BIP32 path + data
+ *                            The pointer of the work buffer is incremented as the buffer is parsed.
+ * @param[in,out] dataLength Pointer to the remaining length of the data in the work buffer.
+ *                           This length is decremented as bytes are consumed from the buffer.
+ * @param[out] pathLength Pointer to uint8_t BIP32 pathLength of a transactionContext_t or messageSigningContext_t.
+ * @param[out] bip32Path uint32_t *bip32Path of a transactionContext_t or messageSigningContext_t.
+ *                       The array should have a size of at least MAX_BIP32_PATH.
+ */
+void parseBip32Path(uint8_t **pWorkBuffer, uint16_t dataLength[static 1], uint8_t pathLength[static 1], uint32_t bip32Path[static MAX_BIP32_PATH])
+{
+    uint32_t i;
+    // check all initialized pointers
+    if (pWorkBuffer == NULL || *pWorkBuffer == NULL || dataLength == NULL || pathLength == NULL || bip32Path == NULL){
+        THROW(HW_TECHNICAL_PROBLEM);
+    }
+    // retrieve the path length
+    *pathLength = (*pWorkBuffer)[0];
+    if ((*pathLength < 0x01) || (*pathLength > MAX_BIP32_PATH) || *dataLength < 1 + *pathLength * 4){
+        PRINTF("Invalid path\n");
+        THROW(HW_INCORRECT_DATA);
+    }
+    (*pWorkBuffer)++;
+    (*dataLength)--;
+
+    if (*dataLength < *pathLength){
+        THROW(HW_INCORRECT_DATA);
+    }
+    // parse each 4-byte component of the BIP32 path
+    for (i = 0; i < *pathLength; i++){
+        bip32Path[i] = ((*pWorkBuffer)[0] << 24) | ((*pWorkBuffer)[1] << 16) | ((*pWorkBuffer)[2] << 8) | ((*pWorkBuffer)[3]);
+        (*pWorkBuffer) += 4;
+        (*dataLength) -= 4;
+    }
+}
 /////////////////////////////////////////////////////////////////////
 
 
@@ -924,18 +969,10 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t dataBuffer[static 255],
                         uint16_t dataLength, volatile unsigned int flags[static 1],
                         volatile unsigned int tx[static 1])
 {
-    UNUSED(dataLength);
-    uint8_t rawPublicKey[64]; 
-    uint32_t bip32Path[MAX_BIP32_PATH];
-    uint32_t i;
-    uint8_t bip32PathLength = *(dataBuffer++);
-    cx_ecfp_private_key_t privateKey;
-
-    // Verify the validity of the BIP32 path length
-    if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
-        PRINTF("Invalid path\n");
-        THROW(HW_INCORRECT_DATA);
-    }
+    uint8_t rawPublicKey[64] = {0};
+    uint32_t bip32Path[MAX_BIP32_PATH] = {0};
+    uint8_t bip32PathLength = 0;
+    cx_ecfp_private_key_t privateKey = {0};
     // Verify the correctness of instruction parameters (P1, P2)
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         THROW(HW_INCORRECT_P1_P2);
@@ -945,11 +982,8 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t dataBuffer[static 255],
     }
 
     // Extract the BIP32 path from the data buffer
-    for (i = 0; i < bip32PathLength; i++) {
-        bip32Path[i] = (dataBuffer[0] << 24) | (dataBuffer[1] << 16) |
-                       (dataBuffer[2] << 8) | (dataBuffer[3]);
-        dataBuffer += 4;
-    }
+    parseBip32Path(&dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+
     // Determine whether to include chaincode in the derived private key
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
 
@@ -1041,21 +1075,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
     if (p1 == P1_FIRST) {
         memset(&clausesContent, 0, sizeof(clausesContent));
         memset(&clauseContent, 0, sizeof(clauseContent));
-        tmpCtx.transactionContext.pathLength = workBuffer[0];
-        if ((tmpCtx.transactionContext.pathLength < 0x01) ||
-            (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
-            PRINTF("Invalid path\n");
-            THROW(HW_INCORRECT_DATA);
-        }
-        workBuffer++;
-        dataLength--;
-        for (i = 0; i < tmpCtx.transactionContext.pathLength; i++) {
-            tmpCtx.transactionContext.bip32Path[i] =
-                (workBuffer[0] << 24) | (workBuffer[1] << 16) |
-                (workBuffer[2] << 8) | (workBuffer[3]);
-            workBuffer += 4;
-            dataLength -= 4;
-        }
+        
+        // Extract and parse the BIP32 path
+        parseBip32Path(&workBuffer, &dataLength, &tmpCtx.transactionContext.pathLength, tmpCtx.transactionContext.bip32Path);
         dataPresent = false;
         initTx(&displayContext.txFullContext.txContext, &tmpContent.txContent,
                &displayContext.txFullContext.clausesContext, &clausesContent,
@@ -1255,28 +1277,9 @@ void handleSignCertificate(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255
 
     // Process the first part of the certificate signing operation
     if (p1 == P1_FIRST) {
-        uint32_t i;
-
-        // Extract path length from the work buffer
-        tmpCtx.messageSigningContext.pathLength = workBuffer[0];
-
-        // Validate the path length
-        if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
-            (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
-            PRINTF("Invalid path\n");
-            THROW(HW_INVALID_MESSAGE_SIZE);
-        }
-        workBuffer++;
-        dataLength--;
 
         // Extract and parse the BIP32 path
-        for (i = 0; i < tmpCtx.messageSigningContext.pathLength; i++) {
-            tmpCtx.messageSigningContext.bip32Path[i] =
-                (workBuffer[0] << 24) | (workBuffer[1] << 16) |
-                (workBuffer[2] << 8) | (workBuffer[3]);
-            workBuffer += 4;
-            dataLength -= 4;
-        }
+        parseBip32Path(&workBuffer, &dataLength, &tmpCtx.transactionContext.pathLength, tmpCtx.transactionContext.bip32Path);
 
         // Extract and parse the remaining length
         tmpCtx.messageSigningContext.remainingLength =
@@ -1378,28 +1381,9 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t workBuffer[static
         uint32_t index;
         uint32_t base = 10;
         uint8_t pos = 0;
-        uint32_t i;
 
-        // Parse path length
-        tmpCtx.messageSigningContext.pathLength = workBuffer[0];
-        if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
-            (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
-            PRINTF("Invalid path\n");
-            THROW(HW_INVALID_MESSAGE_SIZE);
-        }
-
-        // Move to the next byte after path length
-        workBuffer++;
-        dataLength--;
-
-        // Parse BIP32 path
-        for (i = 0; i < tmpCtx.messageSigningContext.pathLength; i++) {
-            tmpCtx.messageSigningContext.bip32Path[i] =
-                (workBuffer[0] << 24) | (workBuffer[1] << 16) |
-                (workBuffer[2] << 8) | (workBuffer[3]);
-            workBuffer += 4;
-            dataLength -= 4;
-        }
+        // Extract and parse the BIP32 path
+        parseBip32Path(&workBuffer, &dataLength, &tmpCtx.transactionContext.pathLength, tmpCtx.transactionContext.bip32Path);
 
         // Parse remaining message length
         tmpCtx.messageSigningContext.remainingLength =
