@@ -29,13 +29,13 @@
 void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
             clauseContext_t *clauseContext, clauseContent_t *clauseContent,
-            blake2b_ctx *blake2b, void *extra) {
+            cx_blake2b_t *blake2b, void *extra) {
     memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
     context->content = content;
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
-    blake2b_init(context->blake2b, 32, NULL, 0);
+    CX_ASSERT(cx_blake2b_init_no_throw(context->blake2b, 256));
     initClauses(clausesContext, clausesContent, clauseContext, clauseContent);
 }
 
@@ -52,7 +52,7 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, &data, 1);
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)(context->blake2b), 0, &data, 1, NULL, 0));
     }
     return data;
 }
@@ -70,7 +70,8 @@ void copyTxDataClauses(txContext_t *context,
 }
 
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
-    if (context->commandLength < length) {
+    if (context->commandLength < length)
+    {
         PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
     }
@@ -78,7 +79,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        blake2b_update((blake2b_ctx *)context->blake2b, context->workBuffer, length);
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)(context->blake2b), 0, context->workBuffer, length, NULL, 0));
     }
     context->workBuffer += length;
     context->commandLength -= length;

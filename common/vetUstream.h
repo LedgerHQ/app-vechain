@@ -20,7 +20,6 @@
 #include "cx.h"
 #include <string.h>
 #include <stdbool.h>
-#include <blake2b.h>
 #include "ustream.h"
 #include "vetClausesUstream.h"
 
@@ -49,7 +48,7 @@ typedef struct txContent_t {
 
 typedef struct txContext_t {
     rlpTxField_e currentField;
-    blake2b_ctx *blake2b;
+    cx_blake2b_t *blake2b;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
     bool currentFieldIsList;
@@ -67,7 +66,7 @@ typedef struct txContext_t {
 void initTx(txContext_t *context, txContent_t *content,
             clausesContext_t *clausesContext, clausesContent_t *clausesContent,
             clauseContext_t *clauseContext, clauseContent_t *clauseContent,
-            blake2b_ctx *blake2b, void *extra);
+            cx_blake2b_t *blake2b, void *extra);
 parserStatus_e processTx(txContext_t *context,
                          clausesContext_t *clausesContext, 
                          clauseContext_t *clauseContext,

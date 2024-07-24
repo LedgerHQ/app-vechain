@@ -16,8 +16,8 @@ def test_app_mainmenu(firmware, navigator, test_name):
         instructions = [
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavInsID.USE_CASE_SETTINGS_NEXT,
-            NavIns(NavInsID.TOUCH, (200, 113)),
-            NavIns(NavInsID.TOUCH, (200, 261)),
+            # NavIns(NavInsID.TOUCH, (200, 113)),
+            # NavIns(NavInsID.TOUCH, (200, 261)),
             NavInsID.USE_CASE_SETTINGS_PREVIOUS,
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT
         ]

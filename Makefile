@@ -33,8 +33,8 @@ APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
 APPNAME      = "VeChain"
 APPVERSION_M = 1
-APPVERSION_N = 1
-APPVERSION_P = 1
+APPVERSION_N = 2
+APPVERSION_P = 0
 APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
@@ -111,7 +111,7 @@ include $(BOLOS_SDK)/Makefile.glyphs
 APP_SOURCE_PATH += src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 
-APP_SOURCE_PATH  += common blake2
+APP_SOURCE_PATH  += common
 SDK_SOURCE_PATH  += lib_u2f
 
 

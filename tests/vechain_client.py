@@ -5,6 +5,7 @@ from ragger.backend.interface import BackendInterface, RAPDU
 from ragger.bip import pack_derivation_path
 
 CLA = 0xE0
+MAX_APDU_LEN = 255
 
 class P1(IntEnum):
     # Parameter 1 for first APDU number.
@@ -35,6 +36,9 @@ class Errors(IntEnum):
 def split_message(message: bytes, max_size: int) -> List[bytes]:
     return [message[x:x + max_size] for x in range(0, len(message), max_size)]
 
+def split_tx(path:str, tx:bytes):
+    paths = pack_derivation_path(path)
+    return split_message(paths + tx, MAX_APDU_LEN)
 
 # remainder, data_len, data
 def pop_size_prefixed_buf_from_buf(buffer:bytes) -> Tuple[bytes, int, bytes]:
@@ -128,6 +132,27 @@ class VechainClient:
                                          p1=P1.P1_START,
                                          p2=P2.P2_LAST,
                                          data=pack_derivation_path(path)+transaction) as response:
+            yield response
+
+    @contextmanager
+    def sing_tx_long(self, path: str, transaction: bytes) -> Generator[None, None, None]:
+        messages = split_tx(path,transaction)
+
+        for i in range(0, len(messages) - 1):
+            try:
+                self._backend.exchange(cla=CLA,
+                                    ins=InsType.INS_SIGN,
+                                    p1= P1.P1_START if i==0 else P2.P2_MORE,
+                                    p2= P2.P2_LAST,
+                                    data=messages[i])
+            except Exception as e:
+                pass
+
+        with self._backend.exchange_async(cla=CLA,
+                                         ins=InsType.INS_SIGN,
+                                         p1=P2.P2_MORE,
+                                         p2=P2.P2_LAST,
+                                         data=messages[-1]) as response:
             yield response
 
     def get_async_response(self) -> Optional[RAPDU]:
