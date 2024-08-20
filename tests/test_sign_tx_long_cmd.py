@@ -68,15 +68,13 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     else:
         # send the transaction
         with client.sing_tx_long(path=path, transaction=transaction):
-            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, [
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavInsID.USE_CASE_CHOICE_CONFIRM,
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavInsID.USE_CASE_REVIEW_CONFIRM,
-            NavInsID.USE_CASE_STATUS_DISMISS,
-            NavInsID.WAIT_FOR_HOME_SCREEN,
-        ])
+            navigator.navigate([
+                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
+                NavInsID.USE_CASE_REVIEW_CONFIRM,
+                NavInsID.USE_CASE_STATUS_DISMISS,
+            ])
     
     # The device has yielded the result, parse it and ensure that the signature is correct
     response = client.get_async_response().data
@@ -85,7 +83,7 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     if isinstance(backend, SpeculosBackend):
         assert ref_signature == response
     
-    # send a second transaction
+    # send a second transaction without restarting the test
     if firmware.device.startswith("nano"):
         with client.sing_tx_long(path=path, transaction=transaction2):
             navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
@@ -105,15 +103,13 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     else:
         # send the transaction
         with client.sing_tx_long(path=path, transaction=transaction2):
-            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name+ '2', [
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavInsID.USE_CASE_CHOICE_CONFIRM,
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavInsID.USE_CASE_REVIEW_CONFIRM,
-            NavInsID.USE_CASE_STATUS_DISMISS,
-            NavInsID.WAIT_FOR_HOME_SCREEN,
-        ])
+            navigator.navigate([
+                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
+                NavInsID.USE_CASE_REVIEW_CONFIRM,
+                NavInsID.USE_CASE_STATUS_DISMISS,
+            ])
     
     # The device has yielded the result, parse it and ensure that the signature is correct
     response = client.get_async_response().data
