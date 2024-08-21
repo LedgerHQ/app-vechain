@@ -65,7 +65,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
     UNUSED(page);
     // the first settings page contains only the version and the developer name
     // of the app
-    if (page == 0) 
+    if (page == 1) 
     {
         content->type = INFOS_LIST;
         content->infosList.nbInfos = 2;
@@ -73,7 +73,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
         content->infosList.infoContents = INFO_CONTENTS;
     }
     // the second settings page contains 2 settings switches
-    else if (page == 1) 
+    else if (page == 0) 
     {
         switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t)N_storage.dataAllowed;
         switches[CONTRACT_DATA_SWITCH_ID].text = "Contract data";
