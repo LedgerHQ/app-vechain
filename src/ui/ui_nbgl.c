@@ -135,7 +135,7 @@ void ui_menu_settings()
 
 static void ui_display_public_key_done(bool validated) {
     if (validated) {
-        nbgl_useCaseStatus("ADDRESS\nVERIFIED", true, ui_idle);
+        nbgl_useCaseStatus("Address\nverified", true, ui_idle);
     } else {
         nbgl_useCaseStatus("Address verification\ncancelled", false, ui_idle);
     }
@@ -179,7 +179,7 @@ static void ui_display_action_sign_done(bool validated)
 {
     if(validated) 
     {
-        nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_idle);
+        nbgl_useCaseStatus("Transaction\nsigned", true, ui_idle);
     }
     else 
     {
