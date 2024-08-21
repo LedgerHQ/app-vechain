@@ -234,7 +234,7 @@ static void single_action_review_continue(void)
 
     // Info long press
     info_long_press.icon = &C_stax_app_vechain_64px;
-    info_long_press.text = "Sign transaction\nto send VET?";
+    info_long_press.text = "Sign transaction?"; //\nto send VET/VTHO
     info_long_press.longPressText = "Hold to sign";
 
     nbgl_useCaseStaticReview(&pair_list, &info_long_press, "Reject transaction", review_choice);
@@ -288,7 +288,7 @@ static void single_action_review(void)
 void ui_display_action_sign_tx_flow(void) 
 {
     nbgl_useCaseReviewStart(&C_stax_app_vechain_64px,
-                            "Review transaction\nto send VET",
+                            "Review transaction", //\nto send VET/VTHO
                             NULL,
                             "Reject transaction",
                             single_action_review,
