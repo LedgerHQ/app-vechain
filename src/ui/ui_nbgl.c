@@ -61,7 +61,6 @@ static const nbgl_contentInfoList_t infoList = {
 };
 
 static uint8_t initSettingPage;
-static void review_warning_choice(bool confirm);
 static void controls_callback(int token, uint8_t index, int page);
 // settings menu definition
 #define SETTING_CONTENTS_NB 1
@@ -145,54 +144,26 @@ void ui_display_public_key_flow() {
                               NULL,
                               ui_display_public_key_done);
 }
-//  ----------------------------------------------------------- 
-//  ---------------- SIGN FLOW COMMON -------------------------
-//  ----------------------------------------------------------- 
-static void ui_display_action_sign_done(bool validated) 
-{
-    if(validated) 
-    {
-        nbgl_useCaseStatus("Transaction\nsigned", true, ui_idle);
-    }
-    else 
-    {
-        nbgl_useCaseStatus("Transaction rejected", false, ui_idle);
-    }
-}
 
-static void transaction_rejected(void) {
-    io_seproxyhal_touch_cancel();
-    // Display "rejected" screen
-    ui_display_action_sign_done(false);
-}
-
-static void reject_confirmation(void) {
-    nbgl_useCaseConfirm("Reject transaction?", NULL, "Yes, Reject", "Go back to transaction", transaction_rejected);
-}
-//  ----------------------------------------------------------- 
+//  -----------------------------------------------------------
 //  ---------------- SIGN TRANSACTION FLOW --------------------
-//  ----------------------------------------------------------- 
+//  -----------------------------------------------------------
 
 #define MAX_TAG_VALUE_PAIRS_DISPLAYED (3)
 static nbgl_layoutTagValue_t pairs[MAX_TAG_VALUE_PAIRS_DISPLAYED];
 static nbgl_layoutTagValueList_t pair_list = {0};
-static nbgl_pageInfoLongPress_t info_long_press;
-static const char *warning_msg;
-
-// called when long press button on 2nd page is long-touched or when reject footer is touched
-static void review_choice(bool confirm) {
+static void ui_display_action_sign_done(bool confirm)
+{
     if (confirm) {
         io_seproxyhal_touch_tx_ok();
-        // Display "signed" screen
-        ui_display_action_sign_done(true);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, ui_menu_main);
     } else {
-        reject_confirmation();
+        io_seproxyhal_touch_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_menu_main);
     }
 }
 
-static void single_action_review_continue(void) 
-{
-    // Setup data to display
+void ui_display_tx(){
     pairs[0].item = "Amount";
     pairs[0].value = (const char *)fullAmount;
     pairs[1].item = "Fees";
@@ -205,33 +176,26 @@ static void single_action_review_continue(void)
     pair_list.nbPairs = MAX_TAG_VALUE_PAIRS_DISPLAYED;
     pair_list.pairs = pairs;
 
-    // Info long press
-    info_long_press.icon = &C_stax_app_vechain_64px;
-    info_long_press.text = "Sign transaction?"; //\nto send VET/VTHO
-    info_long_press.longPressText = "Hold to sign";
-
-    nbgl_useCaseStaticReview(&pair_list, &info_long_press, "Reject transaction", review_choice);
+    // Start review
+    nbgl_useCaseReview(TYPE_TRANSACTION,
+                       &pair_list,
+                       &C_stax_app_vechain_64px,
+                       "Review transaction",
+                       NULL,
+                       "Sign transaction",
+                       ui_display_action_sign_done);
 }
-
 static void review_warning_choice(bool confirm) {
-  if (confirm) 
-  {
-    // user has confirmed to continue the transaction review after warning display
-    single_action_review_continue();
-  }
-  else 
-  {
-    // user has cancelled the transaction after warning display
-    transaction_rejected();
-  }
+    if (confirm) {
+        ui_display_tx();
+    } else {
+        ui_display_action_sign_done(false);
+    }
 }
-
-static void single_action_review(void) 
-{  
-    // update the transaction flow if data or multiple clauses are present
-    if(!dataPresent && !multipleClauses)
-    {
-        single_action_review_continue();
+static const char *warning_msg;
+void ui_display_action_sign_tx_flow(){
+    if(!dataPresent && !multipleClauses) {
+        ui_display_tx();
     }
     else
     {
@@ -249,23 +213,13 @@ static void single_action_review(void)
             warning_msg = "Multiple clauses and\ndata are present in\nthis transaction";
         }
 
-        // Display the warning message and ask the user to confirm 
+        // Display the warning message and ask the user to confirm
         nbgl_useCaseChoice(&C_Warning_64px,
-                            warning_msg,
-                            NULL,
-                            "I understand, confirm","Cancel",
-                            review_warning_choice);
+                           warning_msg,
+                           NULL,
+                           "I understand, confirm", "Cancel",
+                           review_warning_choice);
     }
-}
-
-void ui_display_action_sign_tx_flow(void) 
-{
-    nbgl_useCaseReviewStart(&C_stax_app_vechain_64px,
-                            "Review transaction", //\nto send VET/VTHO
-                            NULL,
-                            "Reject transaction",
-                            single_action_review,
-                            reject_confirmation);
 }
 
 //  ----------------------------------------------------------- 
@@ -275,75 +229,54 @@ void ui_display_action_sign_tx_flow(void)
 #define MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED (1)
 static nbgl_layoutTagValue_t msg_cert_pairs[MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED];
 static nbgl_layoutTagValueList_t msg_cert_pair_list = {0};
-static nbgl_pageInfoLongPress_t msg_cert_info_long_press;
-static const char *transaction_type_to_display;
-static transactionType_t transaction_type = MSG_TRANSACTION;
 
 // called when long press button on 2nd page is long-touched or when reject footer is touched
-static void review_msg_cert_choice(bool confirm) {
-    if (confirm) 
-    {
+static void review_msg_choice(bool confirm) {
+    if (confirm) {
         io_seproxyhal_touch_tx_ok();
-        // Display "signed" screen
-        ui_display_action_sign_done(true);
-    } 
-    else 
-    {
-        reject_confirmation();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_menu_main);
+    } else {
+        io_seproxyhal_touch_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_menu_main);
     }
 }
-
-static void single_action_msg_cert_review(void) 
+static void review_cert_choice(bool confirm) {
+    if (confirm) {
+        io_seproxyhal_touch_tx_ok();
+        nbgl_useCaseStatus("Certificate signed", confirm, ui_menu_main);
+    } else {
+        io_seproxyhal_touch_cancel();
+        nbgl_useCaseStatus("Certificate rejected", confirm, ui_menu_main);
+    }
+}
+// display message or certificate sign flow depending on "p_transaction_type" value
+void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
 {
-    // Setup data to display
     msg_cert_pairs[0].value = (const char *)fullAddress;
-    if(transaction_type == MSG_TRANSACTION)
-    {
-        msg_cert_pairs[0].item = "Message hash";
-    }
-    else
-    {
-        msg_cert_pairs[0].item = "Certificate hash";
-    }
-
-    // Setup list
     msg_cert_pair_list.nbMaxLinesForValue = 0;
     msg_cert_pair_list.nbPairs = MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED;
     msg_cert_pair_list.pairs = msg_cert_pairs;
 
-    // Info long press
-    msg_cert_info_long_press.icon = &C_Review_64px;
-    msg_cert_info_long_press.longPressText = "Hold to sign";
-    if(transaction_type == MSG_TRANSACTION)
-    {
-        msg_cert_info_long_press.text = "Sign message?";
+    if(p_transaction_type == MSG_TRANSACTION) {
+        msg_cert_pairs[0].item = "Message hash";
+        nbgl_useCaseReview(TYPE_MESSAGE,
+                           &msg_cert_pair_list,
+                           &C_stax_app_vechain_64px,
+                           "Review message",
+                           NULL,
+                           "Sign message",
+                           review_msg_choice);
     }
-    else
-    {
-        msg_cert_info_long_press.text = "Sign certificate?";
+    else {
+        msg_cert_pairs[0].item = "Certificate hash";
+        nbgl_useCaseReview(TYPE_MESSAGE,
+                           &msg_cert_pair_list,
+                           &C_stax_app_vechain_64px,
+                           "Review certificate",
+                           NULL,
+                           "Sign certificate",
+                           review_cert_choice);
     }
-    nbgl_useCaseStaticReview(&msg_cert_pair_list, &msg_cert_info_long_press, "Reject transaction", review_msg_cert_choice);
-}
-
-// display message or certificate sign flow depending on "p_transaction_type" value
-void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
-{
-    transaction_type = p_transaction_type;
-    if(transaction_type == MSG_TRANSACTION)
-    {
-        transaction_type_to_display = "Review message";
-    }
-    else
-    {
-        transaction_type_to_display = "Review certificate";
-    }
-
-    nbgl_useCaseReviewStart(&C_Review_64px,
-                            transaction_type_to_display,
-                            NULL,
-                            "Reject transaction",
-                            single_action_msg_cert_review,
-                            reject_confirmation);
 }
 
 #endif

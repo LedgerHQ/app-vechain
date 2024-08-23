@@ -68,13 +68,14 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     else:
         # send the transaction
         with client.sing_tx_long(path=path, transaction=transaction):
-            navigator.navigate([
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS,
-            ])
+            navigator.navigate([NavInsID.USE_CASE_CHOICE_CONFIRM])
+            navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
+                [NavInsID.USE_CASE_REVIEW_CONFIRM,
+                NavInsID.USE_CASE_STATUS_DISMISS,],
+                "Sign",
+                ROOT_SCREENSHOT_PATH,
+                test_name,
+                screen_change_before_first_instruction=False)
     
     # The device has yielded the result, parse it and ensure that the signature is correct
     response = client.get_async_response().data
@@ -103,9 +104,10 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     else:
         # send the transaction
         with client.sing_tx_long(path=path, transaction=transaction2):
-            navigator.navigate([
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
+            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                test_name + "secondtx",[
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,

@@ -73,7 +73,7 @@ def test_sign_tx_short_tx(firmware, backend, navigator, test_name):
                                                       test_name)
         else:
             navigator.navigate([
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS
@@ -121,13 +121,13 @@ def test_sign_tx_short_tx_reject(firmware, backend, navigator, test_name):
                 NavInsID.USE_CASE_STATUS_DISMISS
             ],
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_REJECT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS
             ],
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_REJECT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
@@ -230,24 +230,24 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
         instructions_list = [
             # data and multi-clauses enabled
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ],
             # contract data enabled
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ],
             # multi-clauses enabled
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
@@ -307,7 +307,7 @@ def test_sign_random_simple_tx(firmware, backend, navigator, test_name):
                                                         "Accept")
             else:
                 navigator.navigate([
-                    NavInsID.SWIPE_CENTER_TO_RIGHT,
+                    NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS
@@ -352,8 +352,8 @@ def test_sign_random_data_tx(firmware, backend, navigator, test_name):
                                                         screen_change_before_first_instruction=False)
             else:
                 navigator.navigate([
-                    NavInsID.SWIPE_CENTER_TO_RIGHT,
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS
@@ -396,8 +396,8 @@ def test_sign_random_multi_clause_tx(firmware, backend, navigator, test_name):
                                                         screen_change_before_first_instruction=False)
             else:
                 navigator.navigate([
-                    NavInsID.SWIPE_CENTER_TO_RIGHT,
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS

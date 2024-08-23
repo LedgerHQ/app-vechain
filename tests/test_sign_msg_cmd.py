@@ -58,7 +58,7 @@ def test_sign_message(firmware, backend, navigator, test_name):
             # check that the message hash computed on device is the same as the
             # reference one (check only the first displayed digits)
             navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name , [
-                NavInsID.SWIPE_CENTER_TO_LEFT,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS
@@ -111,13 +111,13 @@ def test_sign_message_cancel(firmware, backend, navigator, test_name):
                 NavInsID.USE_CASE_STATUS_DISMISS
             ],
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_REJECT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS
             ],
             [
-                NavInsID.SWIPE_CENTER_TO_RIGHT,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_REJECT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
@@ -234,7 +234,7 @@ def test_sign_random_message(firmware, backend, navigator, test_name):
                                                 screen_change_before_first_instruction=False)
             else:
                 navigator.navigate([
-                    NavInsID.SWIPE_CENTER_TO_RIGHT,
+                    NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_CONFIRM,
                 ])
