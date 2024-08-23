@@ -6,7 +6,8 @@ MINOR = 2
 PATCH = 1
 
 # multi-clauses and data not allowed by default
-DEFAULT_FLAGS_SETTING = 0x03
+# DEFAULT_FLAGS_SETTING = 0x03
+DEFAULT_FLAGS_SETTING = 0x00
 
 # In this test we check that the get_configuration replies the right application version and
 # right configuration flags

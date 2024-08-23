@@ -1,6 +1,6 @@
 from ragger.navigator import NavInsID, NavIns
 from ragger.backend import RaisePolicy, SpeculosBackend
-from utils import ROOT_SCREENSHOT_PATH
+from utils import ROOT_SCREENSHOT_PATH,settingEnables
 from vechain_client import VechainClient, Errors
 
 # Tests inputs (transactions) have been generated with tests/generatetx.py
@@ -19,32 +19,7 @@ path: str = "m/44'/818'/0'/0/0"
 def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
-    # set the correct settings
-    # if firmware.device.startswith("nano"):
-    #     # enable data and multi-clauses
-    #     navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, [
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK
-    #     ], screen_change_before_first_instruction=False)
-    # else:
-    #     # enable data and multi-clauses
-    #     navigator.navigate([
-    #         NavInsID.USE_CASE_HOME_SETTINGS,
-    #         NavInsID.USE_CASE_SETTINGS_NEXT,
-    #         NavIns(NavInsID.TOUCH, (200, 113)),
-    #         NavIns(NavInsID.TOUCH, (200, 261)),
-    #         NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-    #         NavInsID.WAIT_FOR_HOME_SCREEN
-    #     ], screen_change_before_first_instruction=False)
+    settingEnables(firmware.device,navigator.navigate,NavInsID,NavIns)
 
     # As it requires on-screen validation, the function is asynchronous 
     # Instructions are different between nano and stax.

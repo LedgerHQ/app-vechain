@@ -1804,9 +1804,9 @@ __attribute__((section(".boot"))) int main(void) {
                 // If the storage is uninitialized, initialize it with default settings.
                 if (N_storage.initialized != 0x01) {
                     internalStorage_t storage;
-                    storage.dataAllowed = CONFIG_DATA_ENABLED;
-                    storage.multiClauseAllowed = CONFIG_MULTICLAUSE_ENABLED;
-                    storage.initialized = 0x01;
+                    storage.dataAllowed = 0x00; // CONFIG_DATA_ENABLED;
+                    storage.multiClauseAllowed = 0x00; // CONFIG_MULTICLAUSE_ENABLED;
+                                                 storage.initialized = 0x01;
                     nvm_write((void *)&N_storage, &storage, sizeof(internalStorage_t));
                 }
 
