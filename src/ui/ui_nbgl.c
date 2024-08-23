@@ -31,22 +31,15 @@ void app_quit(void)
     os_sched_exit(-1);
 }
 
-// home page defintion
-void ui_menu_main(void) 
-{
-    #define SETTINGS_BUTTON_ENABLED (true)
-    nbgl_useCaseHome(APPNAME, &C_stax_app_vechain_64px, NULL, SETTINGS_BUTTON_ENABLED, ui_menu_settings, app_quit);
-}
-
-
-//  ----------------------------------------------------------- 
+//  -----------------------------------------------------------
 //  --------------------- SETTINGS MENU -----------------------
-//  ----------------------------------------------------------- 
-static const char* const INFO_TYPES[] = {"Version", "Developer"};
-static const char* const INFO_CONTENTS[] = {APPVERSION, "Vechain foundation"};
+//  -----------------------------------------------------------
+#define SETTING_INFO_NB 2
+static const char *const INFO_TYPES[SETTING_INFO_NB] = {"Version", "Developer"};
+static const char *const INFO_CONTENTS[SETTING_INFO_NB] = {APPVERSION, "Vechain foundation"};
 
-// settings switches definitions 
-enum 
+// settings switches definitions
+enum
 {
     CONTRACT_DATA_SWITCH_TOKEN = FIRST_USER_TOKEN,
     MULTI_CLAUSE_SWITCH_TOKEN
@@ -58,55 +51,41 @@ enum
     MULTI_CLAUSE_SWITCH_ID, 
     SETTINGS_SWITCHES_NB
 };
- 
-static nbgl_layoutSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
 
-static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
-    UNUSED(page);
-    // the first settings page contains only the version and the developer name
-    // of the app
-    if (page == 1) 
-    {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = 2;
-        content->infosList.infoTypes = INFO_TYPES;
-        content->infosList.infoContents = INFO_CONTENTS;
-    }
-    // the second settings page contains 2 settings switches
-    else if (page == 0) 
-    {
-        switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t)N_storage.dataAllowed;
-        switches[CONTRACT_DATA_SWITCH_ID].text = "Contract data";
-        switches[CONTRACT_DATA_SWITCH_ID].subText = "Allow contract data\nin transactions";
-        switches[CONTRACT_DATA_SWITCH_ID].token = CONTRACT_DATA_SWITCH_TOKEN;
-        switches[CONTRACT_DATA_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
 
-        switches[MULTI_CLAUSE_SWITCH_ID].initState = (nbgl_state_t)N_storage.multiClauseAllowed;
-        switches[MULTI_CLAUSE_SWITCH_ID].text = "Multi-clauses";
-        switches[MULTI_CLAUSE_SWITCH_ID].subText = "Allow multi-clauses\nin transactions";
-        switches[MULTI_CLAUSE_SWITCH_ID].token = MULTI_CLAUSE_SWITCH_TOKEN;
-        switches[MULTI_CLAUSE_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+static const nbgl_contentInfoList_t infoList = {
+    .nbInfos = SETTING_INFO_NB,
+    .infoTypes = INFO_TYPES,
+    .infoContents = INFO_CONTENTS,
+};
 
-        content->type = SWITCHES_LIST;
-        content->switchesList.nbSwitches = SETTINGS_SWITCHES_NB;
-        content->switchesList.switches = (nbgl_layoutSwitch_t*)switches;
-    }
-    else 
-    {
-        return false;
-    }
-    // valid page so return true
-    return true;
-}
- 
-static void controls_callback(int token, uint8_t index) 
+static uint8_t initSettingPage;
+static void review_warning_choice(bool confirm);
+static void controls_callback(int token, uint8_t index, int page);
+// settings menu definition
+#define SETTING_CONTENTS_NB 1
+static const nbgl_content_t contents[SETTING_CONTENTS_NB] = {
+    {.type = SWITCHES_LIST,
+     .content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB,
+     .content.switchesList.switches = switches,
+     .contentActionCallback = controls_callback}};
+
+static const nbgl_genericContents_t settingContents = {.callbackCallNeeded = false,
+                                                       .contentsList = contents,
+                                                       .nbContents = SETTING_CONTENTS_NB};
+static void controls_callback(int token, uint8_t index, int page)
 {
     UNUSED(index);
+
+    initSettingPage = page;
+
     uint8_t switch_value;
     if (token == CONTRACT_DATA_SWITCH_TOKEN)
     {
         // Contract data switch touched
         switch_value = !N_storage.dataAllowed;
+        switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t)switch_value;
         // store the new setting value in NVM
         nvm_write((void *)&N_storage.dataAllowed, &switch_value, 1);
     }
@@ -114,19 +93,35 @@ static void controls_callback(int token, uint8_t index)
     {
         // Contract data switch touched
         switch_value = !N_storage.multiClauseAllowed;
+        switches[MULTI_CLAUSE_SWITCH_ID].initState = (nbgl_state_t)switch_value;
         // store the new setting value in NVM
         nvm_write((void *)&N_storage.multiClauseAllowed, &switch_value, 1);
     }
 }
- 
-// settings menu definition
-void ui_menu_settings() 
-{
-    #define NB_SETTINGS_PAGE   (2)
-    #define INIT_SETTINGS_PAGE (0)
-    nbgl_useCaseSettings("Vechain settings", INIT_SETTINGS_PAGE, NB_SETTINGS_PAGE, false, ui_idle, nav_callback, controls_callback);
-}
 
+// home page defintion
+void ui_menu_main(void)
+{
+    switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t)N_storage.dataAllowed;
+    switches[CONTRACT_DATA_SWITCH_ID].text = "Contract data";
+    switches[CONTRACT_DATA_SWITCH_ID].subText = "Allow contract data\nin transactions";
+    switches[CONTRACT_DATA_SWITCH_ID].token = CONTRACT_DATA_SWITCH_TOKEN;
+    switches[CONTRACT_DATA_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+
+    switches[MULTI_CLAUSE_SWITCH_ID].initState = (nbgl_state_t)N_storage.multiClauseAllowed;
+    switches[MULTI_CLAUSE_SWITCH_ID].text = "Multi-clauses";
+    switches[MULTI_CLAUSE_SWITCH_ID].subText = "Allow multi-clauses\nin transactions";
+    switches[MULTI_CLAUSE_SWITCH_ID].token = MULTI_CLAUSE_SWITCH_TOKEN;
+    switches[MULTI_CLAUSE_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+    nbgl_useCaseHomeAndSettings(APPNAME,
+                                &C_stax_app_vechain_64px,
+                                NULL,
+                                INIT_HOME_PAGE,   // init page
+                                &settingContents, // description of settings
+                                &infoList,        // description of app info
+                                NULL,             // no action button on home screen
+                                app_quit);        // whe
+}
 
 //  ----------------------------------------------------------- 
 //  --------------------- PUBLIC KEY FLOW ---------------------
