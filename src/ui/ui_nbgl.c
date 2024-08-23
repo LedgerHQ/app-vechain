@@ -127,46 +127,24 @@ void ui_menu_main(void)
 //  --------------------- PUBLIC KEY FLOW ---------------------
 //  ----------------------------------------------------------- 
 
-
-static void ui_display_public_key_done(bool validated) {
-    if (validated) {
-        nbgl_useCaseStatus("Address\nverified", true, ui_idle);
-    } else {
-        nbgl_useCaseStatus("Address verification\ncancelled", false, ui_idle);
-    }
-}
-
-static void address_verification_cancelled(void) {
-    io_seproxyhal_touch_cancel();
-    // Display "cancelled" screen
-    ui_display_public_key_done(false);
-}
-
-static void display_address_callback(bool confirm) {
-    if (confirm) 
-    {
+static void ui_display_public_key_done(bool confirm) {
+    if (confirm) {
         io_seproxyhal_touch_address_ok();
-        // Display "verified" screen
-        ui_display_public_key_done(true);
-    } 
-    else 
-    {
-        address_verification_cancelled();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, ui_menu_main);
+    } else {
+        io_seproxyhal_touch_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, ui_menu_main);
     }
 }
 
-// called when tapping on review start page to actually display address
-static void display_addr(void) {
-    nbgl_useCaseAddressConfirmation((const char *)fullAddress,
-                                    &display_address_callback);
+void ui_display_public_key_flow() {
+    nbgl_useCaseAddressReview((const char *)fullAddress,
+                              NULL,
+                              &C_stax_app_vechain_64px,
+                              "Verify VeChain address",
+                              NULL,
+                              ui_display_public_key_done);
 }
-
-void ui_display_public_key_flow(void) {
-    nbgl_useCaseReviewStart(&C_stax_app_vechain_64px,
-                            "Verify Vechain\naddress", NULL, "Cancel",
-                            display_addr, address_verification_cancelled);
-}
-
 //  ----------------------------------------------------------- 
 //  ---------------- SIGN FLOW COMMON -------------------------
 //  ----------------------------------------------------------- 

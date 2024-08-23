@@ -35,7 +35,7 @@ def test_get_public_key_confirm(firmware, backend, navigator, test_name):
                                                             test_name)
                 else: # stax and flex
                     instructions = [
-                        NavInsID.SWIPE_CENTER_TO_RIGHT,
+                        NavInsID.USE_CASE_REVIEW_TAP,
                         NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
                     ]
                     navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
@@ -93,7 +93,7 @@ def test_get_public_confirm_refused_2(firmware, backend, navigator, test_name):
 
                 # Validate the on-screen request by performing the navigation appropriate for this device
                 instructions = [
-                    NavInsID.SWIPE_CENTER_TO_RIGHT,
+                    NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL,
                     NavInsID.USE_CASE_STATUS_DISMISS]
 
