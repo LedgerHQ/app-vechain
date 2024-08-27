@@ -324,7 +324,7 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
         certificateContentsList[1].content.tagValueList.nbMaxLinesForValue = 0;
 
         certificateContentsList[2].type = INFO_LONG_PRESS;
-        certificateContentsList[2].content.infoLongPress.text = "Sign certificate";
+        certificateContentsList[2].content.infoLongPress.text = "Sign certificate?";
         certificateContentsList[2].content.infoLongPress.icon = &C_stax_app_vechain_64px;
         certificateContentsList[2].content.infoLongPress.longPressText = "Hold to sign";
         certificateContentsList[2].content.infoLongPress.longPressToken = TIP_BOX_TOKEN;
