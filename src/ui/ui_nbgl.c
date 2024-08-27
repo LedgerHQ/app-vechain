@@ -313,7 +313,7 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
         msg_cert_pairs[0].item = "Certificate hash";
 
         certificateContentsList[0].type = CENTERED_INFO;
-        certificateContentsList[0].content.centeredInfo.text1 = "Review Certificate";
+        certificateContentsList[0].content.centeredInfo.text1 = "Review certificate";
         certificateContentsList[0].content.centeredInfo.text3 = "Swipe to review";
         certificateContentsList[0].content.centeredInfo.icon = &C_stax_app_vechain_64px,
         certificateContentsList[0].content.centeredInfo.style = LARGE_CASE_GRAY_INFO,
