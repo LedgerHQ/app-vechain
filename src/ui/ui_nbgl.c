@@ -24,7 +24,24 @@
 
 #include "ui_nbgl.h"
 #include "main.h"
-
+enum
+{
+    BACK_TOKEN = 0,
+    NEXT_TOKEN,
+    QUIT_TOKEN,
+    NAV_TOKEN,
+    SKIP_TOKEN,
+    CONTINUE_TOKEN,
+    ADDRESS_QRCODE_BUTTON_TOKEN,
+    ACTION_BUTTON_TOKEN,
+    CHOICE_TOKEN,
+    DETAILS_BUTTON_TOKEN,
+    CONFIRM_TOKEN,
+    REJECT_TOKEN,
+    VALUE_ALIAS_TOKEN,
+    BLIND_WARNING_TOKEN,
+    TIP_BOX_TOKEN
+};
 void app_quit(void) 
 {
     // exit app here
@@ -249,7 +266,32 @@ static void review_cert_choice(bool confirm) {
         nbgl_useCaseStatus("Certificate rejected", confirm, ui_menu_main);
     }
 }
+static void bundleNavReviewConfirmRejectionCustom(void)
+{
+    review_cert_choice(false);
+}
+static void bundleNavReviewConfirmChoiceCustom(void)
+{
+    nbgl_useCaseConfirm("Reject certificate?", NULL, "Yes, reject", "Go back to certificate", bundleNavReviewConfirmRejectionCustom);
+}
+static void certificateCallback(int token, uint8_t index, int page)
+{
+    PRINTF("token:%d \n", token);
+    PRINTF("index:%u \n", index);
+    PRINTF("page:%d \n", page);
+    UNUSED(token);
+    UNUSED(index);
+    UNUSED(page);
+    review_cert_choice(true);
+}
 // display message or certificate sign flow depending on "p_transaction_type" value
+#define CERTIFICATE_PAGES 3
+static nbgl_content_t certificateContentsList[CERTIFICATE_PAGES] = {0};
+
+static const nbgl_genericContents_t certificateContent = {
+    .callbackCallNeeded = false,
+    .contentsList = certificateContentsList,
+    .nbContents = CERTIFICATE_PAGES};
 void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
 {
     msg_cert_pairs[0].value = (const char *)fullAddress;
@@ -269,13 +311,41 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
     }
     else {
         msg_cert_pairs[0].item = "Certificate hash";
-        nbgl_useCaseReview(TYPE_MESSAGE,
-                           &msg_cert_pair_list,
-                           &C_stax_app_vechain_64px,
-                           "Review certificate",
-                           NULL,
-                           "Sign certificate",
-                           review_cert_choice);
+
+        certificateContentsList[0].type = CENTERED_INFO;
+        certificateContentsList[0].content.centeredInfo.text1 = "Review Certificate";
+        certificateContentsList[0].content.centeredInfo.text3 = "Swipe to review";
+        certificateContentsList[0].content.centeredInfo.icon = &C_stax_app_vechain_64px,
+        certificateContentsList[0].content.centeredInfo.style = LARGE_CASE_GRAY_INFO,
+
+        certificateContentsList[1].type = TAG_VALUE_LIST;
+        certificateContentsList[1].content.tagValueList.pairs = msg_cert_pairs;
+        certificateContentsList[1].content.tagValueList.nbPairs = MSG_CERT_MAX_TAG_VALUE_PAIRS_DISPLAYED;
+        certificateContentsList[1].content.tagValueList.nbMaxLinesForValue = 0;
+
+        certificateContentsList[2].type = INFO_LONG_PRESS;
+        certificateContentsList[2].content.infoLongPress.text = "Sign certificate";
+        certificateContentsList[2].content.infoLongPress.icon = &C_stax_app_vechain_64px;
+        certificateContentsList[2].content.infoLongPress.longPressText = "Hold to sign";
+        certificateContentsList[2].content.infoLongPress.longPressToken = TIP_BOX_TOKEN;
+        ///< long pressed
+#ifdef HAVE_PIEZO_SOUND
+        certificateContentsList[2].content.infoLongPress.tuneId = TUNE_SUCCESS;
+#endif
+        certificateContentsList[2].contentActionCallback = certificateCallback;
+        nbgl_useCaseGenericReview(
+            &certificateContent,
+            "Reject",
+            bundleNavReviewConfirmChoiceCustom);
+        // if custom implementation is not accepted
+        // useCaseReviewCustom(TYPE_MESSAGE,
+        //                     &msg_cert_pair_list,
+        //                     &C_stax_app_vechain_64px,
+        //                     "Review certificate",
+        //                     NULL,
+        //                     "Sign certificate",
+        //                     review_cert_choice,
+        //                     false);
     }
 }
 
