@@ -64,14 +64,12 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
         else:
             # check that the certificate hash computed on device is the same as the
             # reference one (check only the first displayed digits)
-            navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
-                                                      [NavInsID.USE_CASE_REVIEW_TAP,
-                                                       NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                       NavInsID.USE_CASE_STATUS_DISMISS],
-                                                      str(hash_part_to_check).upper(),
-                                                      ROOT_SCREENSHOT_PATH,
-                                                      test_name)
-
+            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name,[
+                NavInsID.USE_CASE_REVIEW_TAP,
+                NavInsID.USE_CASE_REVIEW_TAP,
+                NavInsID.USE_CASE_REVIEW_CONFIRM,
+                NavInsID.USE_CASE_STATUS_DISMISS
+            ])
     # The device as yielded the result, parse it and ensure that the signature is correct
     response = client.get_async_response().data
 
@@ -174,7 +172,8 @@ def test_sign_certificate_cancel(firmware, backend, navigator, test_name):
 def test_sign_random_certificate(firmware, backend, navigator, test_name):
     certificates = [
         '{"domain":"oblong-nephew.name","payload":{"content":"pressurise once opossum oof","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  '{"domain":"jovial-head.com","payload":{"content":"pish before optimal dramatic scrummage","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
+        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}', 
+        '{"domain":"jovial-head.com","payload":{"content":"pish before optimal dramatic scrummage","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"quirky-ethics.com","payload":{"content":"self-assured ack after usually","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"tinted-toothpaste.biz","payload":{"content":"approve utterly amid forbid instead","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"recent-disembodiment.org","payload":{"content":"stretcher promise exist for","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
@@ -233,11 +232,15 @@ def test_sign_random_certificate(firmware, backend, navigator, test_name):
                                                 "Sign",
                                                 screen_change_before_first_instruction=False)
             else:
-                navigator.navigate_until_text(NavInsID.USE_CASE_REVIEW_TAP,
-                                                    [NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                    NavInsID.USE_CASE_STATUS_DISMISS, 
-                                                    NavInsID.WAIT_FOR_HOME_SCREEN],
-                                                    "Hold to sign")
+                # working with stax and flex 
+                navigator.navigate([
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ])
+
+
         # The device as yielded the result, parse it and ensure that the signature is correct
         response = client.get_async_response().data
 

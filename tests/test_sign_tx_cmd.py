@@ -1,6 +1,6 @@
 from ragger.navigator import NavInsID, NavIns
 from ragger.backend import RaisePolicy, SpeculosBackend
-from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
+from utils import ROOT_SCREENSHOT_PATH, check_signature_validity,settingEnables
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
 # Tests inputs (transactions) have been generated with tests/legacy/apdu_generator.py
@@ -72,12 +72,12 @@ def test_sign_tx_short_tx(firmware, backend, navigator, test_name):
                                                       ROOT_SCREENSHOT_PATH,
                                                       test_name)
         else:
-            navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
-                                                      [NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                       NavInsID.USE_CASE_STATUS_DISMISS],
-                                                      "Hold to sign",
-                                                      ROOT_SCREENSHOT_PATH,
-                                                      test_name)
+            navigator.navigate([
+                NavInsID.USE_CASE_REVIEW_TAP,
+                NavInsID.USE_CASE_REVIEW_TAP,
+                NavInsID.USE_CASE_REVIEW_CONFIRM,
+                NavInsID.USE_CASE_STATUS_DISMISS
+            ])
 
     # The device as yielded the result, parse it and ensure that the signature is correct
     response = client.get_async_response().data
@@ -172,25 +172,9 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
     # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
+    settingEnables(firmware.device,navigator.navigate,NavInsID,NavIns)
 
     if firmware.device.startswith("nano"):
-        # first activate multiple cause and data settings
-        # instructions = [
-        #     NavInsID.RIGHT_CLICK,
-        #     NavInsID.BOTH_CLICK,
-        #     NavInsID.BOTH_CLICK,
-        #     NavInsID.RIGHT_CLICK,
-        #     NavInsID.BOTH_CLICK,
-        #     NavInsID.RIGHT_CLICK,
-        #     NavInsID.BOTH_CLICK,
-        #     NavInsID.RIGHT_CLICK,
-        #     NavInsID.BOTH_CLICK,
-        #     NavInsID.RIGHT_CLICK,
-        #     NavInsID.BOTH_CLICK
-        # ]
-
-        # navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, instructions,
-        #                             screen_change_before_first_instruction=False)
 
         # Send the sign device instruction.
         # As it requires on-screen validation, the function is asynchronous.
@@ -216,59 +200,42 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator
         if isinstance(backend, SpeculosBackend):
             assert check_signature_validity(public_key, response, transaction_multi_clauses_and_data[0])
     else:
-        # settings_instructions = [
-        #     NavInsID.USE_CASE_HOME_SETTINGS,
-        #     NavInsID.USE_CASE_SETTINGS_NEXT,
-        #     NavIns(NavInsID.TOUCH, (200, 113)),
-        #     NavIns(NavInsID.TOUCH, (200, 261)),
-        #     NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-        #     NavInsID.WAIT_FOR_HOME_SCREEN
-        # ]
-
         # instructions could be changed if data displayed in the future
         # will be different for each use case
         instructions_list = [
             # data and multi-clauses enabled
             [
-                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
-                NavInsID.WAIT_FOR_HOME_SCREEN,
             ],
             # contract data enabled
             [
-                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
-                NavInsID.WAIT_FOR_HOME_SCREEN,
             ],
             # multi-clauses enabled
             [
-                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_CHOICE_CONFIRM,
+                NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
-                NavInsID.WAIT_FOR_HOME_SCREEN,
             ]
         ]
 
-        # first enable the correct settings
-        # navigator.navigate(settings_instructions, screen_change_before_first_instruction=False)
-
         for i, instructions in enumerate(instructions_list):
-
             # Send the sign device instruction.
             # As it requires on-screen validation, the function is asynchronous.
             # It will yield the result when the navigation is done
             with client.sign_tx(path=path, transaction=transaction_multi_clauses_and_data[i]):
 
                 navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name + f"/part{i}", instructions)
-
             # The device as yielded the result, parse it and ensure that the signature is correct
             response = client.get_async_response().data
             if isinstance(backend, SpeculosBackend):
@@ -311,11 +278,12 @@ def test_sign_random_simple_tx(firmware, backend, navigator, test_name):
                                                         [NavInsID.BOTH_CLICK],
                                                         "Accept")
             else:
-                navigator.navigate_until_text(NavInsID.USE_CASE_REVIEW_TAP,
-                                                        [NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                        NavInsID.USE_CASE_STATUS_DISMISS],
-                                                        "Hold to sign")
-
+                navigator.navigate([
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ])
         # The device as yielded the result, parse it and ensure that the signature is correct
         response = client.get_async_response().data
 
@@ -337,34 +305,7 @@ def test_sign_random_data_tx(firmware, backend, navigator, test_name):
     # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
-
-    # first activate multiple cause and data settings
-    # if firmware.device.startswith("nano"):
-    #     instructions = [
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK
-    #     ]
-
-    #     navigator.navigate(instructions, screen_change_before_first_instruction=False)
-    # else:
-    #     settings_instructions = [
-    #         NavInsID.USE_CASE_HOME_SETTINGS,
-    #         NavInsID.USE_CASE_SETTINGS_NEXT,
-    #         NavIns(NavInsID.TOUCH, (200, 113)),
-    #         NavIns(NavInsID.TOUCH, (200, 261)),
-    #         NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-    #         NavInsID.WAIT_FOR_HOME_SCREEN
-    #     ]
-    #     navigator.navigate(settings_instructions, screen_change_before_first_instruction=False)
+    settingEnables(firmware.device,navigator.navigate,NavInsID,NavIns)
 
     for _, tx in enumerate(txs):
         encoded = bytes.fromhex(tx)
@@ -383,13 +324,13 @@ def test_sign_random_data_tx(firmware, backend, navigator, test_name):
                                                         "Accept",
                                                         screen_change_before_first_instruction=False)
             else:
-                navigator.navigate([ NavInsID.USE_CASE_REVIEW_TAP,NavInsID.USE_CASE_CHOICE_CONFIRM])
-                navigator.navigate_until_text(NavInsID.USE_CASE_REVIEW_TAP,
-                                                        [NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                        NavInsID.USE_CASE_STATUS_DISMISS],
-                                                        "Hold to sign",
-                                                        screen_change_before_first_instruction=False)
-
+                navigator.navigate([
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ])
         # The device as yielded the result, parse it and ensure that the signature is correct
         response = client.get_async_response().data
 
@@ -409,34 +350,7 @@ def test_sign_random_multi_clause_tx(firmware, backend, navigator, test_name):
     # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
-
-    # first activate multiple cause and data settings
-    # if firmware.device.startswith("nano"):
-    #     instructions = [
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK,
-    #         NavInsID.RIGHT_CLICK,
-    #         NavInsID.BOTH_CLICK
-    #     ]
-
-    #     navigator.navigate(instructions, screen_change_before_first_instruction=False)
-    # else:
-    #     settings_instructions = [
-    #         NavInsID.USE_CASE_HOME_SETTINGS,
-    #         NavInsID.USE_CASE_SETTINGS_NEXT,
-    #         NavIns(NavInsID.TOUCH, (200, 113)),
-    #         NavIns(NavInsID.TOUCH, (200, 261)),
-    #         NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-    #         NavInsID.WAIT_FOR_HOME_SCREEN
-    #     ]
-    #     navigator.navigate(settings_instructions, screen_change_before_first_instruction=False)
+    settingEnables(firmware.device,navigator.navigate,NavInsID,NavIns)
 
     for _, tx in enumerate(txs):
         encoded = bytes.fromhex(tx)
@@ -455,13 +369,13 @@ def test_sign_random_multi_clause_tx(firmware, backend, navigator, test_name):
                                                         "Accept",
                                                         screen_change_before_first_instruction=False)
             else:
-                navigator.navigate([ NavInsID.USE_CASE_REVIEW_TAP,NavInsID.USE_CASE_CHOICE_CONFIRM])
-                navigator.navigate_until_text(NavInsID.USE_CASE_REVIEW_TAP,
-                                                        [NavInsID.USE_CASE_REVIEW_CONFIRM,
-                                                        NavInsID.USE_CASE_STATUS_DISMISS],
-                                                        "Hold to sign",
-                                                        screen_change_before_first_instruction=False)
-
+                navigator.navigate([
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_TAP,
+                    NavInsID.USE_CASE_REVIEW_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ])
         # The device as yielded the result, parse it and ensure that the signature is correct
         response = client.get_async_response().data
 

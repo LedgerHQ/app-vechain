@@ -164,7 +164,19 @@ body = {
     "chainTag": args.chaintag, # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
     "blockRef": args.blockref,
     "expiration": int(args.expiration),
-    "clauses": [{"to":args.to[i], "value":args.amount, "data":args.data} for i in range(0, args.clauses)],
+    "clauses": [
+        {
+            "to": "0x5fb35692c9a5025a995beceaebccf2304b2b3383",
+            "value": "44800000000000000000",
+            "data": "0xc2db2c4200000000000000000000000000000000000000000000000000000000ee6b4b6d"
+        }, 
+        {
+            "to": "0x5fb35692c9a5025a995beceaebccf2304b2b3383",
+            "value": "54800000000000000000",
+            "data": "0xc2db2c4200000000000000000000000000000000000000000000000000000000ee6b4b6d"
+        }, 
+    ],
+        # [{"to":args.to[i], "value":args.amount, "data":args.data} for i in range(0, args.clauses)],
     "gasPriceCoef": int(args.gaspricecoef),
     "gas": int(args.gas),
     "dependsOn": args.dependson,
