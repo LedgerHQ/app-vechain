@@ -3,7 +3,7 @@ from ragger.backend import SpeculosBackend, RaisePolicy
 from ragger.navigator import NavInsID, NavIns
 from utils import ROOT_SCREENSHOT_PATH
 from vechain_client import VechainClient, unpack_get_public_key_response, Errors
-
+import ragger as r
 # In this test we check that the GET_PUBLIC_KEY works in non-confirmation mode
 def test_get_public_key_no_confirm(backend):
     if isinstance(backend, SpeculosBackend):
@@ -33,13 +33,10 @@ def test_get_public_key_confirm(firmware, backend, navigator, test_name):
                                                             "Approve",
                                                             ROOT_SCREENSHOT_PATH,
                                                             test_name)
-                else:
+                else: # stax and flex
                     instructions = [
                         NavInsID.USE_CASE_REVIEW_TAP,
-                        NavIns(NavInsID.TOUCH, (200, 335)),
-                        NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
                         NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
-                        NavInsID.USE_CASE_STATUS_DISMISS
                     ]
                     navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                                 test_name,
@@ -70,13 +67,10 @@ def test_get_public_confirm_refused(firmware, backend, navigator, test_name):
                                                         ROOT_SCREENSHOT_PATH,
                                                         test_name)
             else:
-                instructions = [
+                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,test_name + "_first", [
                     NavInsID.USE_CASE_REVIEW_REJECT,
-                    NavInsID.USE_CASE_STATUS_DISMISS]
-
-                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
-                                            test_name,
-                                            instructions)
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ])
 
         response = client.get_async_response()
 
@@ -86,7 +80,7 @@ def test_get_public_confirm_refused(firmware, backend, navigator, test_name):
 
 # In this test we check that the GET_PUBLIC_KEY in confirmation mode replies an error if the user refuses
 def test_get_public_confirm_refused_2(firmware, backend, navigator, test_name):
-    if firmware.device.startswith("stax"):
+    if not firmware.device.startswith("nano"):
         for path in ["m/44'/818'/0'/0/0"]:
             client = VechainClient(backend)
 

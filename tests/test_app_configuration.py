@@ -2,10 +2,11 @@ from vechain_client import VechainClient
 
 # Taken from the Makefile, to update every time the Makefile version is bumped
 MAJOR = 1
-MINOR = 1
+MINOR = 2
 PATCH = 1
 
 # multi-clauses and data not allowed by default
+# DEFAULT_FLAGS_SETTING = 0x03
 DEFAULT_FLAGS_SETTING = 0x00
 
 # In this test we check that the get_configuration replies the right application version and

@@ -36,10 +36,10 @@ void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target) {
     readu256BE(tmp, target);
 }
 
-void addressToDisplayString(uint8_t *address, cx_sha3_t *sha3Context, uint8_t *displayString) {
+void addressToDisplayString(uint8_t *address, uint8_t *displayString) {
     displayString[0] = '0';
     displayString[1] = 'x';
-    getVetAddressStringFromBinary(address, displayString + 2, sha3Context);
+    getVetAddressStringFromBinary(address, displayString + 2);
 }
 
 void sendAmountToDisplayString(txInt256_t *sendAmount, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
