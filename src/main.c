@@ -287,9 +287,9 @@ UX_STEP_NOCB(
     ux_idle_flow_warning_1_step,
     pnn,
     {
-      &C_icon_warning_x,
-      "This is a recovery",
-      "tool",
+        &C_icon_warning_x,
+        "This is a",
+        "recovery tool",
     });
 UX_STEP_NOCB(
     ux_idle_flow_warning_2_step,
