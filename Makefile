@@ -22,16 +22,36 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 APP_LOAD_PARAMS  = --curve secp256k1
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-APP_LOAD_PARAMS += --appFlags 0x200  # APPLICATION_FLAG_BOLOS_SETTINGS
-else
-APP_LOAD_PARAMS += --appFlags 0x000
+
+VARIANT_PARAM = COIN
+VARIANT_VALUES = vechain vechain_recovery
+ifndef COIN
+    COIN=vechain
 endif
 
-APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
+ifeq ($(COIN),vechain)
+    ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+        APP_LOAD_PARAMS += --appFlags 0x200
+        APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
+        APPNAME = "VeChain"
+        DEFINES += APPNAME=\"$(APPNAME)\"
+
+    else
+        APP_LOAD_PARAMS += --appFlags 0x000
+    endif
+else ifeq ($(COIN),vechain_recovery)
+    ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+        APP_LOAD_PARAMS += --appFlags 0x240
+        APP_LOAD_PARAMS += --path "44'/60'" --path "44'/1'"
+        APPNAME = "VeChain Recovery"
+        DEFINES += HAVE_RECOVERY=1
+    else
+        APP_LOAD_PARAMS += --appFlags 0x000
+    endif
+endif
+
 APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
-APPNAME      = "VeChain"
 APPVERSION_M = 1
 APPVERSION_N = 2
 APPVERSION_P = 1
@@ -50,7 +70,6 @@ endif
 all: default
 
 DEFINES += $(DEFINES_LIB)
-DEFINES += APPNAME=\"$(APPNAME)\"
 DEFINES += APPVERSION=\"$(APPVERSION)\"
 DEFINES += MAJOR_VERSION=$(APPVERSION_M) MINOR_VERSION=$(APPVERSION_N) PATCH_VERSION=$(APPVERSION_P)
 DEFINES += OS_IO_SEPROXYHAL
@@ -139,4 +158,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS COIN vechain
+	@echo VARIANTS COIN vechain vechain_recovery

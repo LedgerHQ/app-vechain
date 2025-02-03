@@ -116,8 +116,10 @@ static void controls_callback(int token, uint8_t index, int page)
 }
 
 // home page defintion
-void ui_menu_main(void)
+void real_main(int token, uint8_t index)
 {
+    UNUSED(token);
+    UNUSED(index);
     switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t)N_storage.dataAllowed;
     switches[CONTRACT_DATA_SWITCH_ID].text = "Contract data";
     switches[CONTRACT_DATA_SWITCH_ID].subText = "Allow contract data\nin transactions";
@@ -294,5 +296,39 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
                            review_cert_choice);
     }
 }
+#ifdef HAVE_RECOVERY
+static void displayInitialWarning(void)
+{
+    nbgl_layoutDescription_t layoutDescription = {
+        .modal = false,
+        .withLeftBorder = true,
+        .onActionCallback = real_main,
+        .tapActionText = "Continue anyway",
+        .ticker.tickerCallback = NULL};
+    nbgl_layoutHeader_t headerDesc = {.type = HEADER_EMPTY,
+                                      .separationLine = false,
+                                      .emptySpace.height = MEDIUM_CENTERING_HEADER};
 
+    nbgl_layout_t warningLayout = nbgl_layoutGet(&layoutDescription);
+    nbgl_layoutAddHeader(warningLayout, &headerDesc);
+
+    nbgl_contentCenter_t info = {
+        .icon = &C_Warning_64px,
+        .title = "This is a recovery tool",
+        .description = "Do not use for day to day operations !"};
+    nbgl_layoutAddContentCenter(warningLayout, &info);
+    // draw content
+    nbgl_layoutDraw(warningLayout);
+    nbgl_refresh();
+}
+#endif
+
+void ui_menu_main(void)
+{
+#ifdef HAVE_RECOVERY
+    displayInitialWarning();
+#else
+    real_main(0,0);
+#endif
+}
 #endif
