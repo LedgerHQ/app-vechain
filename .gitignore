@@ -6,6 +6,7 @@ build
 src_common/glyphs.c
 src_common/glyphs.h
 *.pyc
+.python-version
 .idea
 .vscode
 tests/snapshots-tmp/
