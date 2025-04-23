@@ -30,7 +30,7 @@ def test_sign_message(firmware, backend, navigator, test_name):
     hash_msg = blake2b(digest_size=32)
     hash_msg.update(toPersonalMessage(MESSAGE_TO_SIGN))
     hash_msg = hash_msg.digest().hex()
-    hash_part_to_check = hash_msg[:4]
+    hash_part_to_check = hash_msg[-4:]
 
     # get public key from device
     response = client.get_public_key(path=path).data
@@ -45,7 +45,7 @@ def test_sign_message(firmware, backend, navigator, test_name):
             # check that the message hash computed on device is the same as the
             # calculated one (check only the first displayed digits)
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
+                                                        [NavInsID.RIGHT_CLICK, NavInsID.WAIT_FOR_SCREEN_CHANGE],
                                                         str(hash_part_to_check).upper(),
                                                         ROOT_SCREENSHOT_PATH,
                                                         test_name,
@@ -225,7 +225,7 @@ def test_sign_random_message(firmware, backend, navigator, test_name):
                 # check that the message hash computed on device is the same as the
                 # calculated one (check only the first displayed digits)
                 navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                [NavInsID.BOTH_CLICK],
+                                                [NavInsID.RIGHT_CLICK],
                                                 str(hash_part_to_check).upper(),
                                                 screen_change_after_last_instruction=False)
                 navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
@@ -244,4 +244,3 @@ def test_sign_random_message(firmware, backend, navigator, test_name):
 
         if isinstance(backend, SpeculosBackend):
             assert check_signature_validity(public_key, response, toPersonalMessage(msg))
-    
