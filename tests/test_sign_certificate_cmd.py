@@ -51,7 +51,7 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
             # check that the certificate hash computed on device is the same as the
             # reference one (check only the first displayed digits)
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                      [NavInsID.BOTH_CLICK],
+                                                      [NavInsID.RIGHT_CLICK, NavInsID.WAIT_FOR_SCREEN_CHANGE],
                                                       str(hash_part_to_check).upper(),
                                                       ROOT_SCREENSHOT_PATH,
                                                       test_name,
@@ -105,11 +105,6 @@ def test_sign_certificate_cancel(firmware, backend, navigator, test_name):
         with client.sign_certificate(path=path, data=message_bytes):
             # check that the certificate hash computed on device is the same as the
             # reference one (check only the first disapled digitis)
-            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                            [NavInsID.BOTH_CLICK],
-                                            str(hash_part_to_check).upper(),
-                                            screen_change_after_last_instruction=False)
-
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
                                                         [NavInsID.BOTH_CLICK],
                                                         "Cancel",
@@ -223,7 +218,7 @@ def test_sign_random_certificate(firmware, backend, navigator, test_name):
                 # check that the certificate hash computed on device is the same as the
                 # reference one (check only the first displayed digits)
                 navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
+                                                        [NavInsID.RIGHT_CLICK],
                                                         str(hash_part_to_check).upper(),
                                                         screen_change_after_last_instruction=False)
 
@@ -232,7 +227,7 @@ def test_sign_random_certificate(firmware, backend, navigator, test_name):
                                                 "Sign",
                                                 screen_change_before_first_instruction=False)
             else:
-                # working with stax and flex 
+                # working with stax and flex
                 navigator.navigate([
                     NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_TAP,
