@@ -163,8 +163,6 @@ def test_sign_tx_short_tx_reject(firmware, backend, navigator, test_name):
 # The transaction is short and will be sent in one chunk
 # We will ensure that the displayed information is correct by using screenshots comparison
 def test_sign_tx_short_tx_data_and_multiple_clauses(firmware, backend, navigator, test_name):
-    if not isinstance(backend, SpeculosBackend):
-        input("Please confirm that multi-clauses and contract data are enabled in app settings?")
 
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
