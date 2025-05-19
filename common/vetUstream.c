@@ -415,6 +415,7 @@ parserStatus_e processTx(txContext_t *context,
             result = processTxInternal(context, clausesContext, clauseContext);
         }
         CATCH_OTHER(e) {
+            (void)e;
             result = USTREAM_FAULT;
         }
         FINALLY {
