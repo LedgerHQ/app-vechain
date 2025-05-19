@@ -1,3 +1,4 @@
+from ledgered.devices import Device, DeviceType
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
 from ragger.backend import SpeculosBackend, RaisePolicy
 from ragger.navigator import NavInsID, NavIns
@@ -16,7 +17,7 @@ def test_get_public_key_no_confirm(backend):
 
 
  # In this test we check that the GET_PUBLIC_KEY works in confirmation mode
-def test_get_public_key_confirm(firmware, backend, navigator, test_name):
+def test_get_public_key_confirm(device:Device, backend, navigator, test_name):
     if isinstance(backend, SpeculosBackend):
         for path in ["m/44'/818'/0'/0/0"]:
             client = VechainClient(backend)
@@ -27,7 +28,7 @@ def test_get_public_key_confirm(firmware, backend, navigator, test_name):
             with client.get_public_key_with_confirmation(path=path):
 
                 # Validate the on-screen request by performing the navigation appropriate for this device
-                if firmware.device.startswith("nano"):
+                if device.is_nano:
                     navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
                                                             [NavInsID.BOTH_CLICK],
                                                             "Approve",
@@ -48,7 +49,7 @@ def test_get_public_key_confirm(firmware, backend, navigator, test_name):
             assert public_key.hex() == ref_public_key
 
 # In this test we check that the GET_PUBLIC_KEY in confirmation mode replies an error if the user refuses
-def test_get_public_confirm_refused(firmware, backend, navigator, test_name):
+def test_get_public_confirm_refused(device:Device, backend, navigator, test_name):
     for path in ["m/44'/818'/0'/0/0"]:
         client = VechainClient(backend)
 
@@ -60,7 +61,7 @@ def test_get_public_confirm_refused(firmware, backend, navigator, test_name):
             backend.raise_policy = RaisePolicy.RAISE_NOTHING
 
             # Validate the on-screen request by performing the navigation appropriate for this device
-            if firmware.device.startswith("nano"):
+            if device.is_nano:
                 navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
                                                         [NavInsID.BOTH_CLICK],
                                                         "Reject",
@@ -79,8 +80,8 @@ def test_get_public_confirm_refused(firmware, backend, navigator, test_name):
         assert len(response.data) == 0
 
 # In this test we check that the GET_PUBLIC_KEY in confirmation mode replies an error if the user refuses
-def test_get_public_confirm_refused_2(firmware, backend, navigator, test_name):
-    if not firmware.device.startswith("nano"):
+def test_get_public_confirm_refused_2(device: Device, backend, navigator, test_name):
+    if not device.is_nano:
         for path in ["m/44'/818'/0'/0/0"]:
             client = VechainClient(backend)
 

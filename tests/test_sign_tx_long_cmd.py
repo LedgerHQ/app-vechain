@@ -16,15 +16,15 @@ path: str = "m/44'/818'/0'/0/0"
 # In this test we send to the device a transaction to sign and validate it on screen
 # The transaction is long and will be sent in multiple chunk
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
+def test_sign_tx_long_tx(device, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
-    settingEnables(firmware.device,navigator.navigate,NavInsID,NavIns)
+    settingEnables(device,navigator.navigate,NavInsID,NavIns)
 
     # As it requires on-screen validation, the function is asynchronous 
     # Instructions are different between nano and stax.
     # Both will yield the result when the navigation is done
-    if firmware.device.startswith("nano"):
+    if device.is_nano:
         # send the transaction
         with client.sing_tx_long(path=path, transaction=transaction):
             navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
@@ -60,7 +60,7 @@ def test_sign_tx_long_tx(firmware, backend, navigator, test_name):
         assert ref_signature == response
     
     # send a second transaction without restarting the test
-    if firmware.device.startswith("nano"):
+    if device.is_nano:
         with client.sing_tx_long(path=path, transaction=transaction2):
             navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
                                             [NavInsID.BOTH_CLICK],

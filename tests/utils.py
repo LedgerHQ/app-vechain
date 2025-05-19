@@ -1,6 +1,7 @@
 from pathlib import Path
 from hashlib import blake2b
 
+from ledgered.devices import Device, DeviceType
 from ecdsa.curves import SECP256k1
 from ecdsa.keys import VerifyingKey
 
@@ -16,8 +17,8 @@ def check_signature_validity(public_key: bytes, signature: bytes, message: bytes
     digest = blake2b(message, digest_size=32).digest()
     return pk.verify_digest(signature=signature[:64],digest=digest)
 
-def settingEnables(device, navigator, NavInsID, NavIns):
-    if device.startswith("nano"):
+def settingEnables(device: Device, navigator, NavInsID, NavIns):
+    if device.is_nano:
         navigator([
             NavInsID.RIGHT_CLICK,
             NavInsID.BOTH_CLICK,
@@ -32,7 +33,7 @@ def settingEnables(device, navigator, NavInsID, NavIns):
             NavInsID.BOTH_CLICK
         ], screen_change_before_first_instruction=False)
         
-    elif device.startswith('stax'):
+    elif device.type == DeviceType.STAX:
         navigator([
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavIns(NavInsID.TOUCH, (200, 113)),
@@ -40,7 +41,7 @@ def settingEnables(device, navigator, NavInsID, NavIns):
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
             NavInsID.WAIT_FOR_HOME_SCREEN
         ], screen_change_before_first_instruction=False)
-    elif device.startswith('flex'):
+    elif device.type == DeviceType.FLEX:
         navigator([
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavIns(NavInsID.TOUCH, (200, 113)),

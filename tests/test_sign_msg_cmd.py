@@ -1,6 +1,7 @@
 import struct
 from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
+from ledgered.devices import Device, DeviceType
 from ragger.navigator import NavInsID
 from utils import ROOT_SCREENSHOT_PATH,check_signature_validity
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
@@ -18,7 +19,7 @@ def toPersonalMessage(msg):
 
 # In this test we send to the device a message to sign and validate it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_message(firmware, backend, navigator, test_name):
+def test_sign_message(device, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
 
@@ -41,7 +42,7 @@ def test_sign_message(firmware, backend, navigator, test_name):
     # It will yield the result when the navigation is done
     with client.sign_message(path=path, data=message_bytes):
         # Validate the on-screen request by performing the navigation appropriate for this device
-        if firmware.device.startswith("nano"):
+        if device.is_nano:
             # check that the message hash computed on device is the same as the
             # calculated one (check only the first displayed digits)
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
@@ -72,7 +73,7 @@ def test_sign_message(firmware, backend, navigator, test_name):
 
 # In this test we send to the device a message to sign and cancel it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_message_cancel(firmware, backend, navigator, test_name):
+def test_sign_message_cancel(device, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
 
@@ -85,7 +86,7 @@ def test_sign_message_cancel(firmware, backend, navigator, test_name):
     # Disable raising when trying to unpack an error APDU
     backend.raise_policy = RaisePolicy.RAISE_NOTHING
 
-    if firmware.device.startswith("nano"):
+    if device.is_nano:
 
         # Send the sign device instruction.
         # As it requires on-screen validation, the function is asynchronous.
@@ -148,7 +149,7 @@ def test_sign_message_cancel(firmware, backend, navigator, test_name):
             assert len(response.data) == 0
 
 # In this test we generated some random message for the device to sign and validate it on screen.
-def test_sign_random_message(firmware, backend, navigator, test_name):
+def test_sign_random_message(device, backend, navigator, test_name):
     messages = [
         "psst ouch although oof industry until phew",
         "personify trifling lest brr judgementally phew daintily healthily",
@@ -203,7 +204,7 @@ def test_sign_random_message(firmware, backend, navigator, test_name):
 
     for i, msg in enumerate(messages):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and firmware.device.startswith("stax"):
+        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX):
             break
 
         message_encoded = msg.encode()
@@ -221,7 +222,7 @@ def test_sign_random_message(firmware, backend, navigator, test_name):
         # It will yield the result when the navigation is done
         with client.sign_message(path=path, data=message_bytes):
             # Validate the on-screen request by performing the navigation appropriate for this device
-            if firmware.device.startswith("nano"):
+            if device.is_nano:
                 # check that the message hash computed on device is the same as the
                 # calculated one (check only the first displayed digits)
                 navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
