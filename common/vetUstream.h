@@ -40,14 +40,35 @@ typedef enum rlpTxField_e {
     TX_RLP_DONE
 } rlpTxField_e;
 
+typedef enum rlpVIP251TxField_e {
+    VIP251_RLP_NONE = 0,
+    VIP251_RLP_CONTENT,
+    VIP251_RLP_CHAINTAG,
+    VIP251_RLP_BLOCKREF,
+    VIP251_RLP_EXPIRATION,
+    VIP251_RLP_CLAUSES,
+    VIP251_RLP_MAXPRIORITYFEEPERGAS,
+    VIP251_RLP_MAXFEEPERGAS,
+    VIP251_RLP_GAS,
+    VIP251_RLP_DEPENDSON,
+    VIP251_RLP_NONCE,
+    VIP251_RLP_RESERVED,
+    VIP251_RLP_DONE
+} rlpVIP251TxField_e;
+
+typedef enum rlpVIP252TxField_e {
+    LEGACY = 0,
+    VIP251 = 0x51
+} rlpVIP252TxField_e;
 typedef struct txContent_t {
     txInt256_t gaspricecoef;
     txInt256_t gas;
+    txInt256_t maxFeePerGas;
     clausesContent_t *clauses;
 } txContent_t;
 
 typedef struct txContext_t {
-    rlpTxField_e currentField;
+    uint8_t currentField;
     cx_blake2b_t *blake2b;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
@@ -60,6 +81,7 @@ typedef struct txContext_t {
     uint8_t *workBuffer;
     uint32_t commandLength;
     txContent_t *content;
+    uint8_t txType;
     void *extra;
 } txContext_t;
 
