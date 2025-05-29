@@ -35,7 +35,10 @@ def test_sign_galattica_tx_short_tx(device:Device, backend, navigator, test_name
                                                       ROOT_SCREENSHOT_PATH,
                                                       test_name)
         else:
-            navigator.navigate([
+            
+            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                        test_name,
+                                        [
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_TAP,
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
