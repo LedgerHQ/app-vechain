@@ -443,17 +443,8 @@ static void processMaxFeePerGasField(txContext_t *context) {
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, context->content->maxFeePerGas.value + context->currentFieldPos, copySize);
     }
-    if (context->currentFieldPos == context->currentFieldLength)
-    {
-
-        context->currentField++;
-        context->processingField = false;
-    }
-}
-
-static void processGasField(txContext_t *context) {
     if (context->currentFieldPos == context->currentFieldLength) {
-        context->content->gas.length = context->currentFieldLength;
+        context->content->maxFeePerGas.length = context->currentFieldLength;
         context->currentField++;
         context->processingField = false;
     }
@@ -513,47 +504,36 @@ static parserStatus_e processVIP251TxInternal(txContext_t *context, clausesConte
         }
         switch (context->currentField) {
             case VIP251_RLP_CONTENT:
-                PRINTF("content: %.*H\n", context->commandLength, context->workBuffer);
                 processContent(context);
                 break;
             case VIP251_RLP_CHAINTAG:
-                PRINTF("chaintag: %.*H\n", context->commandLength, context->workBuffer);
                 processChainTagField(context);
                 break;
             case VIP251_RLP_BLOCKREF:
-                PRINTF("blockref: %.*H\n", context->commandLength, context->workBuffer);
                 processBlockRefField(context);
                 break;
             case VIP251_RLP_EXPIRATION:
-                PRINTF("expiration: %.*H\n", context->commandLength, context->workBuffer);
                 processExpirationField(context);
                 break;
             case VIP251_RLP_CLAUSES:
-                PRINTF("clauses: %.*H\n", context->commandLength, context->workBuffer);
                 processClausesField(context, clausesContext, clauseContext);
                 break;
             case VIP251_RLP_MAXPRIORITYFEEPERGAS:
-                PRINTF("maxPriorityFeePerGas: %.*H\n", context->commandLength, context->workBuffer);
                 processMaxPriorityFeePerGasField(context);
                 break;
             case VIP251_RLP_MAXFEEPERGAS:
-                PRINTF("maxFeePerGas: %.*H\n", context->commandLength, context->workBuffer);
                 processMaxFeePerGasField(context);
                 break;
             case VIP251_RLP_GAS:
-                PRINTF("gas: %.*H\n", context->commandLength, context->workBuffer);
                 processGasField(context);
                 break;
             case VIP251_RLP_DEPENDSON:
-                PRINTF("dependsOn: %.*H\n", context->commandLength, context->workBuffer);
                 processDependsOnField(context);
                 break;
             case VIP251_RLP_NONCE:
-                PRINTF("nonce: %.*H\n", context->commandLength, context->workBuffer);
                 processNonceField(context);
                 break;
             case VIP251_RLP_RESERVED:
-                PRINTF("reserved: %.*H\n", context->commandLength, context->workBuffer);
                 processReservedField(context);
                 break;
             default:

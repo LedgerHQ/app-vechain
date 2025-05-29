@@ -1198,7 +1198,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
         (uint8_t *)fullAmount);
     if (displayContext.txFullContext.txContext.txType == VIP251) {
         maxFeeVIP251ToDisplayString(
-            &tmpContent.txContent.gaspricecoef,
+            &tmpContent.txContent.maxFeePerGas,
             &tmpContent.txContent.gas,
             &displayContext.feeComputationContext,
             (uint8_t *)maxFee);
