@@ -13,7 +13,7 @@ path: str = "m/44'/818'/0'/0/0"
 # In this test we send to the device a transaction to sign and validate it on screen
 # The transaction is short and will be sent in one chunk
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_galattica_tx_short_tx(device:Device, backend, navigator, test_name):
+def test_sign_galactica_tx_short_tx(device:Device, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
     logger = get_default_logger()
