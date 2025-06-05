@@ -19,8 +19,9 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
 include $(BOLOS_SDK)/Makefile.defines
-
+endif
 APP_LOAD_PARAMS  = --curve secp256k1
 
 VARIANT_PARAM = COIN
@@ -31,23 +32,19 @@ endif
 
 ifeq ($(COIN),vechain)
     ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-        APP_LOAD_PARAMS += --appFlags 0x200
-        APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
-        APPNAME = "VeChain"
-        DEFINES += APPNAME=\"$(APPNAME)\"
-
-    else
-        APP_LOAD_PARAMS += --appFlags 0x000
+        HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
     endif
+    APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
+    APPNAME = "VeChain"
+    DEFINES += APPNAME=\"$(APPNAME)\"
 else ifeq ($(COIN),vechain_recovery)
     ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-        APP_LOAD_PARAMS += --appFlags 0x240
-        APP_LOAD_PARAMS += --path "44'/60'" --path "44'/1'"
-        APPNAME = "VeChain Recovery"
-        DEFINES += HAVE_RECOVERY=1
-    else
-        APP_LOAD_PARAMS += --appFlags 0x000
+        HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
+        HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
     endif
+    APP_LOAD_PARAMS += --path "44'/60'" --path "44'/1'"
+    APPNAME = "VeChain Recovery"
+    DEFINES += HAVE_RECOVERY=1
 endif
 
 APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
@@ -74,7 +71,10 @@ DEFINES += APPVERSION=\"$(APPVERSION)\"
 DEFINES += MAJOR_VERSION=$(APPVERSION_M) MINOR_VERSION=$(APPVERSION_N) PATCH_VERSION=$(APPVERSION_P)
 DEFINES += OS_IO_SEPROXYHAL
 DEFINES += HAVE_SPRINTF HAVE_SNPRINTF_FORMAT_U
-DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
+DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_HID_EP_LENGTH=64 HAVE_USB_APDU
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
+    DEFINES += IO_USB_MAX_ENDPOINTS=6 NOT_STANDARD_APP
+endif
 DEFINES += USB_SEGMENT_SIZE=64
 DEFINES += BLE_SEGMENT_SIZE=32
 
@@ -126,8 +126,9 @@ CC      := $(CLANGPATH)clang
 AS      := $(GCCPATH)arm-none-eabi-gcc
 LD      := $(GCCPATH)arm-none-eabi-gcc
 LDLIBS  += -lm -lgcc -lc
-
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
 include $(BOLOS_SDK)/Makefile.glyphs
+endif
 
 APP_SOURCE_PATH += src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
@@ -143,7 +144,7 @@ endif
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
     SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
 endif
-
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
 load: all
 	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
@@ -159,3 +160,8 @@ dep/%.d: %.c Makefile
 
 listvariants:
 	@echo VARIANTS COIN vechain vechain_recovery
+endif
+
+ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
+include $(BOLOS_SDK)/Makefile.standard_app
+endif

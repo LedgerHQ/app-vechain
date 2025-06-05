@@ -34,7 +34,9 @@
 #include "ui_nbgl.h"
 
 const internalStorage_t N_storage_real;
+#ifdef NOT_STANDARD_APP
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
+#endif
 
 uint32_t set_result_get_publicKey(void);
 
@@ -142,8 +144,10 @@ bagl_element_t tmp_element;
 #endif
 
 #include "ux.h"
+#ifdef NOT_STANDARD_APP
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
+#endif
 
 // display stepped screens
 unsigned int ux_step;
