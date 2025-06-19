@@ -25,27 +25,17 @@ endif
 APP_LOAD_PARAMS  = --curve secp256k1
 
 VARIANT_PARAM = COIN
-VARIANT_VALUES = vechain vechain_recovery
+VARIANT_VALUES = vechain
 ifndef COIN
     COIN=vechain
 endif
 
-ifeq ($(COIN),vechain)
-    ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-        HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
-    endif
-    APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
-    APPNAME = "VeChain"
-    DEFINES += APPNAME=\"$(APPNAME)\"
-else ifeq ($(COIN),vechain_recovery)
-    ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-        HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
-        HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
-    endif
-    APP_LOAD_PARAMS += --path "44'/60'" --path "44'/1'"
-    APPNAME = "VeChain Recovery"
-    DEFINES += HAVE_RECOVERY=1
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+    HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
 endif
+APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
+APPNAME = "VeChain"
+DEFINES += APPNAME=\"$(APPNAME)\"
 
 APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
@@ -159,7 +149,7 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS COIN vechain vechain_recovery
+	@echo VARIANTS COIN vechain
 endif
 
 ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
