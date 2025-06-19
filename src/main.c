@@ -1092,9 +1092,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
     UNUSED(tx);
     uint8_t tx_type;
     parserStatus_e txResult;
-    //uint256_t gasPriceCoef, gas, baseGasPrice, maxGasCoef, uint256a, uint256b;
     uint32_t i;
-    //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = (uint8_t *)TICKER_VET;
 
@@ -1678,7 +1676,6 @@ void sample_main(void) {
                 default:
                     // Internal error
                     sw = e;
-                    //sw = 0x6800 | (e & 0x7FF);
                     break;
                 }
                 // Unexpected exception => report
