@@ -404,6 +404,10 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
 
 static void processMaxPriorityFeePerGasField(txContext_t *context)
 {
+    if (context == NULL) {
+        PRINTF("Invalid context for VIP251_RLP_MAXPRIORITYFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for VIP251_RLP_MAXPRIORITYFEEPERGAS\n");
         THROW(EXCEPTION);
@@ -427,6 +431,10 @@ static void processMaxPriorityFeePerGasField(txContext_t *context)
 }
 
 static void processMaxFeePerGasField(txContext_t *context) {
+    if (context == NULL) {
+        PRINTF("Invalid context for VIP251_RLP_MAXFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for VIP251_RLP_MAXFEEPERGAS\n");
         THROW(EXCEPTION);
