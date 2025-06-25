@@ -1,7 +1,9 @@
+from operator import is_
 import struct
 from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator import NavInsID
+from ledgered.devices import Device, DeviceType
 from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
@@ -21,7 +23,7 @@ path: str = "m/44'/818'/0'/0/0"
 
 # In this test we send to the device a certificate to sign and validate it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_certificate(firmware, backend, navigator, test_name):
+def test_sign_certificate(device:Device, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
 
@@ -47,7 +49,7 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
     with client.sign_certificate(path=path, data=message_bytes):
 
         # Validate the on-screen request by performing the navigation appropriate for this device
-        if firmware.device.startswith("nano"):
+        if device.is_nano:
             # check that the certificate hash computed on device is the same as the
             # reference one (check only the first displayed digits)
             navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
@@ -79,7 +81,7 @@ def test_sign_certificate(firmware, backend, navigator, test_name):
 
 # In this test we send to the device a certificate to sign and cancel it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_certificate_cancel(firmware, backend, navigator, test_name):
+def test_sign_certificate_cancel(device:Device, backend, navigator, test_name):
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
 
@@ -98,7 +100,7 @@ def test_sign_certificate_cancel(firmware, backend, navigator, test_name):
     # Disable raising when trying to unpack an error APDU
     backend.raise_policy = RaisePolicy.RAISE_NOTHING
 
-    if firmware.device.startswith("nano"):
+    if device.is_nano:
         # Send the sign device instruction.
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
@@ -169,7 +171,7 @@ def test_sign_certificate_cancel(firmware, backend, navigator, test_name):
             assert len(response.data) == 0
 
 # In this test we generated some random certificate for the device to sign and validate it on screen.
-def test_sign_random_certificate(firmware, backend, navigator, test_name):
+def test_sign_random_certificate(device:Device, backend, navigator, test_name):
     certificates = [
         '{"domain":"oblong-nephew.name","payload":{"content":"pressurise once opossum oof","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}', 
@@ -200,7 +202,7 @@ def test_sign_random_certificate(firmware, backend, navigator, test_name):
 
     for i, cert in enumerate(certificates):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and firmware.device.startswith("stax"):
+        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX):
             break
 
         message_encoded = cert.encode()
@@ -219,7 +221,7 @@ def test_sign_random_certificate(firmware, backend, navigator, test_name):
         # It will yield the result when the navigation is done
         with client.sign_certificate(path=path, data=message_bytes):
             # Validate the on-screen request by performing the navigation appropriate for this device
-            if firmware.device.startswith("nano"):
+            if device.is_nano:
                 # check that the certificate hash computed on device is the same as the
                 # reference one (check only the first displayed digits)
                 navigator.navigate_until_text(NavInsID.RIGHT_CLICK,

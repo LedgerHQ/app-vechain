@@ -34,7 +34,9 @@
 #include "ui_nbgl.h"
 
 const internalStorage_t N_storage_real;
+#ifdef NOT_STANDARD_APP
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
+#endif
 
 uint32_t set_result_get_publicKey(void);
 
@@ -142,8 +144,10 @@ bagl_element_t tmp_element;
 #endif
 
 #include "ux.h"
+#ifdef NOT_STANDARD_APP
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
+#endif
 
 // display stepped screens
 unsigned int ux_step;
@@ -282,7 +286,6 @@ void settings_submenu_selector(unsigned int idx) {
   }
 }
 
-//////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
     ux_idle_flow_1_step,
     pnn,
@@ -1065,10 +1068,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
                 volatile unsigned int tx[static 1])
 {
     UNUSED(tx);
+    uint8_t tx_type;
     parserStatus_e txResult;
-    //uint256_t gasPriceCoef, gas, baseGasPrice, maxGasCoef, uint256a, uint256b;
     uint32_t i;
-    //uint8_t address[41];
     uint8_t decimals = DECIMALS_VET;
     uint8_t *ticker = (uint8_t *)TICKER_VET;
 
@@ -1083,6 +1085,18 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
                &displayContext.txFullContext.clausesContext, &clausesContent,
                &displayContext.txFullContext.clauseContext, &clauseContent,
                &blake2b, NULL);
+
+        // VIP252: TransactionType might be present before the TransactionPayload.
+        tx_type = workBuffer[0];
+        if (tx_type == VIP251) {
+            PRINTF("VIP251 transaction type %d\n", sizeof(tx_type));
+            CX_ASSERT(cx_hash_no_throw((cx_hash_t *)&blake2b, 0, &tx_type, sizeof(tx_type), NULL, 0));
+            displayContext.txFullContext.txContext.txType = tx_type;
+            workBuffer++;
+            dataLength--;
+        } else {
+            displayContext.txFullContext.txContext.txType = LEGACY;
+        }
     } else if (p1 != P1_MORE) {
         THROW(HW_INCORRECT_P1_P2);
     }
@@ -1162,13 +1176,19 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t workBuffer[static 255],
         ticker,
         decimals,
         (uint8_t *)fullAmount);
-
-    // Compute maximum fee
-    maxFeeToDisplayString(
-        &tmpContent.txContent.gaspricecoef,
-        &tmpContent.txContent.gas,
-        &displayContext.feeComputationContext,
-        (uint8_t *)maxFee);
+    if (displayContext.txFullContext.txContext.txType == VIP251) {
+        maxFeeVIP251ToDisplayString(
+            &tmpContent.txContent.maxFeePerGas,
+            &tmpContent.txContent.gas,
+            &displayContext.feeComputationContext,
+            (uint8_t *)maxFee);
+    } else {
+        maxFeeToDisplayString(
+            &tmpContent.txContent.gaspricecoef,
+            &tmpContent.txContent.gas,
+            &displayContext.feeComputationContext,
+            (uint8_t *)maxFee);
+    }
 
 #ifdef HAVE_BAGL
     if(G_ux.stack_count == 0) {
@@ -1634,7 +1654,6 @@ void sample_main(void) {
                 default:
                     // Internal error
                     sw = e;
-                    //sw = 0x6800 | (e & 0x7FF);
                     break;
                 }
                 // Unexpected exception => report

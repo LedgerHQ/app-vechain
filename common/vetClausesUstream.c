@@ -170,6 +170,7 @@ parserStatus_e processClauses(clausesContext_t *context,
             result = processClausesInternal(context, clauseContext);
         }
         CATCH_OTHER(e) {
+            (void)e;
             result = USTREAM_FAULT;
         }
         FINALLY {

@@ -223,6 +223,7 @@ parserStatus_e processClause(clauseContext_t *context, uint8_t *buffer,
             result = processClauseInternal(context);
         }
         CATCH_OTHER(e) {
+            (void)e;
             result = USTREAM_FAULT;
         }
         FINALLY {

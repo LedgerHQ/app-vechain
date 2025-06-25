@@ -29,9 +29,11 @@
 #include "vetUtils.h"
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
-    if (*buffer <= 0x7f) {
-    } else if (*buffer <= 0xb7) {
-    } else if (*buffer <= 0xbf) {
+    if (*buffer <= 0xb7) {
+        *valid = true;
+        return true;
+    } 
+    if (*buffer <= 0xbf) {
         if (bufferLength < (1 + (*buffer - 0xb7))) {
             return false;
         }
@@ -39,15 +41,19 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
             *valid = false; // arbitrary 32 bits length limitation
             return true;
         }
-    } else if (*buffer <= 0xf7) {
-    } else {
-        if (bufferLength < (1 + (*buffer - 0xf7))) {
-            return false;
-        }
-        if (*buffer > 0xfb) {
-            *valid = false; // arbitrary 32 bits length limitation
-            return true;
-        }
+        *valid = true;
+        return true;
+    } 
+    if (*buffer <= 0xf7) {
+        *valid = true;
+        return true;
+    } 
+    if (bufferLength < (1 + (*buffer - 0xf7))) {
+        return false;
+    }
+    if (*buffer > 0xfb) {
+        *valid = false; // arbitrary 32 bits length limitation
+        return true;
     }
     *valid = true;
     return true;

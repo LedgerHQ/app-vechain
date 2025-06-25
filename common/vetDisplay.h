@@ -24,7 +24,7 @@
 typedef struct feeComputationContext_t {
     // Constants
     uint256_t baseGasPrice;
-    uint256_t maxGasCoef;
+    uint256_t maxGasCoef; // maxFeePerGas
     // User Inputs
     uint256_t gasPriceCoef;
     uint256_t gas;
@@ -40,4 +40,5 @@ void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target);
 void addressToDisplayString(uint8_t *address, uint8_t *displayString);
 void sendAmountToDisplayString(txInt256_t *sendAmount, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString);
 void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputationContext_t *feeComputationContext, uint8_t *displayString);
-void amountToDisplayString(uint256_t *amount256, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString);
+void maxFeeVIP251ToDisplayString(const txInt256_t *maxFeePerGas, const txInt256_t *gas, feeComputationContext_t *feeComputationContext, uint8_t *displayString);
+void amountToDisplayString(uint256_t * amount256, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString);
