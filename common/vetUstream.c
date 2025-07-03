@@ -402,6 +402,154 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
     }
 }
 
+static void processMaxPriorityFeePerGasField(txContext_t *context)
+{
+    if (context == NULL) {
+        PRINTF("Invalid context for VIP251_RLP_MAXPRIORITYFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for VIP251_RLP_MAXPRIORITYFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldLength > MAX_INT256) {
+        PRINTF("Invalid length for VIP251_RLP_MAXPRIORITYFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            (context->commandLength <
+                     ((context->currentFieldLength - context->currentFieldPos))
+                 ? context->commandLength
+                 : context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, NULL, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
+static void processMaxFeePerGasField(txContext_t *context) {
+    if (context == NULL) {
+        PRINTF("Invalid context for VIP251_RLP_MAXFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for VIP251_RLP_MAXFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldLength > MAX_INT256) {
+        PRINTF("Invalid length for VIP251_RLP_MAXFEEPERGAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            (context->commandLength <
+                     ((context->currentFieldLength - context->currentFieldPos))
+                 ? context->commandLength
+                 : context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, context->content->maxFeePerGas.value + context->currentFieldPos, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->content->maxFeePerGas.length = context->currentFieldLength;
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+static parserStatus_e processVIP251TxInternal(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
+    for (;;) {
+        if (context->currentField == VIP251_RLP_DONE) {
+            return USTREAM_FINISHED;
+        }
+        if (context->commandLength == 0) {
+            return USTREAM_PROCESSING;
+        }
+        if (!context->processingField) {
+            bool canDecode = false;
+            uint32_t offset;
+            while (context->commandLength != 0) {
+                bool valid;
+                // Feed the RLP buffer until the length can be decoded
+                context->rlpBuffer[context->rlpBufferPos++] = readTxByte(context);
+                if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos, &valid)) {
+                    // Can decode now, if valid
+                    if (!valid) {
+                        PRINTF("RLP pre-decode error\n");
+                        return USTREAM_FAULT;
+                    }
+                    canDecode = true;
+                    break;
+                }
+                // Cannot decode yet
+                // Sanity check
+                if (context->rlpBufferPos == sizeof(context->rlpBuffer)) {
+                    PRINTF("RLP pre-decode logic error\n");
+                    return USTREAM_FAULT;
+                }
+            }
+            if (!canDecode) {
+                return USTREAM_PROCESSING;
+            }
+            // Ready to process this field
+            if (!rlpDecodeLength(context->rlpBuffer, context->rlpBufferPos,
+                                 &context->currentFieldLength, &offset,
+                                 &context->currentFieldIsList)) {
+                PRINTF("RLP decode error\n");
+                return USTREAM_FAULT;
+            }
+            if (offset == 0) {
+                // Hack for single byte, self encoded
+                context->workBuffer--;
+                context->commandLength++;
+                context->fieldSingleByte = true;
+            } else {
+                context->fieldSingleByte = false;
+            }
+            context->currentFieldPos = 0;
+            context->rlpBufferPos = 0;
+            context->processingField = true;
+        }
+        switch (context->currentField) {
+            case VIP251_RLP_CONTENT:
+                processContent(context);
+                break;
+            case VIP251_RLP_CHAINTAG:
+                processChainTagField(context);
+                break;
+            case VIP251_RLP_BLOCKREF:
+                processBlockRefField(context);
+                break;
+            case VIP251_RLP_EXPIRATION:
+                processExpirationField(context);
+                break;
+            case VIP251_RLP_CLAUSES:
+                processClausesField(context, clausesContext, clauseContext);
+                break;
+            case VIP251_RLP_MAXPRIORITYFEEPERGAS:
+                processMaxPriorityFeePerGasField(context);
+                break;
+            case VIP251_RLP_MAXFEEPERGAS:
+                processMaxFeePerGasField(context);
+                break;
+            case VIP251_RLP_GAS:
+                processGasField(context);
+                break;
+            case VIP251_RLP_DEPENDSON:
+                processDependsOnField(context);
+                break;
+            case VIP251_RLP_NONCE:
+                processNonceField(context);
+                break;
+            case VIP251_RLP_RESERVED:
+                processReservedField(context);
+                break;
+            default:
+                PRINTF("Invalid RLP decoder context\n");
+                return USTREAM_FAULT;
+        }
+    }
+}
 parserStatus_e processTx(txContext_t *context,
                          clausesContext_t *clausesContext,
                          clauseContext_t *clauseContext,
@@ -412,9 +560,22 @@ parserStatus_e processTx(txContext_t *context,
         TRY {
             context->workBuffer = buffer;
             context->commandLength = length;
-            result = processTxInternal(context, clausesContext, clauseContext);
+            switch (context->txType) {
+                case LEGACY:
+                    PRINTF("Processing legacy tx\n");
+                    result = processTxInternal(context, clausesContext, clauseContext);
+                    break;
+                case VIP251:
+                    PRINTF("Processing VIP251 tx\n");
+                    result = processVIP251TxInternal(context, clausesContext, clauseContext);
+                    break;
+                default:
+                    result = USTREAM_FAULT;
+                    break;
+            }
         }
         CATCH_OTHER(e) {
+            (void)e;
             result = USTREAM_FAULT;
         }
         FINALLY {

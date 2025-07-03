@@ -65,6 +65,15 @@ void maxFeeToDisplayString(txInt256_t *gaspricecoef, txInt256_t *gas, feeComputa
 
     amountToDisplayString(&feeComputationContext->maxFee, TICKER_VTHO, DECIMALS_VTHO, displayString);
 }
+void maxFeeVIP251ToDisplayString(const txInt256_t *maxFeePerGas,
+                                 const txInt256_t *gas,
+                                 feeComputationContext_t *feeComputationContext, 
+                                 uint8_t *displayString) {
+    convertUint256BE(maxFeePerGas->value, maxFeePerGas->length, &feeComputationContext->maxGasCoef);
+    convertUint256BE(gas->value, gas->length, &feeComputationContext->gas);
+    mul256(&feeComputationContext->maxGasCoef, &feeComputationContext->gas, &feeComputationContext->maxFee);
+    amountToDisplayString(&feeComputationContext->maxFee, TICKER_VTHO, DECIMALS_VTHO, displayString);
+}
 
 void amountToDisplayString(uint256_t *amount256, const uint8_t *ticker, uint8_t decimals, uint8_t *displayString) {
     uint8_t decimalAmount[100];
