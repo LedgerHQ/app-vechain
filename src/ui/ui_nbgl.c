@@ -132,7 +132,7 @@ void real_main(int token, uint8_t index)
     switches[MULTI_CLAUSE_SWITCH_ID].token = MULTI_CLAUSE_SWITCH_TOKEN;
     switches[MULTI_CLAUSE_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
     nbgl_useCaseHomeAndSettings(APPNAME,
-                                &C_stax_app_vechain_64px,
+                                &ICON_APP_HOME,
                                 NULL,
                                 INIT_HOME_PAGE,   // init page
                                 &settingContents, // description of settings
@@ -158,7 +158,7 @@ static void ui_display_public_key_done(bool confirm) {
 void ui_display_public_key_flow() {
     nbgl_useCaseAddressReview((const char *)fullAddress,
                               NULL,
-                              &C_stax_app_vechain_64px,
+                              &ICON_APP_HOME,
                               "Verify VeChain address",
                               NULL,
                               ui_display_public_key_done);
@@ -198,7 +198,7 @@ void ui_display_tx(){
     // Start review
     nbgl_useCaseReview(TYPE_TRANSACTION,
                        &pair_list,
-                       &C_stax_app_vechain_64px,
+                       &ICON_APP_HOME,
                        "Review transaction",
                        NULL,
                        "Sign transaction",
@@ -233,7 +233,7 @@ void ui_display_action_sign_tx_flow(){
         }
 
         // Display the warning message and ask the user to confirm
-        nbgl_useCaseChoice(&C_Warning_64px,
+        nbgl_useCaseChoice(&LARGE_WARNING_ICON,
                            warning_msg,
                            NULL,
                            "I understand, confirm", "Cancel",
@@ -279,7 +279,7 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
         msg_cert_pairs[0].item = "Message hash";
         nbgl_useCaseReview(TYPE_MESSAGE,
                            &msg_cert_pair_list,
-                           &C_stax_app_vechain_64px,
+                           &ICON_APP_HOME,
                            "Review message",
                            NULL,
                            "Sign message",
@@ -289,7 +289,7 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type)
         msg_cert_pairs[0].item = "Certificate hash";
         nbgl_useCaseReview(TYPE_OPERATION,
                            &msg_cert_pair_list,
-                           &C_stax_app_vechain_64px,
+                           &ICON_APP_HOME,
                            "Review certificate",
                            NULL,
                            "Sign certificate",

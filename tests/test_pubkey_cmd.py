@@ -34,7 +34,7 @@ def test_get_public_key_confirm(device:Device, backend, navigator, test_name):
                                                             "Approve",
                                                             ROOT_SCREENSHOT_PATH,
                                                             test_name)
-                else: # stax and flex
+                else:
                     instructions = [
                         NavInsID.USE_CASE_REVIEW_TAP,
                         NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,

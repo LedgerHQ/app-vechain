@@ -204,7 +204,7 @@ def test_sign_random_message(device, backend, navigator, test_name):
 
     for i, msg in enumerate(messages):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX):
+        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX or device.type == DeviceType.APEX_P):
             break
 
         message_encoded = msg.encode()

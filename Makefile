@@ -19,9 +19,8 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-include $(BOLOS_SDK)/Makefile.defines
-endif
+include $(BOLOS_SDK)/Makefile.target
+
 APP_LOAD_PARAMS  = --curve secp256k1
 
 VARIANT_PARAM = COIN
@@ -30,7 +29,7 @@ ifndef COIN
     COIN=vechain
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX TARGET_APEX_P))
     HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
 endif
 APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
@@ -44,12 +43,12 @@ APPVERSION_N = 2
 APPVERSION_P = 2
 APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-    ICONNAME=icons/nanos_app_vechain.gif
-else ifeq ($(TARGET_NAME),TARGET_STAX)
+ifeq ($(TARGET_NAME),TARGET_STAX)
     ICONNAME=icons/stax_app_vechain_32px.gif
 else ifeq ($(TARGET_NAME),TARGET_FLEX)
     ICONNAME=icons/flex_app_vechain_40px.gif
+else ifeq ($(TARGET_NAME),TARGET_APEX_P)
+    ICONNAME=icons/apex_app_vechain_32px.png
 else
     ICONNAME=icons/nanox_app_vechain.gif
 endif
@@ -62,9 +61,7 @@ DEFINES += MAJOR_VERSION=$(APPVERSION_M) MINOR_VERSION=$(APPVERSION_N) PATCH_VER
 DEFINES += OS_IO_SEPROXYHAL
 DEFINES += HAVE_SPRINTF HAVE_SNPRINTF_FORMAT_U
 DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_HID_EP_LENGTH=64 HAVE_USB_APDU
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-    DEFINES += IO_USB_MAX_ENDPOINTS=6 NOT_STANDARD_APP
-endif
+
 DEFINES += USB_SEGMENT_SIZE=64
 DEFINES += BLE_SEGMENT_SIZE=32
 
@@ -75,50 +72,38 @@ DEFINES    += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -
 
 DEFINES += UNUSED\(x\)=\(void\)x
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX TARGET_APEX_P))
     DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000 HAVE_BLE_APDU
 endif
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
-else
-    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-endif
+DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
+
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_P))
     DEFINES += NBGL_QRCODE
     SDK_SOURCE_PATH += qrcode
 else
     DEFINES += HAVE_BAGL HAVE_UX_FLOW
-    ifneq ($(TARGET_NAME),TARGET_NANOS)
-        DEFINES += HAVE_GLO096
-        DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
-        DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
-        DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-        DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-        DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-    endif
+    DEFINES += HAVE_GLO096
+    DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
+    DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
+    DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
+    DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
+    DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 endif
 
 DEBUG = 0
 ifneq ($(DEBUG),0)
     DEFINES += HAVE_PRINTF
-    ifeq ($(TARGET_NAME),TARGET_NANOS)
-        DEFINES += PRINTF=screen_printf
-    else
-        DEFINES += PRINTF=mcu_usb_printf
-    endif
+    DEFINES += PRINTF=mcu_usb_printf
 else
-        DEFINES += PRINTF\(...\)=
+    DEFINES += PRINTF\(...\)=
 endif
 
 CC      := $(CLANGPATH)clang
 AS      := $(GCCPATH)arm-none-eabi-gcc
 LD      := $(GCCPATH)arm-none-eabi-gcc
 LDLIBS  += -lm -lgcc -lc
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-include $(BOLOS_SDK)/Makefile.glyphs
-endif
 
 APP_SOURCE_PATH += src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
@@ -127,31 +112,12 @@ APP_SOURCE_PATH  += common
 SDK_SOURCE_PATH  += lib_u2f
 
 
-ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
+ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_P))
 SDK_SOURCE_PATH += lib_ux
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX TARGET_APEX_P))
     SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
 endif
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-load: all
-	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
-load-offline: all
-	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS) --offline
-
-delete:
-	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
-
-include $(BOLOS_SDK)/Makefile.rules
-
-dep/%.d: %.c Makefile
-
-listvariants:
-	@echo VARIANTS COIN vechain
-endif
-
-ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
 include $(BOLOS_SDK)/Makefile.standard_app
-endif

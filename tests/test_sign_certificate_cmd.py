@@ -202,7 +202,7 @@ def test_sign_random_certificate(device:Device, backend, navigator, test_name):
 
     for i, cert in enumerate(certificates):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX):
+        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX or device.type == DeviceType.APEX_P):
             break
 
         message_encoded = cert.encode()
@@ -234,7 +234,6 @@ def test_sign_random_certificate(device:Device, backend, navigator, test_name):
                                                 "Sign",
                                                 screen_change_before_first_instruction=False)
             else:
-                # working with stax and flex 
                 navigator.navigate([
                     NavInsID.USE_CASE_REVIEW_TAP,
                     NavInsID.USE_CASE_REVIEW_TAP,
