@@ -49,3 +49,11 @@ def settingEnables(device: Device, navigator, NavInsID, NavIns):
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
             NavInsID.WAIT_FOR_HOME_SCREEN
         ], screen_change_before_first_instruction=False)
+    elif device.type == DeviceType.APEX_P:
+        navigator([
+            NavInsID.USE_CASE_HOME_SETTINGS,
+            NavIns(NavInsID.TOUCH, (150, 114)),
+            NavIns(NavInsID.TOUCH, (150, 231)),
+            NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
+            NavInsID.WAIT_FOR_HOME_SCREEN
+        ], screen_change_before_first_instruction=False)

@@ -266,7 +266,7 @@ def test_sign_random_simple_tx(device:Device, backend, navigator, test_name):
 
     for i, tx in enumerate(txs):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX):
+        if i>4 and device.touchable:
             break
 
         encoded = bytes.fromhex(tx)

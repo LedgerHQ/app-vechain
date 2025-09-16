@@ -22,7 +22,7 @@ def test_sign_tx_long_tx(device, backend, navigator, test_name):
     settingEnables(device,navigator.navigate,NavInsID,NavIns)
 
     # As it requires on-screen validation, the function is asynchronous 
-    # Instructions are different between nano and stax.
+    # Instructions are different between nano devices and wide screen devices.
     # Both will yield the result when the navigation is done
     if device.is_nano:
         # send the transaction
