@@ -202,7 +202,7 @@ def test_sign_random_certificate(device:Device, backend, navigator, test_name):
 
     for i, cert in enumerate(certificates):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX or device.type == DeviceType.APEX_P):
+        if i>4 and device.touchable:
             break
 
         message_encoded = cert.encode()
