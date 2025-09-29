@@ -18,30 +18,30 @@
 *  limitations under the License.
 ********************************************************************************
 """
-from ledgerblue.comm import getDongle
 import argparse
 import struct
 from decimal import Decimal
+from ledgerblue.comm import getDongle
 
 from ledger import _send_tx_to_ledger
 from vetBase import Transaction, UnsignedTransaction, Clause
 from rlp import encode
-from rlp.utils import decode_hex, encode_hex, str_to_bytes, binascii, struct
+from rlp.utils import decode_hex, encode_hex, struct
 from bip32 import bip32_path_message
 
 
 def parse_bip32_path(path):
     if len(path) == 0:
         return ""
-    result = ""
+    res = ""
     elements = path.split('/')
     for pathElement in elements:
         element = pathElement.split('\'')
         if len(element) == 1:
-            result = result + struct.pack(">I", int(element[0]))
+            res = res + struct.pack(">I", int(element[0]))
         else:
-            result = result + struct.pack(">I", 0x80000000 | int(element[0]))
-    return result
+            res = res + struct.pack(">I", 0x80000000 | int(element[0]))
+    return res
 
 
 def _decimal_to_bytes(i):
@@ -50,7 +50,7 @@ def _decimal_to_bytes(i):
     hex_basic = hex(int(i))[2:]
     hex_basic = hex_basic.replace("L", "")
     if len(hex_basic) % 2 == 1:
-        hex_basic = "0{}".format(hex_basic)
+        hex_basic = f"0{hex_basic}"
     return decode_hex(hex_basic)
 
 

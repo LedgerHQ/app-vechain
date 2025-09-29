@@ -4,11 +4,7 @@
 
 /* type to define if the payload to sign is a personal message
 or a certificate */
-typedef enum transactionType_e 
-{
-    MSG_TRANSACTION,
-    CERTIFICATE_TRANSACTION
-} transactionType_t;
+typedef enum transactionType_e { MSG_TRANSACTION, CERTIFICATE_TRANSACTION } transactionType_t;
 
 /**
  * Show main menu (ready screen, version, about, quit).

@@ -1,5 +1,4 @@
-from operator import is_
-from ledgered.devices import Device, DeviceType
+from ledgered.devices import Device
 from ragger.navigator import NavInsID, NavIns
 from ragger.backend import RaisePolicy, SpeculosBackend
 from utils import ROOT_SCREENSHOT_PATH, check_signature_validity,settingEnables
@@ -244,7 +243,7 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(device:Device, backend, navi
                 assert check_signature_validity(public_key, response, transaction_multi_clauses_and_data[i])
 
 # In this test we send to the device random generated transaction to sign and validate it on screen
-def test_sign_random_simple_tx(device:Device, backend, navigator, test_name):
+def test_sign_random_simple_tx(device:Device, backend, navigator):
     txs = [
         'f8427e888fc9b6cceea74fcc8484df2b87e1e094ca689c9be100f3c33a6cf433c7b2fbf2606d2fed890952fac0b477300000806b84fb69fe498088a8b73b51157004bcc0',
         'f863178814a276444ba8be3784b19aed17e1e094975eaec9b853710fbacc7d73a6528692c790be7b8901236efcbcbb3400008081a8846d9de477a093181b4974bb8419648b78a59cb026fb3ba5f0e7665d385a9acae97e67f2dee28836e16caf7c133448c0',
@@ -293,7 +292,7 @@ def test_sign_random_simple_tx(device:Device, backend, navigator, test_name):
             assert check_signature_validity(public_key, response, encoded)
 
 # In this test we send to the device random generated transaction to sign and validate it on screen
-def test_sign_random_data_tx(device:Device, backend, navigator, test_name):
+def test_sign_random_data_tx(device:Device, backend, navigator):
     txs = [
         'f863038820312dee7d65ae3b84350a0c41e2e194361ea685786b149f9c24441270bd1dacaa77634d89075f610f70ed20000081dd5484e4423593a0a8d00c66645ce492bd96f9ee4413c7456e5505918b519361d03c240b066b8f93883fc812c0aab1ef9ec0',
         'f86581c1880f0cb57503bcedd284f8802e37e2e19412f52ba49f646de3990b103428a71ca7adc2c46c8901a055690d9db8000081dd81bb84e91b5398a0763d0e6145ef2796985ff2c7dbef8d8568565f1a85045e7750f3085ea050f4e988eef7c7bb3754113ac0',
@@ -340,7 +339,7 @@ def test_sign_random_data_tx(device:Device, backend, navigator, test_name):
             assert check_signature_validity(public_key, response, encoded)
 
 # In this test we send to the device random generated transaction to sign and validate it on screen
-def test_sign_random_multi_clause_tx(device:Device, backend, navigator, test_name):
+def test_sign_random_multi_clause_tx(device:Device, backend, navigator):
     txs = [
         'f86681e2880e59815845390282841c65ac49f842e09424b1bbd76f700fae1d736d7c537cc96ec2be7c32890719fd7deea82c000080e0942a9c6ecd335aa760fb99c3c276353094bde34a0389019274b259f6540000808192843913fb3080888f21637f05dab2fac0',
         'f88581cb88e4c6e1417e96d1cf8440db74edf842e094a118111565bf2ee6d2b90e3a55e6f298540d2566890bfafdb9178154000080e0943db9897787c1c25286f20cfba98dc371105d17a78903782dace9d9000000801984af58c954a0ab98a30da49a3f914ccd8f6f448666c35cbdf209f7a8638f98768df878e003ba88f30d157c556de7cec0',

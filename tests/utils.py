@@ -32,7 +32,7 @@ def settingEnables(device: Device, navigator, NavInsID, NavIns):
             NavInsID.RIGHT_CLICK,
             NavInsID.BOTH_CLICK
         ], screen_change_before_first_instruction=False)
-        
+
     elif device.type == DeviceType.STAX:
         navigator([
             NavInsID.USE_CASE_HOME_SETTINGS,

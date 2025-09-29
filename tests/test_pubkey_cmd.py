@@ -1,10 +1,11 @@
-from ledgered.devices import Device, DeviceType
+from ledgered.devices import Device
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
 from ragger.backend import SpeculosBackend, RaisePolicy
-from ragger.navigator import NavInsID, NavIns
+from ragger.navigator import NavInsID
 from utils import ROOT_SCREENSHOT_PATH
 from vechain_client import VechainClient, unpack_get_public_key_response, Errors
-import ragger as r
+
+
 # In this test we check that the GET_PUBLIC_KEY works in non-confirmation mode
 def test_get_public_key_no_confirm(backend):
     if isinstance(backend, SpeculosBackend):

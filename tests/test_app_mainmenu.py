@@ -1,5 +1,5 @@
-from ledgered.devices import Device, DeviceType
-from ragger.navigator import Navigator, NavInsID, NavIns
+from ledgered.devices import Device
+from ragger.navigator import NavInsID
 from utils import ROOT_SCREENSHOT_PATH
 
 

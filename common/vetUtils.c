@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue
+ *   (c) 2016 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 /**
  * @brief Utilities for an VeChain Hardware Wallet logic
@@ -32,35 +32,38 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     if (*buffer <= 0xb7) {
         *valid = true;
         return true;
-    } 
+    }
     if (*buffer <= 0xbf) {
         if (bufferLength < (1 + (*buffer - 0xb7))) {
             return false;
         }
         if (*buffer > 0xbb) {
-            *valid = false; // arbitrary 32 bits length limitation
+            *valid = false;  // arbitrary 32 bits length limitation
             return true;
         }
         *valid = true;
         return true;
-    } 
+    }
     if (*buffer <= 0xf7) {
         *valid = true;
         return true;
-    } 
+    }
     if (bufferLength < (1 + (*buffer - 0xf7))) {
         return false;
     }
     if (*buffer > 0xfb) {
-        *valid = false; // arbitrary 32 bits length limitation
+        *valid = false;  // arbitrary 32 bits length limitation
         return true;
     }
     *valid = true;
     return true;
 }
 
-bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
-                     uint32_t *fieldLength, uint32_t *offset, bool *list) {
+bool rlpDecodeLength(uint8_t *buffer,
+                     uint32_t bufferLength,
+                     uint32_t *fieldLength,
+                     uint32_t *offset,
+                     bool *list) {
     UNUSED(bufferLength);
     if (*buffer <= 0x7f) {
         *offset = 0;
@@ -74,22 +77,21 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
         *offset = 1 + (*buffer - 0xb7);
         *list = false;
         switch (*buffer) {
-        case 0xb8:
-            *fieldLength = *(buffer + 1);
-            break;
-        case 0xb9:
-            *fieldLength = (*(buffer + 1) << 8) + *(buffer + 2);
-            break;
-        case 0xba:
-            *fieldLength =
-                (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
-            break;
-        case 0xbb:
-            *fieldLength = (*(buffer + 1) << 24) + (*(buffer + 2) << 16) +
-                           (*(buffer + 3) << 8) + *(buffer + 4);
-            break;
-        default:
-            return false; // arbitrary 32 bits length limitation
+            case 0xb8:
+                *fieldLength = *(buffer + 1);
+                break;
+            case 0xb9:
+                *fieldLength = (*(buffer + 1) << 8) + *(buffer + 2);
+                break;
+            case 0xba:
+                *fieldLength = (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
+                break;
+            case 0xbb:
+                *fieldLength = (*(buffer + 1) << 24) + (*(buffer + 2) << 16) +
+                               (*(buffer + 3) << 8) + *(buffer + 4);
+                break;
+            default:
+                return false;  // arbitrary 32 bits length limitation
         }
     } else if (*buffer <= 0xf7) {
         *offset = 1;
@@ -99,22 +101,21 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
         *offset = 1 + (*buffer - 0xf7);
         *list = true;
         switch (*buffer) {
-        case 0xf8:
-            *fieldLength = *(buffer + 1);
-            break;
-        case 0xf9:
-            *fieldLength = (*(buffer + 1) << 8) + *(buffer + 2);
-            break;
-        case 0xfa:
-            *fieldLength =
-                (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
-            break;
-        case 0xfb:
-            *fieldLength = (*(buffer + 1) << 24) + (*(buffer + 2) << 16) +
-                           (*(buffer + 3) << 8) + *(buffer + 4);
-            break;
-        default:
-            return false; // arbitrary 32 bits length limitation
+            case 0xf8:
+                *fieldLength = *(buffer + 1);
+                break;
+            case 0xf9:
+                *fieldLength = (*(buffer + 1) << 8) + *(buffer + 2);
+                break;
+            case 0xfa:
+                *fieldLength = (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
+                break;
+            case 0xfb:
+                *fieldLength = (*(buffer + 1) << 24) + (*(buffer + 2) << 16) +
+                               (*(buffer + 3) << 8) + *(buffer + 4);
+                break;
+            default:
+                return false;  // arbitrary 32 bits length limitation
         }
     }
 
@@ -131,8 +132,7 @@ void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
 
 static const uint8_t HEXDIGITS[] = "0123456789ABCDEF";
 
-static const uint8_t MASK[] = {0x80, 0x40, 0x20, 0x10,
-                               0x08, 0x04, 0x02, 0x01};
+static const uint8_t MASK[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
     unsigned char digit = address[index / 2];
@@ -207,8 +207,11 @@ void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out) {
 
 #endif
 
-bool adjustDecimals(char *src, uint32_t srcLength, char *target,
-                    uint32_t targetLength, uint8_t decimals) {
+bool adjustDecimals(char *src,
+                    uint32_t srcLength,
+                    char *target,
+                    uint32_t targetLength,
+                    uint8_t decimals) {
     uint32_t startOffset;
     uint32_t lastZeroOffset = 0;
     uint32_t offset = 0;
@@ -251,7 +254,7 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
         while (sourceOffset < srcLength) {
             target[offset++] = src[sourceOffset++];
         }
-	target[offset] = '\0';
+        target[offset] = '\0';
     }
     for (uint32_t i = startOffset; i < offset; i++) {
         if (target[i] == '0') {

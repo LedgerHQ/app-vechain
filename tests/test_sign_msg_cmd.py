@@ -1,7 +1,6 @@
 import struct
 from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
-from ledgered.devices import Device, DeviceType
 from ragger.navigator import NavInsID
 from utils import ROOT_SCREENSHOT_PATH,check_signature_validity
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
@@ -55,7 +54,7 @@ def test_sign_message(device, backend, navigator, test_name):
                                             [NavInsID.BOTH_CLICK],
                                             "Sign",
                                             screen_change_before_first_instruction=False)
-        else:            
+        else:
             # check that the message hash computed on device is the same as the
             # reference one (check only the first displayed digits)
             navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name , [
@@ -149,7 +148,7 @@ def test_sign_message_cancel(device, backend, navigator, test_name):
             assert len(response.data) == 0
 
 # In this test we generated some random message for the device to sign and validate it on screen.
-def test_sign_random_message(device, backend, navigator, test_name):
+def test_sign_random_message(device, backend, navigator):
     messages = [
         "psst ouch although oof industry until phew",
         "personify trifling lest brr judgementally phew daintily healthily",
@@ -245,4 +244,3 @@ def test_sign_random_message(device, backend, navigator, test_name):
 
         if isinstance(backend, SpeculosBackend):
             assert check_signature_validity(public_key, response, toPersonalMessage(msg))
-    

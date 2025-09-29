@@ -8,7 +8,7 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 extern const internalStorage_t N_storage_real;
-#define N_storage (*( volatile internalStorage_t *)PIC(&N_storage_real))
+#define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
 void ui_idle(void);
 
@@ -17,7 +17,6 @@ extern volatile char fullAmount[50];
 extern volatile char maxFee[60];
 extern volatile bool dataPresent;
 extern volatile bool multipleClauses;
-
 
 unsigned int io_seproxyhal_touch_settings();
 unsigned int io_seproxyhal_touch_exit();

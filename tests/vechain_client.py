@@ -145,7 +145,7 @@ class VechainClient:
                                     p1= P1.P1_START if i==0 else P2.P2_MORE,
                                     p2= P2.P2_LAST,
                                     data=messages[i])
-            except Exception as e:
+            except Exception:
                 pass
 
         with self._backend.exchange_async(cla=CLA,

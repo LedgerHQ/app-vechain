@@ -1,35 +1,39 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
-*   (c) 2018 Totient Labs
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue
+ *   (c) 2016 Ledger
+ *   (c) 2018 Totient Labs
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "vetUstream.h"
 #include "vetUtils.h"
 
-#define MAX_INT256 32
-#define MAX_INT64 8
-#define MAX_INT32 4
-#define MAX_INT8 1
+#define MAX_INT256  32
+#define MAX_INT64   8
+#define MAX_INT32   4
+#define MAX_INT8    1
 #define MAX_ADDRESS 20
-#define MAX_V 2
+#define MAX_V       2
 
-void initTx(txContext_t *context, txContent_t *content,
-            clausesContext_t *clausesContext, clausesContent_t *clausesContent,
-            clauseContext_t *clauseContext, clauseContent_t *clauseContent,
-            cx_blake2b_t *blake2b, void *extra) {
+void initTx(txContext_t *context,
+            txContent_t *content,
+            clausesContext_t *clausesContext,
+            clausesContent_t *clausesContent,
+            clauseContext_t *clauseContext,
+            clauseContent_t *clauseContent,
+            cx_blake2b_t *blake2b,
+            void *extra) {
     memset(context, 0, sizeof(txContext_t));
     context->blake2b = blake2b;
     context->content = content;
@@ -52,7 +56,7 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)(context->blake2b), 0, &data, 1, NULL, 0));
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *) (context->blake2b), 0, &data, 1, NULL, 0));
     }
     return data;
 }
@@ -70,8 +74,7 @@ void copyTxDataClauses(txContext_t *context,
 }
 
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
-    if (context->commandLength < length)
-    {
+    if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
     }
@@ -79,7 +82,12 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        CX_ASSERT(cx_hash_no_throw((cx_hash_t *)(context->blake2b), 0, context->workBuffer, length, NULL, 0));
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *) (context->blake2b),
+                                   0,
+                                   context->workBuffer,
+                                   length,
+                                   NULL,
+                                   0));
     }
     context->workBuffer += length;
     context->commandLength -= length;
@@ -110,8 +118,7 @@ static void processChainTagField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -133,8 +140,7 @@ static void processBlockRefField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -156,8 +162,7 @@ static void processExpirationField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -168,21 +173,19 @@ static void processExpirationField(txContext_t *context) {
     }
 }
 
-static void processClausesField(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
+static void processClausesField(txContext_t *context,
+                                clausesContext_t *clausesContext,
+                                clauseContext_t *clauseContext) {
     if (!context->currentFieldIsList) {
         PRINTF("Invalid type for TX_RLP_CLAUSES\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
-        copyTxDataClauses(context,
-                          clausesContext,
-                          clauseContext,
-                          copySize);
+        copyTxDataClauses(context, clausesContext, clauseContext, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         context->content->clauses = clausesContext->content;
@@ -202,8 +205,7 @@ static void processGasPriceCoefField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context,
@@ -223,19 +225,15 @@ static void processGasField(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_INT64) {
-        PRINTF("Invalid length for TX_RLP_GAS %d\n",
-               context->currentFieldLength);
+        PRINTF("Invalid length for TX_RLP_GAS %d\n", context->currentFieldLength);
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context,
-                   context->content->gas.value + context->currentFieldPos,
-                   copySize);
+        copyTxData(context, context->content->gas.value + context->currentFieldPos, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         context->content->gas.length = context->currentFieldLength;
@@ -255,8 +253,7 @@ static void processDependsOnField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -278,8 +275,7 @@ static void processNonceField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -297,8 +293,7 @@ static void processReservedField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -309,7 +304,9 @@ static void processReservedField(txContext_t *context) {
     }
 }
 
-static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
+static parserStatus_e processTxInternal(txContext_t *context,
+                                        clausesContext_t *clausesContext,
+                                        clauseContext_t *clauseContext) {
     for (;;) {
         if (context->currentField == TX_RLP_DONE) {
             return USTREAM_FINISHED;
@@ -323,10 +320,8 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
             while (context->commandLength != 0) {
                 bool valid;
                 // Feed the RLP buffer until the length can be decoded
-                context->rlpBuffer[context->rlpBufferPos++] =
-                    readTxByte(context);
-                if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos,
-                                 &valid)) {
+                context->rlpBuffer[context->rlpBufferPos++] = readTxByte(context);
+                if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos, &valid)) {
                     // Can decode now, if valid
                     if (!valid) {
                         PRINTF("RLP pre-decode error\n");
@@ -346,8 +341,10 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
                 return USTREAM_PROCESSING;
             }
             // Ready to process this field
-            if (!rlpDecodeLength(context->rlpBuffer, context->rlpBufferPos,
-                                 &context->currentFieldLength, &offset,
+            if (!rlpDecodeLength(context->rlpBuffer,
+                                 context->rlpBufferPos,
+                                 &context->currentFieldLength,
+                                 &offset,
                                  &context->currentFieldIsList)) {
                 PRINTF("RLP decode error\n");
                 return USTREAM_FAULT;
@@ -363,7 +360,7 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
             context->currentFieldPos = 0;
             context->rlpBufferPos = 0;
             context->processingField = true;
-        }   
+        }
         switch (context->currentField) {
             case TX_RLP_CONTENT:
                 processContent(context);
@@ -402,8 +399,7 @@ static parserStatus_e processTxInternal(txContext_t *context, clausesContext_t *
     }
 }
 
-static void processMaxPriorityFeePerGasField(txContext_t *context)
-{
+static void processMaxPriorityFeePerGasField(txContext_t *context) {
     if (context == NULL) {
         PRINTF("Invalid context for VIP251_RLP_MAXPRIORITYFEEPERGAS\n");
         THROW(EXCEPTION);
@@ -418,8 +414,7 @@ static void processMaxPriorityFeePerGasField(txContext_t *context)
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
@@ -445,11 +440,12 @@ static void processMaxFeePerGasField(txContext_t *context) {
     }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
+            (context->commandLength < ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context, context->content->maxFeePerGas.value + context->currentFieldPos, copySize);
+        copyTxData(context,
+                   context->content->maxFeePerGas.value + context->currentFieldPos,
+                   copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         context->content->maxFeePerGas.length = context->currentFieldLength;
@@ -457,7 +453,9 @@ static void processMaxFeePerGasField(txContext_t *context) {
         context->processingField = false;
     }
 }
-static parserStatus_e processVIP251TxInternal(txContext_t *context, clausesContext_t *clausesContext, clauseContext_t *clauseContext) {
+static parserStatus_e processVIP251TxInternal(txContext_t *context,
+                                              clausesContext_t *clausesContext,
+                                              clauseContext_t *clauseContext) {
     for (;;) {
         if (context->currentField == VIP251_RLP_DONE) {
             return USTREAM_FINISHED;
@@ -492,8 +490,10 @@ static parserStatus_e processVIP251TxInternal(txContext_t *context, clausesConte
                 return USTREAM_PROCESSING;
             }
             // Ready to process this field
-            if (!rlpDecodeLength(context->rlpBuffer, context->rlpBufferPos,
-                                 &context->currentFieldLength, &offset,
+            if (!rlpDecodeLength(context->rlpBuffer,
+                                 context->rlpBufferPos,
+                                 &context->currentFieldLength,
+                                 &offset,
                                  &context->currentFieldIsList)) {
                 PRINTF("RLP decode error\n");
                 return USTREAM_FAULT;
@@ -575,7 +575,7 @@ parserStatus_e processTx(txContext_t *context,
             }
         }
         CATCH_OTHER(e) {
-            (void)e;
+            (void) e;
             result = USTREAM_FAULT;
         }
         FINALLY {

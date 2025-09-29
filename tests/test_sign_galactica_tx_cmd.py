@@ -1,10 +1,9 @@
-from operator import is_
-from ledgered.devices import Device, DeviceType
-from ragger.navigator import NavInsID, NavIns
-from ragger.backend import RaisePolicy, SpeculosBackend
+from ledgered.devices import Device
+from ragger.navigator import NavInsID
+from ragger.backend import SpeculosBackend
 from ragger.logger import get_default_logger
-from utils import ROOT_SCREENSHOT_PATH, check_signature_validity,settingEnables
-from vechain_client import VechainClient, Errors, unpack_get_public_key_response
+from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
+from vechain_client import VechainClient, unpack_get_public_key_response
 
 transaction : bytes = bytes.fromhex("51f83e2788014c77760591ab6864e0df9475a6a29db80bd8a64d3d4b19b29d09bb2245a97f880de0b6b3a7640000808086095e27d758008252088084e788d52ec0")
 # The path used for all tests
@@ -35,7 +34,7 @@ def test_sign_galactica_tx_short_tx(device:Device, backend, navigator, test_name
                                                       ROOT_SCREENSHOT_PATH,
                                                       test_name)
         else:
-            
+
             navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                         test_name,
                                         [
@@ -49,6 +48,6 @@ def test_sign_galactica_tx_short_tx(device:Device, backend, navigator, test_name
     response = client.get_async_response().data
     logger.info(f"Response: {response.hex()}")
     logger.info(f"Check: {check_signature_validity(public_key, response, transaction)}")
-    
+
     if isinstance(backend, SpeculosBackend):
         assert check_signature_validity(public_key, response, transaction)

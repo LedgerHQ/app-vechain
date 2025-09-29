@@ -1,20 +1,20 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
-*   (c) 2018 Totient Labs
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue
+ *   (c) 2016 Ledger
+ *   (c) 2018 Totient Labs
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -56,10 +56,7 @@ typedef enum rlpVIP251TxField_e {
     VIP251_RLP_DONE
 } rlpVIP251TxField_e;
 
-typedef enum rlpVIP252TxField_e {
-    LEGACY = 0,
-    VIP251 = 0x51
-} rlpVIP252TxField_e;
+typedef enum rlpVIP252TxField_e { LEGACY = 0, VIP251 = 0x51 } rlpVIP252TxField_e;
 typedef struct txContent_t {
     txInt256_t gaspricecoef;
     txInt256_t gas;
@@ -85,12 +82,16 @@ typedef struct txContext_t {
     void *extra;
 } txContext_t;
 
-void initTx(txContext_t *context, txContent_t *content,
-            clausesContext_t *clausesContext, clausesContent_t *clausesContent,
-            clauseContext_t *clauseContext, clauseContent_t *clauseContent,
-            cx_blake2b_t *blake2b, void *extra);
+void initTx(txContext_t *context,
+            txContent_t *content,
+            clausesContext_t *clausesContext,
+            clausesContent_t *clausesContent,
+            clauseContext_t *clauseContext,
+            clauseContent_t *clauseContent,
+            cx_blake2b_t *blake2b,
+            void *extra);
 parserStatus_e processTx(txContext_t *context,
-                         clausesContext_t *clausesContext, 
+                         clausesContext_t *clausesContext,
                          clauseContext_t *clauseContext,
                          uint8_t *buffer,
                          uint32_t length);

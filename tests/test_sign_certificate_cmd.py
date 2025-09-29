@@ -1,9 +1,8 @@
-from operator import is_
 import struct
 from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator import NavInsID
-from ledgered.devices import Device, DeviceType
+from ledgered.devices import Device
 from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
@@ -106,7 +105,7 @@ def test_sign_certificate_cancel(device:Device, backend, navigator, test_name):
         # It will yield the result when the navigation is done
         with client.sign_certificate(path=path, data=message_bytes):
             # check that the certificate hash computed on device is the same as the
-            # reference one (check only the first disapled digitis)
+            # reference one (check only the first disabled digits)
             navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
                                             [NavInsID.BOTH_CLICK],
                                             str(hash_part_to_check).upper(),
@@ -171,10 +170,10 @@ def test_sign_certificate_cancel(device:Device, backend, navigator, test_name):
             assert len(response.data) == 0
 
 # In this test we generated some random certificate for the device to sign and validate it on screen.
-def test_sign_random_certificate(device:Device, backend, navigator, test_name):
+def test_sign_random_certificate(device:Device, backend, navigator):
     certificates = [
         '{"domain":"oblong-nephew.name","payload":{"content":"pressurise once opossum oof","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}', 
+        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"jovial-head.com","payload":{"content":"pish before optimal dramatic scrummage","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"quirky-ethics.com","payload":{"content":"self-assured ack after usually","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"tinted-toothpaste.biz","payload":{"content":"approve utterly amid forbid instead","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
