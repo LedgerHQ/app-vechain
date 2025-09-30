@@ -13,6 +13,7 @@
  *  limitations under the License.
  ********************************************************************************/
 
+#include <string.h>
 #include "os.h"
 #include "vetDisplay.h"
 #include "vetUtils.h"
@@ -20,14 +21,6 @@
 static const uint8_t BASE_GAS_PRICE[] = {0x09, 0x18, 0x4e, 0x72, 0xa0, 0x00};
 static const uint8_t MAX_GAS_COEF[] = {0xFF};
 static const uint8_t TICKER_VTHO[] = "VTHO ";
-
-uint32_t getStringLength(const uint8_t *string) {
-    uint32_t i = 0;
-    while (string[i]) {
-        i++;
-    }
-    return i;
-}
 
 void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target) {
     uint8_t tmp[32];
@@ -108,13 +101,13 @@ void amountToDisplayString(uint256_t *amount256,
     uint8_t adjustedAmount[100];
     tostring256(amount256, 10, (char *) decimalAmount, 100);
     adjustDecimals((char *) decimalAmount,
-                   getStringLength(decimalAmount),
+                   strlen((const char *) decimalAmount),
                    (char *) adjustedAmount,
                    100,
                    decimals);
 
-    uint32_t tickerLength = getStringLength(ticker);
-    uint32_t adjustedAmountLength = getStringLength(adjustedAmount);
+    uint32_t tickerLength = strlen((const char *) ticker);
+    uint32_t adjustedAmountLength = strlen((const char *) adjustedAmount);
     memmove(displayString, ticker, tickerLength);
     memmove(displayString + tickerLength, adjustedAmount, adjustedAmountLength);
     displayString[tickerLength + adjustedAmountLength] = '\0';

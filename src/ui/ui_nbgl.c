@@ -24,6 +24,8 @@
 
 #include "ui_nbgl.h"
 #include "main.h"
+#include "main_std_app.h"
+
 enum {
     BACK_TOKEN = 0,
     NEXT_TOKEN,
@@ -41,10 +43,6 @@ enum {
     BLIND_WARNING_TOKEN,
     TIP_BOX_TOKEN
 };
-void app_quit(void) {
-    // exit app here
-    os_sched_exit(-1);
-}
 
 //  -----------------------------------------------------------
 //  --------------------- SETTINGS MENU -----------------------
@@ -101,20 +99,23 @@ static void controls_callback(int token, uint8_t index, int page) {
 }
 
 // home page definition
-void real_main(int token, uint8_t index) {
-    UNUSED(token);
-    UNUSED(index);
+void ui_menu_main(void) {
     switches[CONTRACT_DATA_SWITCH_ID].initState = (nbgl_state_t) N_storage.dataAllowed;
     switches[CONTRACT_DATA_SWITCH_ID].text = "Contract data";
     switches[CONTRACT_DATA_SWITCH_ID].subText = "Allow contract data\nin transactions";
     switches[CONTRACT_DATA_SWITCH_ID].token = CONTRACT_DATA_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[CONTRACT_DATA_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 
     switches[MULTI_CLAUSE_SWITCH_ID].initState = (nbgl_state_t) N_storage.multiClauseAllowed;
     switches[MULTI_CLAUSE_SWITCH_ID].text = "Multi-clauses";
     switches[MULTI_CLAUSE_SWITCH_ID].subText = "Allow multi-clauses\nin transactions";
     switches[MULTI_CLAUSE_SWITCH_ID].token = MULTI_CLAUSE_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[MULTI_CLAUSE_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
     nbgl_useCaseHomeAndSettings(APPNAME,
                                 &ICON_APP_HOME,
                                 NULL,
@@ -122,7 +123,7 @@ void real_main(int token, uint8_t index) {
                                 &settingContents,  // description of settings
                                 &infoList,         // description of app info
                                 NULL,              // no action button on home screen
-                                app_quit);
+                                app_exit);
 }
 
 //  -----------------------------------------------------------
@@ -272,7 +273,4 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type) {
     }
 }
 
-void ui_menu_main(void) {
-    real_main(0, 0);
-}
 #endif

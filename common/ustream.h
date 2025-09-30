@@ -15,13 +15,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  ********************************************************************************/
+#pragma once
 
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
-
-#ifndef LIB_USTREAM
-#define LIB_USTREAM
 
 typedef enum parserStatus_e { USTREAM_PROCESSING, USTREAM_FINISHED, USTREAM_FAULT } parserStatus_e;
 
@@ -29,5 +27,3 @@ typedef struct txInt256_t {
     uint8_t value[32];
     uint8_t length;
 } txInt256_t;
-
-#endif

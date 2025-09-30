@@ -128,49 +128,6 @@ void getVetAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
     memmove(out, hashAddress + 12, 20);
 }
 
-#ifdef CHECKSUM_1
-
-static const uint8_t HEXDIGITS[] = "0123456789ABCDEF";
-
-static const uint8_t MASK[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
-
-char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
-    unsigned char digit = address[index / 2];
-    if ((index % 2) == 0) {
-        digit = (digit >> 4) & 0x0f;
-    } else {
-        digit = digit & 0x0f;
-    }
-    if (digit < 10) {
-        return HEXDIGITS[digit];
-    } else {
-        unsigned char data = hash[index / 8];
-        if (((data & MASK[index % 8]) != 0) && (digit > 9)) {
-            return HEXDIGITS[digit] /*- 'a' + 'A'*/;
-        } else {
-            return HEXDIGITS[digit];
-        }
-    }
-}
-
-void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
-    uint8_t hashAddress[32];
-    CX_ASSERT(cx_keccak_256_hash(publicKey->W + 1, 64, hashAddress));
-    getVetAddressStringFromBinary(hashAddress + 12, out);
-}
-
-void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out) {
-    uint8_t hashChecksum[32];
-    uint8_t i;
-    CX_ASSERT(cx_keccak_256_hash(address, 20, hashChecksum));
-    for (i = 0; i < 40; i++) {
-        out[i] = convertDigit(address, i, hashChecksum);
-    }
-    out[40] = '\0';
-}
-
-#else
-
 static const uint8_t HEXDIGITS[] = "0123456789abcdef";
 
 void getVetAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out) {
@@ -204,8 +161,6 @@ void getVetAddressStringFromBinary(uint8_t *address, uint8_t *out) {
     }
     out[40] = '\0';
 }
-
-#endif
 
 bool adjustDecimals(char *src,
                     uint32_t srcLength,

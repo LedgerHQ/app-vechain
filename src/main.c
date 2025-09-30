@@ -16,30 +16,30 @@
  *  limitations under the License.
  ********************************************************************************/
 
+#include <string.h>
+#include <stdbool.h>
+#include "offsets.h"
+#include "status_words.h"
 #include "os.h"
+#include "io.h"
 #include "cx.h"
-#include "stdbool.h"
+#include "os_io_seproxyhal.h"
+#include "main_std_app.h"
 #include "vetUstream.h"
 #include "vetUtils.h"
 #include "vetDisplay.h"
 #include "uint256.h"
 #include "tokens.h"
-
-#include "os_io_seproxyhal.h"
-#include <string.h>
-
 #include "ux.h"
-
 #include "main.h"
 #include "ui_nbgl.h"
 
 const internalStorage_t N_storage_real;
-#ifdef NOT_STANDARD_APP
-unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
-#endif
 
 uint32_t set_result_get_publicKey(void);
 
+#define HASH_LENGTH    2
+#define HASH_OFFSET    (HASH_LENGTH * 2 + 3)
 #define MAX_BIP32_PATH 10
 
 #define CLA                       0xE0
@@ -55,13 +55,6 @@ uint32_t set_result_get_publicKey(void);
 #define P1_FIRST                  0x00
 #define P1_MORE                   0x80
 
-#define OFFSET_CLA   0
-#define OFFSET_INS   1
-#define OFFSET_P1    2
-#define OFFSET_P2    3
-#define OFFSET_LC    4
-#define OFFSET_CDATA 5
-
 #define CONFIG_DATA_ENABLED        0x01
 #define CONFIG_MULTICLAUSE_ENABLED 0x01
 
@@ -70,18 +63,8 @@ uint32_t set_result_get_publicKey(void);
 /* Constants related to this dependencies to send apdu codes to app-vechain
     https://github.com/dinn2018/hw-app-vet/blob/master/src/index.ts#L137-L168
 */
-#define HW_SW_TRANSACTION_CANCELLED      0x6985
-#define HW_TECHNICAL_PROBLEM             0x6F00
-#define HW_INCORRECT_DATA                0x6A80
-#define HW_INCORRECT_P1_P2               0x6B00
-#define HW_OK                            0x9000
-#define HW_INVALID_MESSAGE_SIZE          0x6a83
-#define HW_NOT_ENOUGH_MEMORY_SPACE       0x6A84
-#define HW_CLA_NOT_SUPPORTED             0x6E00
-#define HW_INS_NOT_SUPPORTED             0x6D00
-#define HW_SECURITY_STATUS_NOT_SATISFIED 0x6982
-#define ERROR_TYPE_MASK                  0xF000
-#define ERROR_TYPE_HW                    0x6000
+#define ERROR_TYPE_MASK 0xF000
+#define ERROR_TYPE_HW   0x6000
 
 static const uint8_t TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
 static const uint8_t TICKER_VET[] = "VET ";
@@ -136,29 +119,17 @@ volatile char fullAmount[50];
 volatile char maxFee[60];
 volatile bool dataPresent;
 volatile bool multipleClauses;
-volatile bool skipDataWarning;
-volatile bool skipClausesWarning;
 
 #ifdef HAVE_BAGL
 bagl_element_t tmp_element;
 #endif
 
 #include "ux.h"
-#ifdef NOT_STANDARD_APP
-ux_state_t G_ux;
-bolos_ux_params_t G_ux_params;
-#endif
-
-// display stepped screens
-unsigned int ux_step;
-unsigned int ux_step_count;
 
 static const char SIGN_MAGIC[] =
     "\x19"
     "VeChain Signed Message:\n";
 
-const unsigned char hex_digits[] =
-    {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 /**
  * @brief Appends the given status word (SW) to the APDU buffer.
  *
@@ -168,15 +139,6 @@ const unsigned char hex_digits[] =
 void apdu_buffer_append_state(uint32_t tx[static 1], unsigned short sw) {
     G_io_apdu_buffer[(*tx)++] = sw >> 8;
     G_io_apdu_buffer[(*tx)++] = sw;
-}
-
-void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
-    while (len--) {
-        *strbuf++ = hex_digits[((*((char *) bin)) >> 4) & 0xF];
-        *strbuf++ = hex_digits[(*((char *) bin)) & 0xF];
-        bin = (const void *) ((unsigned int) bin + 1);
-    }
-    *strbuf = 0;  // EOS
 }
 
 #ifdef HAVE_BAGL
@@ -510,9 +472,6 @@ UX_FLOW(ux_sign_cert_flow,
 //////////////////////////////////////////////////////////////////////
 
 void ui_idle(void) {
-    skipDataWarning = false;
-    skipClausesWarning = false;
-
     // reserve a display stack slot if none yet
     if (G_ux.stack_count == 0) {
         ux_stack_push();
@@ -523,8 +482,6 @@ void ui_idle(void) {
 #else  // HAVE_BAGL
 
 void ui_idle(void) {
-    skipDataWarning = false;
-    skipClausesWarning = false;
     ui_menu_main();
 }
 #endif
@@ -692,20 +649,20 @@ void parseBip32Path(uint8_t **pWorkBuffer,
     // check all initialized pointers
     if (pWorkBuffer == NULL || *pWorkBuffer == NULL || dataLength == NULL || pathLength == NULL ||
         bip32Path == NULL) {
-        THROW(HW_TECHNICAL_PROBLEM);
+        THROW(SWO_UNKNOWN);
     }
     // retrieve the path length
     *pathLength = (*pWorkBuffer)[0];
     if ((*pathLength < 0x01) || (*pathLength > MAX_BIP32_PATH) ||
         *dataLength < 1 + *pathLength * 4) {
         PRINTF("Invalid path\n");
-        THROW(HW_INCORRECT_DATA);
+        THROW(SWO_INCORRECT_DATA);
     }
     (*pWorkBuffer)++;
     (*dataLength)--;
 
     if (*dataLength < *pathLength) {
-        THROW(HW_INCORRECT_DATA);
+        THROW(SWO_INCORRECT_DATA);
     }
     // parse each 4-byte component of the BIP32 path
     for (i = 0; i < *pathLength; i++) {
@@ -746,7 +703,7 @@ unsigned int io_seproxyhal_touch_exit() {
  */
 unsigned int io_seproxyhal_touch_cancel() {
     uint32_t tx = 0;
-    apdu_buffer_append_state(&tx, HW_SW_TRANSACTION_CANCELLED);
+    apdu_buffer_append_state(&tx, SWO_CONDITIONS_NOT_SATISFIED);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 #ifdef HAVE_BAGL
@@ -774,7 +731,7 @@ unsigned int io_seproxyhal_touch_address_ok() {
     uint32_t tx = set_result_get_publicKey();
 
     // Add success status code
-    apdu_buffer_append_state(&tx, HW_OK);
+    apdu_buffer_append_state(&tx, SWO_SUCCESS);
 
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
@@ -829,7 +786,7 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     v = 0;
 
     // Add success status code
-    apdu_buffer_append_state(&tx, HW_OK);
+    apdu_buffer_append_state(&tx, SWO_SUCCESS);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
 
@@ -838,47 +795,6 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     ui_idle();
 #endif
     return 0;  // do not redraw the widget
-}
-
-/**
- * @brief Handles I/O exchange over different communication channels.
- *
- * @details This function facilitates communication with the host device over various channels.
- * It supports keyboard input and multiplexed I/O exchange over a SPI channel using TLV encapsulated
- * protocol.
- *
- * @param[in] channel The communication channel.
- * @param[in] tx_len The length of the data to be transmitted.
- *
- * @return The length of the received data or 0 if nothing received from the master.
- */
-unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
-    // Mask out the IO_FLAGS from the channel
-    switch (channel & ~(IO_FLAGS)) {
-        case CHANNEL_KEYBOARD:
-            break;
-
-        // multiplexed io exchange over a SPI channel and TLV encapsulated protocol
-        case CHANNEL_SPI:
-            // If there is data to transmit
-            if (tx_len) {
-                io_seproxyhal_spi_send(G_io_apdu_buffer, tx_len);
-
-                // Check if reset is required after replying
-                if (channel & IO_RESET_AFTER_REPLIED) {
-                    reset();
-                }
-                return 0;  // nothing received from the master so far (it's a tx
-                           // transaction)
-            } else {
-                // Receive data over SPI
-                return io_seproxyhal_spi_recv(G_io_apdu_buffer, sizeof(G_io_apdu_buffer), 0);
-            }
-
-        default:
-            THROW(INVALID_PARAMETER);
-    }
-    return 0;
 }
 
 /**
@@ -944,10 +860,10 @@ void handleGetPublicKey(uint8_t p1,
     cx_ecfp_private_key_t privateKey = {0};
     // Verify the correctness of instruction parameters (P1, P2)
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
 
     // Extract the BIP32 path from the data buffer
@@ -975,12 +891,8 @@ void handleGetPublicKey(uint8_t p1,
     // Handle different modes of operation (confirm/non-confirm)
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_publicKey();
-        THROW(HW_OK);
+        THROW(SWO_SUCCESS);
     } else {
-        // prepare for a UI based reply
-        skipDataWarning = false;
-        skipClausesWarning = false;
-
         // Format the address for display
         snprintf((char *) fullAddress,
                  sizeof(fullAddress),
@@ -1073,18 +985,18 @@ void handleSign(uint8_t p1,
             displayContext.txFullContext.txContext.txType = LEGACY;
         }
     } else if (p1 != P1_MORE) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if (p2 != 0) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if (displayContext.txFullContext.txContext.currentField == TX_RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(HW_SW_TRANSACTION_CANCELLED);
+        THROW(SWO_CONDITIONS_NOT_SATISFIED);
     }
     if (displayContext.txFullContext.clausesContext.currentField == CLAUSES_RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(HW_SW_TRANSACTION_CANCELLED);
+        THROW(SWO_CONDITIONS_NOT_SATISFIED);
     }
     txResult = processTx(&displayContext.txFullContext.txContext,
                          &displayContext.txFullContext.clausesContext,
@@ -1096,12 +1008,12 @@ void handleSign(uint8_t p1,
         case USTREAM_FINISHED:
             break;
         case USTREAM_PROCESSING:
-            THROW(HW_OK);
+            THROW(SWO_SUCCESS);
         case USTREAM_FAULT:
-            THROW(HW_INCORRECT_DATA);
+            THROW(SWO_INCORRECT_DATA);
         default:
             PRINTF("Unexpected parser status\n");
-            THROW(HW_INCORRECT_DATA);
+            THROW(SWO_INCORRECT_DATA);
     }
 
     // Store the hash
@@ -1117,14 +1029,14 @@ void handleSign(uint8_t p1,
     dataPresent = clausesContent.dataPresent;
     if (dataPresent && !N_storage.dataAllowed) {
         PRINTF("Data field forbidden\n");
-        THROW(HW_INCORRECT_DATA);
+        THROW(SWO_INCORRECT_DATA);
     }
 
     // Check for multiple clauses
     multipleClauses = (clausesContent.clausesLength > 1);
     if (multipleClauses && !N_storage.multiClauseAllowed) {
         PRINTF("Multiple clauses forbidden\n");
-        THROW(HW_INCORRECT_DATA);
+        THROW(SWO_INCORRECT_DATA);
     }
 
     // If there is a token to process, check if it is well known
@@ -1227,7 +1139,7 @@ void handleGetAppConfiguration(uint8_t p1,
 
     // Set transaction buffer size
     *tx = 4;
-    THROW(HW_OK);
+    THROW(SWO_SUCCESS);
 }
 
 /**
@@ -1282,19 +1194,19 @@ void handleSignCertificate(uint8_t p1,
         // Check if the certificate starts with '{' (indicating JSON format)
         if (workBuffer[0] != '{') {
             PRINTF("Invalid json\n");
-            THROW(HW_INCORRECT_DATA);
+            THROW(SWO_INCORRECT_DATA);
         }
 
         // Initialize Blake2b hash function with a 256-bit output size
         CX_ASSERT(cx_blake2b_init_no_throw(&blake2b, 256));
     } else if (p1 != P1_MORE) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if (p2 != 0) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(HW_NOT_ENOUGH_MEMORY_SPACE);
+        THROW(SWO_INSUFFICIENT_MEMORY);
     }
 
     // Update message hash with certificate data
@@ -1306,7 +1218,7 @@ void handleSignCertificate(uint8_t p1,
         // Check if the certificate ends with '}' (indicating JSON format)
         if (workBuffer[dataLength - 1] != '}') {
             PRINTF("Invalid json\n");
-            THROW(HW_INCORRECT_DATA);
+            THROW(SWO_INCORRECT_DATA);
         }
 
         // Finalize message hash
@@ -1318,16 +1230,19 @@ void handleSignCertificate(uint8_t p1,
                                    32));
 
         // Convert the message hash to hexadecimal string
-#define HASH_LENGTH 4
-        array_hexstr((char *) fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
+        bytes_to_hex((char *) fullAddress,
+                     HASH_OFFSET,
+                     tmpCtx.messageSigningContext.hash,
+                     HASH_LENGTH);
         // Add separator characters
-        fullAddress[HASH_LENGTH / 2 * 2] = '.';
-        fullAddress[HASH_LENGTH / 2 * 2 + 1] = '.';
-        fullAddress[HASH_LENGTH / 2 * 2 + 2] = '.';
+        fullAddress[HASH_LENGTH * 2] = '.';
+        fullAddress[HASH_LENGTH * 2 + 1] = '.';
+        fullAddress[HASH_LENGTH * 2 + 2] = '.';
         // Convert the second half of the message hash to hexadecimal string
-        array_hexstr((char *) fullAddress + HASH_LENGTH / 2 * 2 + 3,
-                     tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH / 2,
-                     HASH_LENGTH / 2);
+        bytes_to_hex((char *) fullAddress + HASH_OFFSET,
+                     sizeof(fullAddress) - HASH_OFFSET,
+                     tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH,
+                     HASH_LENGTH);
 
 #ifdef HAVE_BAGL
         // If BAGL is supported, push a new screen stack and initialize UI flow
@@ -1343,7 +1258,7 @@ void handleSignCertificate(uint8_t p1,
         // Set flag for asynchronous reply
         *flags |= IO_ASYNCH_REPLY;
     } else {
-        THROW(HW_OK);
+        THROW(SWO_SUCCESS);
     }
 }
 
@@ -1417,13 +1332,13 @@ void handleSignPersonalMessage(uint8_t p1,
         // Hash the message header + length
         CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &blake2b, 0, (uint8_t *) tmp, pos, NULL, 0));
     } else if (p1 != P1_MORE) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if (p2 != 0) {
-        THROW(HW_INCORRECT_P1_P2);
+        THROW(SWO_WRONG_P1_P2);
     }
     if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(HW_NOT_ENOUGH_MEMORY_SPACE);
+        THROW(SWO_INSUFFICIENT_MEMORY);
     }
 
     // Update message hash with message data
@@ -1442,17 +1357,20 @@ void handleSignPersonalMessage(uint8_t p1,
                                    32));
 
         // Convert the message hash to hexadecimal string
-#define HASH_LENGTH 4
-        array_hexstr((char *) fullAddress, tmpCtx.messageSigningContext.hash, HASH_LENGTH / 2);
+        bytes_to_hex((char *) fullAddress,
+                     HASH_OFFSET,
+                     tmpCtx.messageSigningContext.hash,
+                     HASH_LENGTH);
         // Add separator characters
-        fullAddress[HASH_LENGTH / 2 * 2] = '.';
-        fullAddress[HASH_LENGTH / 2 * 2 + 1] = '.';
-        fullAddress[HASH_LENGTH / 2 * 2 + 2] = '.';
+        fullAddress[HASH_LENGTH * 2] = '.';
+        fullAddress[HASH_LENGTH * 2 + 1] = '.';
+        fullAddress[HASH_LENGTH * 2 + 2] = '.';
 
         // Convert the second half of the message hash to hexadecimal string
-        array_hexstr((char *) fullAddress + HASH_LENGTH / 2 * 2 + 3,
-                     tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH / 2,
-                     HASH_LENGTH / 2);
+        bytes_to_hex((char *) fullAddress + HASH_OFFSET,
+                     sizeof(fullAddress) - HASH_OFFSET,
+                     tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH,
+                     HASH_LENGTH);
 
 #ifdef HAVE_BAGL
         // If BAGL is supported, push a new screen stack and initialize UI flow
@@ -1470,7 +1388,7 @@ void handleSignPersonalMessage(uint8_t p1,
 
     } else {
         // More data remains to be processed, return OK status
-        THROW(HW_OK);
+        THROW(SWO_SUCCESS);
     }
 }
 
@@ -1502,7 +1420,7 @@ void handleApdu(volatile unsigned int flags[static 1], volatile unsigned int tx[
         TRY {
             // Check if the class of the APDU command is supported.
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
-                THROW(HW_CLA_NOT_SUPPORTED);
+                THROW(SWO_INVALID_CLA);
             }
 
             PRINTF("New APDU received:\n%.*H\n",
@@ -1557,7 +1475,7 @@ void handleApdu(volatile unsigned int flags[static 1], volatile unsigned int tx[
                     break;
 
                 default:
-                    THROW(HW_INS_NOT_SUPPORTED);
+                    THROW(SWO_INVALID_INS);
                     break;
             }
         }
@@ -1571,7 +1489,7 @@ void handleApdu(volatile unsigned int flags[static 1], volatile unsigned int tx[
                     sw = e;
                     memset(&displayContext, 0, sizeof(displayContext));
                     break;
-                case HW_OK:
+                case SWO_SUCCESS:
                     // All is well
                     sw = e;
                     break;
@@ -1607,64 +1525,41 @@ void handleApdu(volatile unsigned int flags[static 1], volatile unsigned int tx[
  *
  * @return void
  */
-void sample_main(void) {
+void app_main(void) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
     volatile unsigned int flags = 0;
 
-    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
-    // goal is to retrieve APDU.
-    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
-    // sure the io_event is called with a
-    // switch event, before the apdu is replied to the bootloader. This avoid
-    // APDU injection faults.
+    io_init();
+
+    // Initialize the display context.
+    memset(&displayContext, 0, sizeof(displayContext));
+
+    // If the storage is uninitialized, initialize it with default settings.
+    if (N_storage.initialized != 0x01) {
+        internalStorage_t storage;
+        storage.dataAllowed = 0x00;         // CONFIG_DATA_ENABLED;
+        storage.multiClauseAllowed = 0x00;  // CONFIG_MULTICLAUSE_ENABLED;
+        storage.initialized = 0x01;
+        nvm_write((void *) &N_storage, &storage, sizeof(internalStorage_t));
+    }
+
+    // Display the idle user interface.
+    ui_idle();
+
     for (;;) {
-        volatile unsigned short sw = 0;
+        rx = tx;
+        tx = 0;  // ensure no race in catch_other if io_exchange throws an error
+        rx = io_exchange(CHANNEL_APDU | flags, rx);
+        flags = 0;
 
-        BEGIN_TRY {
-            TRY {
-                rx = tx;
-                tx = 0;  // ensure no race in catch_other if io_exchange throws
-                         // an error
-                rx = io_exchange(CHANNEL_APDU | flags, rx);
-                flags = 0;
-
-                // no apdu received, well, reset the session, and reset the
-                // bootloader configuration
-                if (rx == 0) {
-                    THROW(HW_SECURITY_STATUS_NOT_SATISFIED);
-                }
-
-                handleApdu(&flags, &tx);
-            }
-            CATCH(EXCEPTION_IO_RESET) {
-                THROW(EXCEPTION_IO_RESET);
-            }
-            CATCH_OTHER(e) {
-                switch (e & ERROR_TYPE_MASK) {
-                    case ERROR_TYPE_HW:
-                        // Wipe the transaction context and report the exception
-                        sw = e;
-                        memset(&displayContext, 0, sizeof(displayContext));
-                        break;
-                    case HW_OK:
-                        // All is well
-                        sw = e;
-                        break;
-                    default:
-                        // Internal error
-                        sw = e;
-                        break;
-                }
-                // Unexpected exception => report
-                G_io_apdu_buffer[tx] = sw >> 8;
-                G_io_apdu_buffer[tx + 1] = sw;
-                tx += 2;
-            }
-            FINALLY {
-            }
+        // no apdu received, well, reset the session, and reset the
+        // bootloader configuration
+        if (rx == 0) {
+            THROW(SWO_SECURITY_CONDITION_NOT_SATISFIED);
         }
-        END_TRY;
+
+        handleApdu(&flags, &tx);
     }
 
     // return_to_dashboard:
@@ -1677,197 +1572,3 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default(element);
 }
 #endif  // HAVE_BAGL
-
-/**
- * @brief Handles incoming events from the SEPROXYHAL (Secure Proxy Hardware Abstraction Layer).
- *
- * @details This function is responsible for handling incoming events from the SEPROXYHAL. It
- * processes various types of events, including button push events, status events, ticker events,
- * and display events. It follows these steps:
- * - Ignores the event channel as nothing is done with it.
- * - Processes the event based on its type:
- *   - If the event is a finger event (if supported), triggers UX_FINGER_EVENT.
- *   - If the event is a button push event, triggers UX_BUTTON_PUSH_EVENT.
- *   - If the event is a status event:
- *     - Checks if the USB power status is not set and throws an IO reset exception if USB is not
- * powered.
- *     - Triggers UX_DEFAULT_EVENT for other status events.
- *   - If the event is a display processed event, triggers UX_DISPLAYED_EVENT (if supported).
- *   - If the event is a ticker event, triggers UX_TICKER_EVENT.
- * - Closes the event if not done previously by sending the general status.
- *
- * @param[in] channel The event channel.
- *
- * @return Returns 1 to indicate that the command has been processed and the current APDU transport
- * should not be reset.
- */
-unsigned char io_event(unsigned char channel) {
-    // nothing done with the event, throw an error on the transport layer if
-    // needed
-    UNUSED(channel);
-
-    // can't have more than one tag in the reply, not supported yet.
-    switch (G_io_seproxyhal_spi_buffer[0]) {
-#ifdef HAVE_NBGL
-        case SEPROXYHAL_TAG_FINGER_EVENT:
-            UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
-            break;
-#endif
-
-        case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
-#ifdef HAVE_BAGL
-            UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
-#endif
-            break;
-
-        case SEPROXYHAL_TAG_STATUS_EVENT:
-            if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
-                !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
-                  SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
-                THROW(EXCEPTION_IO_RESET);
-            }
-            // no break is intentional
-            __attribute__((fallthrough));
-        default:
-            UX_DEFAULT_EVENT();
-            break;
-
-        case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-#ifdef HAVE_BAGL
-            UX_DISPLAYED_EVENT({});
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-            UX_DEFAULT_EVENT();
-#endif  // HAVE_NBGL
-            break;
-
-        case SEPROXYHAL_TAG_TICKER_EVENT:
-            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
-                if (UX_ALLOWED) {
-                    if (skipDataWarning && (ux_step == 0)) {
-                        ux_step++;
-                    }
-                    if (skipClausesWarning && (ux_step == 1)) {
-                        ux_step++;
-                    }
-
-                    if (ux_step_count) {
-                        // prepare next screen
-                        ux_step = (ux_step + 1) % ux_step_count;
-                        // redisplay screen
-                        UX_REDISPLAY();
-                    }
-                }
-            });
-            break;
-    }
-
-    // close the event if not done previously (by a display or whatever)
-    if (!io_seproxyhal_spi_is_status_sent()) {
-        io_seproxyhal_general_status();
-    }
-
-    // command has been processed, DO NOT reset the current APDU transport
-    return 1;
-}
-
-/**
- * @brief Exits the application, terminating its execution.
- *
- * @details This function exits the application, terminating its execution. It follows these steps:
- * - Calls os_sched_exit to terminate the application with a specified exit code (-1).
- */
-void app_exit(void) {
-    BEGIN_TRY_L(exit) {
-        TRY_L(exit) {
-            os_sched_exit(-1);
-        }
-        FINALLY_L(exit) {
-        }
-    }
-    END_TRY_L(exit);
-}
-
-/**
- * @brief Entry point of the application, responsible for initializing the context, handling
- * exceptions, and starting the event loop.
- *
- * @details This function follows these steps:
- * - Initializes the display context.
- * - Ensures proper exception handling by calling os_boot().
- * - Initializes the SEPROXYHAL IO layer.
- * - Initializes the storage if uninitialized with default settings.
- * - Resets USB state by powering it off and on.
- * - Displays the idle user interface.
- * - Resets BLE state (if supported) by powering it off and on.
- * - Executes the main functionality of the application in a continuous loop.
- * - Handles exceptions such as IO reset.
- * - Cleans up resources and exits the application.
- *
- * @return Returns 0 upon successful execution.
- */
-__attribute__((section(".boot"))) int main(void) {
-    // exit critical section
-    __asm volatile("cpsie i");
-
-    // Initialize the display context.
-    memset(&displayContext, 0, sizeof(displayContext));
-
-    // ensure exception will work as planned
-    os_boot();
-
-    // Main program loop, runs indefinitely.
-    for (;;) {
-        UX_INIT();
-
-        BEGIN_TRY {
-            TRY {
-                // Initialize the SEPROXYHAL IO layer.
-                io_seproxyhal_init();
-
-                // If the storage is uninitialized, initialize it with default settings.
-                if (N_storage.initialized != 0x01) {
-                    internalStorage_t storage;
-                    storage.dataAllowed = 0x00;         // CONFIG_DATA_ENABLED;
-                    storage.multiClauseAllowed = 0x00;  // CONFIG_MULTICLAUSE_ENABLED;
-                    storage.initialized = 0x01;
-                    nvm_write((void *) &N_storage, &storage, sizeof(internalStorage_t));
-                }
-
-#ifdef HAVE_BLE
-                G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-#endif  // HAVE_BLE
-
-                // Power OFF and ON USB to reset its state.
-                USB_power(0);
-                USB_power(1);
-
-                // Display the idle user interface.
-                ui_idle();
-
-#ifdef HAVE_BLE
-                // If BLE is supported, power OFF and ON BLE to reset its state.
-                BLE_power(0, NULL);
-                BLE_power(1, NULL);
-#endif  // HAVE_BLE
-
-                // Execute the main functionality of the application.
-                sample_main();
-            }
-            CATCH(EXCEPTION_IO_RESET) {
-                // reset IO and UX before continuing
-                continue;
-            }
-            CATCH_ALL {
-                break;
-            }
-            FINALLY {
-            }
-        }
-        END_TRY;
-    }
-    // Clean up resources and exit the application.
-    app_exit();
-
-    return 0;
-}

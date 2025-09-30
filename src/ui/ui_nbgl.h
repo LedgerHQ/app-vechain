@@ -12,11 +12,6 @@ typedef enum transactionType_e { MSG_TRANSACTION, CERTIFICATE_TRANSACTION } tran
 void ui_menu_main(void);
 
 /**
- * Show about submenu (copyright, date).
- */
-void ui_menu_settings(void);
-
-/**
  * Show public key flow.
  */
 void ui_display_public_key_flow(void);

@@ -12,6 +12,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  ********************************************************************************/
+#pragma once
 
 #include <string.h>
 #include "os.h"
@@ -35,7 +36,6 @@ typedef struct feeComputationContext_t {
     uint256_t maxFee;
 } feeComputationContext_t;
 
-uint32_t getStringLength(const uint8_t *string);
 void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target);
 void addressToDisplayString(uint8_t *address, uint8_t *displayString);
 void sendAmountToDisplayString(txInt256_t *sendAmount,
