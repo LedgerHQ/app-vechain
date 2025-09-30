@@ -25,24 +25,8 @@
 #include "ui_nbgl.h"
 #include "main.h"
 #include "main_std_app.h"
-
-enum {
-    BACK_TOKEN = 0,
-    NEXT_TOKEN,
-    QUIT_TOKEN,
-    NAV_TOKEN,
-    SKIP_TOKEN,
-    CONTINUE_TOKEN,
-    ADDRESS_QRCODE_BUTTON_TOKEN,
-    ACTION_BUTTON_TOKEN,
-    CHOICE_TOKEN,
-    DETAILS_BUTTON_TOKEN,
-    CONFIRM_TOKEN,
-    REJECT_TOKEN,
-    VALUE_ALIAS_TOKEN,
-    BLIND_WARNING_TOKEN,
-    TIP_BOX_TOKEN
-};
+#include "handlers.h"
+#include "ui_callback.h"
 
 //  -----------------------------------------------------------
 //  --------------------- SETTINGS MENU -----------------------
