@@ -1,6 +1,8 @@
 from pathlib import Path
 from hashlib import blake2b
+import re
 
+from ragger.navigator import Navigator, NavInsID, NavIns
 from ledgered.devices import Device, DeviceType
 from ecdsa.curves import SECP256k1
 from ecdsa.keys import VerifyingKey
@@ -17,9 +19,9 @@ def check_signature_validity(public_key: bytes, signature: bytes, message: bytes
     digest = blake2b(message, digest_size=32).digest()
     return pk.verify_digest(signature=signature[:64],digest=digest)
 
-def settingEnables(device: Device, navigator, NavInsID, NavIns):
+def settingEnables(device: Device, navigator: Navigator) -> None:
     if device.is_nano:
-        navigator([
+        navigator.navigate([
             NavInsID.RIGHT_CLICK,
             NavInsID.BOTH_CLICK,
             NavInsID.BOTH_CLICK,
@@ -27,14 +29,10 @@ def settingEnables(device: Device, navigator, NavInsID, NavIns):
             NavInsID.BOTH_CLICK,
             NavInsID.RIGHT_CLICK,
             NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.BOTH_CLICK
         ], screen_change_before_first_instruction=False)
 
     elif device.type == DeviceType.STAX:
-        navigator([
+        navigator.navigate([
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavIns(NavInsID.TOUCH, (200, 113)),
             NavIns(NavInsID.TOUCH, (200, 261)),
@@ -42,7 +40,7 @@ def settingEnables(device: Device, navigator, NavInsID, NavIns):
             NavInsID.WAIT_FOR_HOME_SCREEN
         ], screen_change_before_first_instruction=False)
     elif device.type == DeviceType.FLEX:
-        navigator([
+        navigator.navigate([
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavIns(NavInsID.TOUCH, (200, 113)),
             NavIns(NavInsID.TOUCH, (200, 300)),
@@ -50,10 +48,42 @@ def settingEnables(device: Device, navigator, NavInsID, NavIns):
             NavInsID.WAIT_FOR_HOME_SCREEN
         ], screen_change_before_first_instruction=False)
     elif device.type == DeviceType.APEX_P:
-        navigator([
+        navigator.navigate([
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavIns(NavInsID.TOUCH, (150, 114)),
             NavIns(NavInsID.TOUCH, (150, 231)),
             NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
             NavInsID.WAIT_FOR_HOME_SCREEN
         ], screen_change_before_first_instruction=False)
+
+def verify_version(version: str) -> None:
+    """Verify the app version, based on defines in Makefile
+
+    Args:
+        Version (str): Version to be checked
+    """
+
+    vers_dict = {}
+    vers_str = ""
+    lines = _read_makefile()
+    version_re = re.compile(r"^APPVERSION_(?P<part>\w)\s?=\s?(?P<val>\d*)", re.I)
+    for line in lines:
+        info = version_re.match(line)
+        if info:
+            dinfo = info.groupdict()
+            vers_dict[dinfo["part"]] = dinfo["val"]
+    try:
+        vers_str = f"{vers_dict['M']}.{vers_dict['N']}.{vers_dict['P']}"
+    except KeyError:
+        pass
+    assert version == vers_str
+
+
+def _read_makefile() -> list[str]:
+    """Read lines from the parent Makefile """
+
+    parent = Path(__file__).parent.parent.resolve()
+    makefile = f"{parent}/Makefile"
+    with open(makefile, "r", encoding="utf-8") as f_p:
+        lines = f_p.readlines()
+    return lines

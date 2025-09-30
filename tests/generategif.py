@@ -16,19 +16,16 @@ if not os.path.exists(rootPath):
 gifPath = './tests/gifs/stax'
 if not os.path.exists(gifPath):
     os.makedirs(gifPath)
+
 for x in os.listdir(rootPath):
     hasSubDir = False
     for y in os.listdir(os.path.join(rootPath,x)):
         if y.startswith('part'):
             hasSubDir = True
             print(x,y)
-            makeGif(os.path.join(gifPath,f"{x}_{y}"),list(map(
-                lambda f, cur_x=x, cur_y=y: os.path.join(rootPath,cur_x,cur_y,f),
-                os.listdir(os.path.join(rootPath,x,y))
-            )))
+            gifFiles = [os.path.join(rootPath, x, y, f) for f in os.listdir(os.path.join(rootPath, x, y))]
+            makeGif(os.path.join(gifPath,f"{x}_{y}"), gifFiles)
     if not hasSubDir:
         print(x)
-        makeGif(os.path.join(gifPath,x),list(map(
-                lambda f, cur_x=x: os.path.join(rootPath,cur_x,f),
-                os.listdir(os.path.join(rootPath,x))
-            )))
+        gifFiles = [os.path.join(rootPath, x, f) for f in os.listdir(os.path.join(rootPath, x))]
+        makeGif(os.path.join(gifPath, x), gifFiles)

@@ -26,7 +26,7 @@ from ledgerblue.comm import getDongle
 from ledger import _send_tx_to_ledger
 from vetBase import Transaction, UnsignedTransaction, Clause
 from rlp import encode
-from rlp.utils import decode_hex, encode_hex, struct
+from eth_utils import decode_hex, encode_hex
 from bip32 import bip32_path_message
 
 

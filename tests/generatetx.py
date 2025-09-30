@@ -4,7 +4,8 @@ import random
 import argparse
 from enum import IntEnum
 from thor_devkit import cry, transaction
-from thor_devkit.rlp import DictWrapper, HomoListWrapper, NumericKind, CompactFixedBlobKind, NoneableFixedBlobKind, BlobKind, BytesKind
+from thor_devkit.rlp import DictWrapper, HomoListWrapper, NumericKind
+from thor_devkit.rlp import CompactFixedBlobKind, NoneableFixedBlobKind, BlobKind, BytesKind
 
 _params = [
     ("chainTag", NumericKind(1)),
@@ -80,7 +81,8 @@ def generateAPDUs(path, tx:transaction.Transaction)-> list[str]:
     messages = split_tx(path,tx)
     codesAPDU = []
     for idx, msg in enumerate(messages):
-        codesAPDU.append((bytes([CLA, InsType.INS_SIGN, P1.P1_START if idx==0 else P2.P2_MORE, P2.P2_LAST, len(msg)]) + msg).hex())
+        codesAPDU.append(
+            (bytes([CLA, InsType.INS_SIGN, P1.P1_START if idx==0 else P2.P2_MORE, P2.P2_LAST, len(msg)]) + msg).hex())
     return codesAPDU
 
 def randomHex(length, prefix=True):
@@ -138,8 +140,9 @@ if args.clauses is None:
     args.clauses = 1
 else:
     args.clauses = int(args.clauses)
-    if args.clauses > 2:
-        [args.to.append("0xd6FdBEB6d0FBC690DaBD352cF93b2f8D782A46B5") for _ in range(0, args.clauses-2)]
+    # disabled because args.clauses is set to 2 above
+    # if args.clauses > 2:
+    #     [args.to.append("0xd6FdBEB6d0FBC690DaBD352cF93b2f8D782A46B5") for _ in range(0, args.clauses-2)]
 
 args.amount = 500
 if args.amount is None:
@@ -148,6 +151,7 @@ args.blockref = "0xabe47d18daa1301d"
 
 # See: https://docs.vechain.org/thor/learn/transaction-model.html#model
 
+# pylint: disable=line-too-long
 # used for the test
 # body = {
 #     "chainTag": int('0x4a', 16), # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
@@ -159,6 +163,7 @@ args.blockref = "0xabe47d18daa1301d"
 #     "dependsOn": None,
 #     "nonce": 12345678
 # }
+# pylint: enable=line-too-long
 body = {
     "chainTag": args.chaintag, # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
     "blockRef": args.blockref,
@@ -190,5 +195,6 @@ for i, codeAPDU in enumerate(generateAPDUs(derivation_path, tx_body)):
     print(f"{i+1} APDU: {codeAPDU}")
 
 print()
-tx_body.set_signature(cry.secp256k1.sign(tx_body.get_signing_hash(), bytes.fromhex('C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F')))
+tx_body.set_signature(cry.secp256k1.sign(tx_body.get_signing_hash(),
+                                         bytes.fromhex('C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F')))
 print(f"signature: {tx_body.get_signature().hex()}")

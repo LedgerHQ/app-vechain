@@ -18,10 +18,11 @@
 """
 
 import traceback
+import binascii
+import struct
 
 from ledgerblue.commException import CommException
 from rlp import encode
-from rlp.utils import binascii, struct
 
 from bip32 import bip32_path_message
 from vetBase import Transaction

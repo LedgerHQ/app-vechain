@@ -36,7 +36,8 @@ print('Blake2b certificate: ' + codecs.encode(h.digest(), 'hex').decode())
 encodedTx = struct.pack(">I", len(args.message))
 encodedTx += args.message
 
-apdu = codecs.decode(b'e0090000', 'hex') + chr(len(donglePath) + 1 + len(encodedTx)).encode() + chr(len(donglePath) // 4).encode() + donglePath + encodedTx
+apdu = codecs.decode(b'e0090000', 'hex') + chr(len(donglePath) + 1 + len(encodedTx)).encode() + \
+       chr(len(donglePath) // 4).encode() + donglePath + encodedTx
 
 dongle = getDongle(False)
 result = dongle.exchange(apdu)

@@ -3,7 +3,7 @@ import struct
 from decimal import Decimal
 from vetBase import Transaction, UnsignedTransaction, Clause
 from rlp import encode
-from rlp.utils import decode_hex
+from eth_utils import decode_hex
 
 
 def parse_bip32_path(path):
