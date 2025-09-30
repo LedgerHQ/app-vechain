@@ -9,3 +9,6 @@ src_common/glyphs.h
 .idea
 .vscode
 tests/snapshots-tmp/
+
+# Nano NBGL reversed icon for Home Screen
+glyphs/home_vechain_14px.gif

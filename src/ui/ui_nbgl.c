@@ -28,6 +28,12 @@
 #include "handlers.h"
 #include "ui_callback.h"
 
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#define ICON_APP_WARNING C_icon_warning
+#else
+#define ICON_APP_WARNING LARGE_WARNING_ICON
+#endif
+
 //  -----------------------------------------------------------
 //  --------------------- SETTINGS MENU -----------------------
 //  -----------------------------------------------------------
@@ -194,7 +200,7 @@ void ui_display_action_sign_tx_flow() {
         }
 
         // Display the warning message and ask the user to confirm
-        nbgl_useCaseChoice(&LARGE_WARNING_ICON,
+        nbgl_useCaseChoice(&ICON_APP_WARNING,
                            warning_msg,
                            NULL,
                            "I understand, confirm",

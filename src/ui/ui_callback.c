@@ -55,7 +55,6 @@ unsigned int io_seproxyhal_touch_exit() {
  * status code. It follows these steps:
  * - Sets the APDU buffer with a cancellation status code.
  * - Sends back the response and does not restart the event loop.
- * - Optionally displays back the original UX if BAGL is supported.
  *
  * @return 0 indicating that the widget should not be redrawn.
  */
@@ -64,10 +63,6 @@ unsigned int io_seproxyhal_touch_cancel() {
     apdu_buffer_append_state(&tx, SWO_CONDITIONS_NOT_SATISFIED);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-#ifdef HAVE_BAGL
-    // Display back the original UX
-    ui_idle();
-#endif
     return 0;  // do not redraw the widget
 }
 
@@ -81,7 +76,6 @@ unsigned int io_seproxyhal_touch_cancel() {
  * address, and chain code.
  * - Adds success status codes to the APDU buffer.
  * - Sends back the response and does not restart the event loop.
- * - Optionally displays back the original UX if BAGL is supported.
  *
  * @return 0 indicating that the widget should not be redrawn.
  */
@@ -93,11 +87,6 @@ unsigned int io_seproxyhal_touch_address_ok() {
 
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-
-#ifdef HAVE_BAGL
-    // Display back the original UX
-    ui_idle();
-#endif
     return 0;  // do not redraw the widget
 }
 
@@ -112,7 +101,6 @@ unsigned int io_seproxyhal_touch_address_ok() {
  * - Calls the crypto_sign_message function to sign the message.
  * - Moves the signature components and transaction status to the APDU buffer.
  * - Sends back the response and does not restart the event loop.
- * - Optionally displays back the original UX if BAGL is supported.
  *
  * @return 0 indicating that the widget should not be redrawn.
  */
@@ -147,10 +135,5 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     apdu_buffer_append_state(&tx, SWO_SUCCESS);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-
-#ifdef HAVE_BAGL
-    // Display back the original UX
-    ui_idle();
-#endif
     return 0;  // do not redraw the widget
 }

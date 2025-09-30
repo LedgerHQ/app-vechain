@@ -26,7 +26,9 @@ void ui_display_action_sign_tx_flow(void);
  */
 void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type);
 
-#if defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#define ICON_APP_HOME C_home_vechain_14px
+#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
 #define ICON_APP_HOME C_app_vechain_64px
 #elif defined(TARGET_APEX_P)
 #define ICON_APP_HOME C_app_vechain_48px

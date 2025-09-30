@@ -59,7 +59,6 @@ cx_blake2b_t blake2b;
 volatile char fullAddress[43];
 volatile char fullAmount[50];
 volatile char maxFee[60];
-volatile char addressSummary[32];
 volatile bool dataPresent;
 volatile bool multipleClauses;
 
@@ -94,350 +93,9 @@ void display_reset(void) {
 
 /////////////////////////////////////////////////////////////////////
 
-#ifdef HAVE_BAGL
-const bagl_element_t *ui_menu_item_out_over(const bagl_element_t *e) {
-    // the selection rectangle is after the none|touchable
-    e = (const bagl_element_t *) (((uint32_t) e) + sizeof(bagl_element_t));
-    return e;
-}
-
-const char *settings_submenu_getter(uint32_t idx);
-void settings_submenu_selector(uint32_t idx);
-
-//////////////////////////////////////////////////////////////////////////////////////
-// Contract data submenu:
-
-void settings_contract_data_change(uint8_t enabled) {
-    nvm_write((void *) &N_storage.dataAllowed, &enabled, 1);
-    ui_idle();
-}
-
-const char *const settings_contract_data_getter_values[] = {"No", "Yes", "Back"};
-
-const char *settings_contract_data_getter(uint32_t idx) {
-    if (idx < ARRAYLEN(settings_contract_data_getter_values)) {
-        return settings_contract_data_getter_values[idx];
-    }
-    return NULL;
-}
-
-void settings_contract_data_selector(uint32_t idx) {
-    switch (idx) {
-        case 0:
-            settings_contract_data_change(0);
-            break;
-        case 1:
-            settings_contract_data_change(1);
-            break;
-        default:
-            ux_menulist_init(0, settings_submenu_getter, settings_submenu_selector);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////
-// Clause change submenu:
-
-void settings_clause_change(uint8_t enabled) {
-    nvm_write((void *) &N_storage.multiClauseAllowed, &enabled, 1);
-    ui_idle();
-}
-
-const char *const settings_clause_getter_values[] = {"No", "Yes", "Back"};
-
-const char *settings_clause_getter(uint32_t idx) {
-    if (idx < ARRAYLEN(settings_clause_getter_values)) {
-        return settings_clause_getter_values[idx];
-    }
-    return NULL;
-}
-
-void settings_clause_selector(uint32_t idx) {
-    switch (idx) {
-        case 0:
-            settings_clause_change(0);
-            break;
-        case 1:
-            settings_clause_change(1);
-            break;
-        default:
-            ux_menulist_init(0, settings_submenu_getter, settings_submenu_selector);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////
-// Settings menu:
-
-const char *const settings_submenu_getter_values[] = {
-    "Contract data",
-    "Multi-clause",
-    "Back",
-};
-
-const char *settings_submenu_getter(uint32_t idx) {
-    if (idx < ARRAYLEN(settings_submenu_getter_values)) {
-        return settings_submenu_getter_values[idx];
-    }
-    return NULL;
-}
-
-void settings_submenu_selector(uint32_t idx) {
-    switch (idx) {
-        case 0:
-            ux_menulist_init_select(0,
-                                    settings_contract_data_getter,
-                                    settings_contract_data_selector,
-                                    N_storage.dataAllowed);
-            break;
-        case 1:
-            ux_menulist_init_select(0,
-                                    settings_clause_getter,
-                                    settings_clause_selector,
-                                    N_storage.multiClauseAllowed);
-            break;
-        default:
-            ui_idle();
-    }
-}
-
-UX_STEP_NOCB(ux_idle_flow_1_step,
-             pnn,
-             {
-                 &C_nanox_badge,
-                 "Application",
-                 "is ready",
-             });
-UX_STEP_VALID(ux_idle_flow_2_step,
-              pb,
-              ux_menulist_init(0, settings_submenu_getter, settings_submenu_selector),
-              {
-                  &C_icon_coggle,
-                  "Settings",
-              });
-UX_STEP_NOCB(ux_idle_flow_3_step,
-             bn,
-             {
-                 "Version",
-                 APPVERSION,
-             });
-UX_STEP_VALID(ux_idle_flow_4_step,
-              pb,
-              os_sched_exit(-1),
-              {
-                  &C_icon_dashboard_x,
-                  "Quit",
-              });
-UX_FLOW(ux_idle_flow,
-        &ux_idle_flow_1_step,
-        &ux_idle_flow_2_step,
-        &ux_idle_flow_3_step,
-        &ux_idle_flow_4_step);
-
-//////////////////////////////////////////////////////////////////////
-UX_STEP_NOCB(ux_display_public_flow_5_step,
-             bnnn_paging,
-             {
-                 .title = "Address",
-                 .text = (char *) fullAddress,
-             });
-UX_STEP_VALID(ux_display_public_flow_6_step,
-              pb,
-              io_seproxyhal_touch_address_ok(),
-              {
-                  &C_icon_validate_14,
-                  "Approve",
-              });
-UX_STEP_VALID(ux_display_public_flow_7_step,
-              pb,
-              io_seproxyhal_touch_cancel(),
-              {
-                  &C_icon_crossmark,
-                  "Reject",
-              });
-UX_FLOW(ux_display_public_flow,
-        &ux_display_public_flow_5_step,
-        &ux_display_public_flow_6_step,
-        &ux_display_public_flow_7_step);
-
-//////////////////////////////////////////////////////////////////////
-
-UX_STEP_NOCB(ux_confirm_full_flow_1_step,
-             pnn,
-             {
-                 &C_icon_eye,
-                 "Review",
-                 "transaction",
-             });
-
-// OPTIONAL
-UX_STEP_NOCB(ux_confirm_full_warning_data_step,
-             pnn,
-             {
-                 &C_icon_warning_x,
-                 "WARNING",
-                 "Data present",
-             });
-UX_STEP_NOCB(ux_confirm_full_warning_clauses_step,
-             pnn,
-             {
-                 &C_icon_warning_x,
-                 "WARNING",
-                 "Multiple Clauses",
-             });
-
-// OPTIONAL
-
-UX_STEP_NOCB(ux_confirm_full_flow_2_step,
-             bnnn_paging,
-             {.title = "Amount", .text = (char *) fullAmount});
-UX_STEP_NOCB(ux_confirm_full_flow_3_step,
-             bnnn_paging,
-             {
-                 .title = "Address",
-                 .text = (char *) fullAddress,
-             });
-UX_STEP_NOCB(ux_confirm_full_flow_4_step,
-             bnnn_paging,
-             {
-                 .title = "Max Fees",
-                 .text = (char *) maxFee,
-             });
-UX_STEP_VALID(ux_confirm_full_flow_5_step,
-              pbb,
-              io_seproxyhal_touch_tx_ok(),
-              {
-                  &C_icon_validate_14,
-                  "Accept",
-                  "and send",
-              });
-UX_STEP_VALID(ux_confirm_full_flow_6_step,
-              pb,
-              io_seproxyhal_touch_cancel(),
-              {
-                  &C_icon_crossmark,
-                  "Reject",
-              });
-// confirm_full: confirm transaction / Amount: fullAmount / Address: fullAddress / MaxFees: maxFee
-UX_FLOW(ux_confirm_full_flow,
-        &ux_confirm_full_flow_1_step,
-        &ux_confirm_full_flow_2_step,
-        &ux_confirm_full_flow_3_step,
-        &ux_confirm_full_flow_4_step,
-        &ux_confirm_full_flow_5_step,
-        &ux_confirm_full_flow_6_step);
-
-UX_FLOW(ux_confirm_full_data_flow,
-        &ux_confirm_full_flow_1_step,
-        &ux_confirm_full_warning_data_step,
-        FLOW_BARRIER,
-        &ux_confirm_full_flow_2_step,
-        &ux_confirm_full_flow_3_step,
-        &ux_confirm_full_flow_4_step,
-        &ux_confirm_full_flow_5_step,
-        &ux_confirm_full_flow_6_step);
-
-UX_FLOW(ux_confirm_full_clauses_flow,
-        &ux_confirm_full_flow_1_step,
-        &ux_confirm_full_warning_clauses_step,
-        FLOW_BARRIER,
-        &ux_confirm_full_flow_2_step,
-        &ux_confirm_full_flow_3_step,
-        &ux_confirm_full_flow_4_step,
-        &ux_confirm_full_flow_5_step,
-        &ux_confirm_full_flow_6_step);
-
-UX_FLOW(ux_confirm_full_data_clauses_flow,
-        &ux_confirm_full_flow_1_step,
-        &ux_confirm_full_warning_data_step,
-        FLOW_BARRIER,
-        &ux_confirm_full_warning_clauses_step,
-        FLOW_BARRIER,
-        &ux_confirm_full_flow_2_step,
-        &ux_confirm_full_flow_3_step,
-        &ux_confirm_full_flow_4_step,
-        &ux_confirm_full_flow_5_step,
-        &ux_confirm_full_flow_6_step);
-
-//////////////////////////////////////////////////////////////////////
-UX_STEP_NOCB(ux_sign_msg_flow_1_step,
-             pnn,
-             {
-                 &C_icon_certificate,
-                 "Sign",
-                 "message",
-             });
-UX_STEP_NOCB(ux_sign_msg_flow_2_step,
-             bnnn_paging,
-             {
-                 .title = "Message hash",
-                 .text = (char *) fullAddress,
-             });
-UX_STEP_VALID(ux_sign_msg_flow_3_step,
-              pbb,
-              io_seproxyhal_touch_tx_ok(),
-              {
-                  &C_icon_validate_14,
-                  "Sign",
-                  "message",
-              });
-UX_STEP_VALID(ux_sign_msg_flow_4_step,
-              pbb,
-              io_seproxyhal_touch_cancel(),
-              {
-                  &C_icon_crossmark,
-                  "Cancel",
-                  "signature",
-              });
-
-UX_FLOW(ux_sign_msg_flow,
-        &ux_sign_msg_flow_1_step,
-        &ux_sign_msg_flow_2_step,
-        &ux_sign_msg_flow_3_step,
-        &ux_sign_msg_flow_4_step);
-
-UX_STEP_NOCB(ux_sign_cert_flow_1_step,
-             pnn,
-             {
-                 &C_icon_certificate,
-                 "Sign",
-                 "certificate",
-             });
-UX_STEP_NOCB(ux_sign_cert_flow_2_step,
-             bnnn_paging,
-             {
-                 .title = "Certificate hash",
-                 .text = (char *) fullAddress,
-             });
-UX_STEP_VALID(ux_sign_cert_flow_3_step,
-              pbb,
-              io_seproxyhal_touch_tx_ok(),
-              {
-                  &C_icon_validate_14,
-                  "Sign",
-                  "certificate",
-              });
-
-UX_FLOW(ux_sign_cert_flow,
-        &ux_sign_cert_flow_1_step,
-        &ux_sign_cert_flow_2_step,
-        &ux_sign_cert_flow_3_step,
-        &ux_sign_msg_flow_4_step);
-
-//////////////////////////////////////////////////////////////////////
-
-void ui_idle(void) {
-    // reserve a display stack slot if none yet
-    if (G_ux.stack_count == 0) {
-        ux_stack_push();
-    }
-    ux_flow_init(0, ux_idle_flow, NULL);
-}
-
-#else  // HAVE_BAGL
-
 void ui_idle(void) {
     ui_menu_main();
 }
-#endif
 
 /////////////////////////////////////////////////////////////////////
 
@@ -514,20 +172,8 @@ void handleGetPublicKey(uint8_t p1,
                  40,
                  tmpCtx.publicKeyContext.address);
 
-#ifdef HAVE_BAGL
-
-        // Push a new UX stack if none exists
-        if (G_ux.stack_count == 0) {
-            ux_stack_push();
-        }
-
-        // Initialize the UX flow for displaying the public key
-        ux_flow_init(0, ux_display_public_flow, NULL);
-#else
-
         // Display the public key using the UI
         ui_display_public_key_flow();
-#endif
 
         // Set flags for asynchronous reply
         *flags |= IO_ASYNCH_REPLY;
@@ -687,22 +333,7 @@ void handleSign(uint8_t p1,
                               (uint8_t *) maxFee);
     }
 
-#ifdef HAVE_BAGL
-    if (G_ux.stack_count == 0) {
-        ux_stack_push();
-    }
-    if (dataPresent && multipleClauses) {
-        ux_flow_init(0, ux_confirm_full_data_clauses_flow, NULL);
-    } else if (dataPresent && !multipleClauses) {
-        ux_flow_init(0, ux_confirm_full_data_flow, NULL);
-    } else if (!dataPresent && multipleClauses) {
-        ux_flow_init(0, ux_confirm_full_clauses_flow, NULL);
-    } else {
-        ux_flow_init(0, ux_confirm_full_flow, NULL);
-    }
-#else
     ui_display_action_sign_tx_flow();
-#endif
 
     *flags |= IO_ASYNCH_REPLY;
 }
@@ -858,16 +489,8 @@ void handleSignCertificate(uint8_t p1,
                      tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH,
                      HASH_LENGTH);
 
-#ifdef HAVE_BAGL
-        // If BAGL is supported, push a new screen stack and initialize UI flow
-        if (G_ux.stack_count == 0) {
-            ux_stack_push();
-        }
-        ux_flow_init(0, ux_sign_cert_flow, NULL);
-#else
         // Display the action for signing a certificate
         ui_display_action_sign_msg_cert(CERTIFICATE_TRANSACTION);
-#endif
 
         // Set flag for asynchronous reply
         *flags |= IO_ASYNCH_REPLY;
@@ -986,16 +609,8 @@ void handleSignPersonalMessage(uint8_t p1,
                      tmpCtx.messageSigningContext.hash + 32 - HASH_LENGTH,
                      HASH_LENGTH);
 
-#ifdef HAVE_BAGL
-        // If BAGL is supported, push a new screen stack and initialize UI flow
-        if (G_ux.stack_count == 0) {
-            ux_stack_push();
-        }
-        ux_flow_init(0, ux_sign_msg_flow, NULL);
-#else
         // Display the action for signing a message
         ui_display_action_sign_msg_cert(MSG_TRANSACTION);
-#endif
 
         // Set flag for asynchronous reply
         *flags |= IO_ASYNCH_REPLY;

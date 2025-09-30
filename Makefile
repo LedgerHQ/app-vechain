@@ -42,6 +42,11 @@ ICON_STAX = icons/stax_app_vechain_32px.gif
 ICON_FLEX = icons/flex_app_vechain_40px.gif
 ICON_APEX_P = icons/apex_app_vechain_32px.png
 
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
+    # With the Nano NBGL Design, the Home Screen icon is the reverse of the App icon:
+    ICON_HOME_NANO = glyphs/home_vechain_14px.gif
+endif
+
 # Application allowed derivation curves.
 CURVE_APP_LOAD_PARAMS = secp256k1
 
@@ -74,7 +79,7 @@ endif
 ########################################
 ENABLE_BLUETOOTH = 1
 #ENABLE_NFC = 1
-# ENABLE_NBGL_FOR_NANO_DEVICES = 1
+ENABLE_NBGL_FOR_NANO_DEVICES = 1
 
 ########################################
 #         NBGL custom features         #
