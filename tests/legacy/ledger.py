@@ -18,10 +18,11 @@
 """
 
 import traceback
+import binascii
+import struct
 
 from ledgerblue.commException import CommException
 from rlp import encode
-from rlp.utils import binascii, struct
 
 from bip32 import bip32_path_message
 from vetBase import Transaction
@@ -41,7 +42,7 @@ def _apdu(prefix, data):
         return prefix
 
     if len(data) > APDU_MAX_DATA_BYTES:
-        print("APDU data too long: {}".format(len(data)))
+        print(f"APDU data too long: {len(data)}")
         return None
 
     return prefix + struct.pack(">B", len(data)) + data
@@ -50,9 +51,9 @@ def _apdu(prefix, data):
 def _send_tx_to_ledger(message, dongle):
     result = None
     initial_message = True
-    for message in _split_message(message):
+    for msg in _split_message(message):
         prefix = APDU_PREFIX_SIGN_TX_INITIAL if initial_message else APDU_PREFIX_SIGN_TX_CONTINUED
-        apdu = _apdu(prefix, message)
+        apdu = _apdu(prefix, msg)
         result = dongle.exchange(apdu)
         initial_message = False
 
@@ -63,7 +64,7 @@ def _send_single_to_ledger(prefix, message, dongle):
     apdu = _apdu(prefix, message)
     result = dongle.exchange(apdu, timeout=1000)
 
-    print("Result: {}".format(result))
+    print(f"Result: {result}")
     return result
 
 
@@ -96,7 +97,7 @@ def app_version(dongle):
     except IOError:
         dongle.close()
         return None  # Ledger switched App, reconnect
-    except:
+    except Exception:
         traceback.print_exc()
         return None  # Unknown Exception, log
 
@@ -104,7 +105,7 @@ def app_version(dongle):
     minor = result[2]
     patch = result[3]
 
-    return "{}.{}.{}".format(major, minor, patch)
+    return f"{major}.{minor}.{patch}"
 
 
 def error_code_to_message(error_code):
@@ -112,7 +113,7 @@ def error_code_to_message(error_code):
         0x6a88: "LEDGER_UNKNOWN_DESTINATION",
         0x6a87: "LEDGER_NON_ZERO_AMOUNT",
         0x6985: "LEDGER_TRANSACTION_CANCELLED",
-    }.get(error_code, "UNRECOGNIZED_ERROR_CODE_{}".format(("%04x" % error_code).upper()))
+    }.get(error_code, f"UNRECOGNIZED_ERROR_CODE_{error_code:04X}")
 
 
 class IncorrectTxFormatException(Exception):

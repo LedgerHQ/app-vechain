@@ -19,46 +19,42 @@
 ********************************************************************************
 """
 
-from rlp.sedes import big_endian_int, binary, Binary, List, CountableList
+from rlp.sedes import big_endian_int, binary, Binary, CountableList
 from rlp import Serializable
 
 try:
-	from Crypto.Hash import keccak
-	sha3_256 = lambda x: keccak.new(digest_bits=256, data=x).digest()
-except:
-	import sha3 as _sha3
-	sha3_256 = lambda x: _sha3.sha3_256(x).digest()
+    from Crypto.Hash import keccak
+    def sha3_256(x):
+        return keccak.new(digest_bits=256, data=x).digest()
+except ImportError:
+    import sha3 as _sha3
+    def sha3_256(x):
+        return _sha3.sha3_256(x).digest()
 address = Binary.fixed_length(20, allow_empty=True)
 
 def sha3(seed):
-	return sha3_256(str(seed))
+    return sha3_256(str(seed))
 
 class Clause(Serializable):
-	fields = [
-		('to', address),
-		('value', binary),
-		('data', binary)
-	]
-
-	def __init__(self, to, value, data):
-		super(Clause, self).__init__(to, value, data)
+    fields = [
+        ('to', address),
+        ('value', binary),
+        ('data', binary)
+    ]
 
 class Transaction(Serializable):
-	fields = [
-		('chaintag', big_endian_int),
-		('blockref', binary),
-		('expiration', big_endian_int),
-		('clauses', CountableList(Clause)),
-		('gaspricecoef', big_endian_int),
-		('gas', big_endian_int),
-		('dependson', binary),
-		('nonce', binary),
-		('reserved', CountableList(binary)),
-		('signature', binary),
-	]
-
-	def __init__(self, chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, signature=""):
-		super(Transaction, self).__init__(chaintag, blockref, expiration, clauses, gaspricecoef, gas, dependson, nonce, reserved, signature)
+    fields = [
+        ('chaintag', big_endian_int),
+        ('blockref', binary),
+        ('expiration', big_endian_int),
+        ('clauses', CountableList(Clause)),
+        ('gaspricecoef', big_endian_int),
+        ('gas', big_endian_int),
+        ('dependson', binary),
+        ('nonce', binary),
+        ('reserved', CountableList(binary)),
+        ('signature', binary),
+    ]
 
 # UnsignedTransaction = Transaction.exclude(['signature'])
 UnsignedTransaction = Transaction

@@ -1,9 +1,5 @@
 from vechain_client import VechainClient
-
-# Taken from the Makefile, to update every time the Makefile version is bumped
-MAJOR = 1
-MINOR = 3
-PATCH = 0
+from utils import verify_version
 
 # multi-clauses and data not allowed by default
 # DEFAULT_FLAGS_SETTING = 0x03
@@ -17,5 +13,5 @@ def test_app_configuration(backend):
     # Send the get_version instruction to the app
     configuration = client.get_app_configuration()
     # Assert that we have received the correct app version and flag settings
-    # are set to default values
-    assert configuration == (DEFAULT_FLAGS_SETTING, MAJOR, MINOR, PATCH)
+    assert configuration[0] == DEFAULT_FLAGS_SETTING
+    verify_version(f"{configuration[1]}.{configuration[2]}.{configuration[3]}")

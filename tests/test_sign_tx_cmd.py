@@ -1,12 +1,13 @@
-from operator import is_
-from ledgered.devices import Device, DeviceType
-from ragger.navigator import NavInsID, NavIns
+import pytest
+from ragger.navigator import NavInsID
 from ragger.backend import RaisePolicy, SpeculosBackend
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import ROOT_SCREENSHOT_PATH, check_signature_validity,settingEnables
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
 # Tests inputs (transactions) have been generated with tests/legacy/apdu_generator.py
 
+# pylint: disable=line-too-long
 # Input
 # chaintag = 0xAA
 # expiration = 0x2D0
@@ -46,6 +47,7 @@ transaction_multi_clauses_and_data  = [
     # third use case - with multi-clauses
     bytes.fromhex("f85b81aa88abe47d18daa1301d8202d0f840df94d6fdbeb6d0fbc690dabd352cf93b2f8d782a46b5884563918244f4000080df94deadbeb6d0fbc690dabd352cf93b2f8d782a46b5884563918244f4000080818082520880821234c0")
 ]
+# pylint: enable=line-too-long
 
 # The path used for all tests
 path: str = "m/44'/818'/0'/0/0"
@@ -53,8 +55,9 @@ path: str = "m/44'/818'/0'/0/0"
 # In this test we send to the device a transaction to sign and validate it on screen
 # The transaction is short and will be sent in one chunk
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_tx_short_tx(device:Device, backend, navigator, test_name):
+def test_sign_tx_short_tx(scenario_navigator: NavigateWithScenario):
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
     # get public key from device
@@ -65,106 +68,53 @@ def test_sign_tx_short_tx(device:Device, backend, navigator, test_name):
     # As it requires on-screen validation, the function is asynchronous.
     # It will yield the result when the navigation is done
     with client.sign_tx(path=path, transaction=transaction):
+        scenario_navigator.review_approve()
 
-        # Validate the on-screen request by performing the navigation appropriate for this device
-        if device.is_nano:
-            navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                      [NavInsID.BOTH_CLICK],
-                                                      "Accept",
-                                                      ROOT_SCREENSHOT_PATH,
-                                                      test_name)
-        else:
-            navigator.navigate([
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ])
 
     # The device as yielded the result, parse it and ensure that the signature is correct
-    response = client.get_async_response().data
+    response1 = client.get_async_response()
+    assert response1 and response1.status == Errors.SW_SUCCESS
 
     if isinstance(backend, SpeculosBackend):
-        assert check_signature_validity(public_key, response, transaction)
+        assert check_signature_validity(public_key, response1.data, transaction)
 
 
 # In this test se send to the device a transaction to sign and reject it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_tx_short_tx_reject(device:Device, backend, navigator, test_name):
+def test_sign_tx_short_tx_reject(scenario_navigator: NavigateWithScenario):
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
     # Disable raising when trying to unpack an error APDU
     backend.raise_policy = RaisePolicy.RAISE_NOTHING
 
-    if device.is_nano:
+    with client.sign_tx(path=path, transaction=transaction):
+        scenario_navigator.review_reject()
 
-        # Send the sign device instruction.
-        # As it requires on-screen validation, the function is asynchronous.
-        # It will yield the result when the navigation is done
-        with client.sign_tx(path=path, transaction=transaction):
-            # Validate the on-screen request by performing the navigation appropriate for this device
-            navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                    [NavInsID.BOTH_CLICK],
-                                                    "Reject",
-                                                    ROOT_SCREENSHOT_PATH,
-                                                    test_name)
-        # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response()
+    # The device as yielded the result, parse it and ensure that the signature is correct
+    response = client.get_async_response()
+    assert response and response.status == Errors.SW_TRANSACTION_CANCELLED
 
-        # Assert that we have received a refusal
-        assert response.status == Errors.SW_TRANSACTION_CANCELLED
-        assert len(response.data) == 0
-    else:
-        instructions_list = [
-            [
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ],
-            [
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ],
-            [
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ],
-            [
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_REJECT,
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ]
-        ]
-
-        for i, instructions in enumerate(instructions_list):
-            # Send the sign device instruction.
-            # As it requires on-screen validation, the function is asynchronous.
-            # It will yield the result when the navigation is done
-            with client.sign_tx(path=path, transaction=transaction):
-                # Validate the on-screen request by performing the navigation appropriate for this device
-                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name + f"/part{i}", instructions)
-
-            # The device as yielded the result, parse it and ensure that the signature is correct
-            response = client.get_async_response()
-
-            # Assert that we have received a refusal
-            assert response.status == Errors.SW_TRANSACTION_CANCELLED
-            assert len(response.data) == 0
+    # Assert that we have received a refusal
+    assert len(response.data) == 0
 
 
 # In this test we send to the device a transaction (including multiple clauses and data)
 # to sign and validate it on screen
 # The transaction is short and will be sent in one chunk
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_tx_short_tx_data_and_multiple_clauses(device:Device, backend, navigator, test_name):
+@pytest.mark.parametrize(
+    "idx, directory",
+    [
+        (0, "Data present"),
+        (1, "Multiple Clauses"),
+        (2, "Accept"),
+    ],
+)
+def test_sign_tx_short_tx_data_and_multiple_clauses(scenario_navigator: NavigateWithScenario,
+                                                    idx: int, directory: str):
+    backend = scenario_navigator.backend
     if not isinstance(backend, SpeculosBackend):
         input("Please confirm that multi-clauses and contract data are enabled in app settings?")
 
@@ -174,77 +124,29 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(device:Device, backend, navi
     # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
-    settingEnables(device,navigator.navigate,NavInsID,NavIns)
+    navigator = scenario_navigator.navigator
+    settingEnables(backend.device, navigator)
 
-    if device.is_nano:
-
-        # Send the sign device instruction.
-        # As it requires on-screen validation, the function is asynchronous.
-        # It will yield the result when the navigation is done
-        with client.sign_tx(path=path, transaction=transaction_multi_clauses_and_data[0]):
-
-            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                            [NavInsID.BOTH_CLICK],
-                                            "Data present",
-                                            screen_change_before_first_instruction=False)
-            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                            [NavInsID.BOTH_CLICK],
-                                            "Multiple Clauses",
-                                            screen_change_before_first_instruction=False)
-
-            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                            [NavInsID.BOTH_CLICK],
-                                            "Accept",
-                                            screen_change_before_first_instruction=False)
-
-        # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response().data
-        if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(public_key, response, transaction_multi_clauses_and_data[0])
+    if backend.device.is_nano:
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     else:
-        # instructions could be changed if data displayed in the future
-        # will be different for each use case
-        instructions_list = [
-            # data and multi-clauses enabled
-            [
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS,
-            ],
-            # contract data enabled
-            [
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS,
-            ],
-            # multi-clauses enabled
-            [
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS,
-            ]
-        ]
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM]
+    data = transaction_multi_clauses_and_data[idx]
+    with client.sign_tx(path=path, transaction=data):
+        navigator.navigate(instructions, screen_change_after_last_instruction=False)
+        scenario_navigator.review_approve(test_name=f"{scenario_navigator.test_name}/{directory}")
 
-        for i, instructions in enumerate(instructions_list):
-            # Send the sign device instruction.
-            # As it requires on-screen validation, the function is asynchronous.
-            # It will yield the result when the navigation is done
-            with client.sign_tx(path=path, transaction=transaction_multi_clauses_and_data[i]):
+    # The device as yielded the result, parse it and ensure that the signature is correct
+    response1 = client.get_async_response()
+    assert response1 and response1.status == Errors.SW_SUCCESS
 
-                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name + f"/part{i}", instructions)
-            # The device as yielded the result, parse it and ensure that the signature is correct
-            response = client.get_async_response().data
-            if isinstance(backend, SpeculosBackend):
-                assert check_signature_validity(public_key, response, transaction_multi_clauses_and_data[i])
+    if isinstance(backend, SpeculosBackend):
+        assert check_signature_validity(public_key, response1.data, data)
+
 
 # In this test we send to the device random generated transaction to sign and validate it on screen
-def test_sign_random_simple_tx(device:Device, backend, navigator, test_name):
+def test_sign_random_simple_tx(scenario_navigator: NavigateWithScenario):
+    # pylint: disable=line-too-long
     txs = [
         'f8427e888fc9b6cceea74fcc8484df2b87e1e094ca689c9be100f3c33a6cf433c7b2fbf2606d2fed890952fac0b477300000806b84fb69fe498088a8b73b51157004bcc0',
         'f863178814a276444ba8be3784b19aed17e1e094975eaec9b853710fbacc7d73a6528692c790be7b8901236efcbcbb3400008081a8846d9de477a093181b4974bb8419648b78a59cb026fb3ba5f0e7665d385a9acae97e67f2dee28836e16caf7c133448c0',
@@ -257,7 +159,9 @@ def test_sign_random_simple_tx(device:Device, backend, navigator, test_name):
         'f86381a88884320304671ed98e84294c2c9ae1e094f2ae4251e622a1afcf1af4af75da238b74026648890813ca56906d340000805d84ee5d8ee0a0f7b5fcb6513584b9ea667aabde37aed84ba115297445e1e7c4a12f0e7a54a4588806e3bc43cc40c295c0',
         'f843818488ab84102aafa0551584e71b795de1e094d9aa93a4c4c8e6dd4db58f84de4e4d479fbb93de890c16bf267ed01c0000807784f770cc2f8088e5f721e4ede09f1ac0'
     ]
+    # pylint: enable=line-too-long
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
     # get public key from device
@@ -266,34 +170,23 @@ def test_sign_random_simple_tx(device:Device, backend, navigator, test_name):
 
     for i, tx in enumerate(txs):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and device.touchable:
+        if i>4 and backend.device.touchable:
             break
 
         encoded = bytes.fromhex(tx)
-        # Send the sign device instruction.
-        # As it requires on-screen validation, the function is asynchronous.
-        # It will yield the result when the navigation is done
         with client.sign_tx(path=path, transaction=encoded):
-            # Validate the on-screen request by performing the navigation appropriate for this device
-            if device.is_nano:
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
-                                                        "Accept")
-            else:
-                navigator.navigate([
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_CONFIRM,
-                    NavInsID.USE_CASE_STATUS_DISMISS
-                ])
+            scenario_navigator.review_approve(do_comparison=i==0)
+
         # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response().data
+        response1 = client.get_async_response()
+        assert response1 and response1.status == Errors.SW_SUCCESS
 
         if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(public_key, response, encoded)
+            assert check_signature_validity(public_key, response1.data, encoded)
 
 # In this test we send to the device random generated transaction to sign and validate it on screen
-def test_sign_random_data_tx(device:Device, backend, navigator, test_name):
+def test_sign_random_data_tx(scenario_navigator: NavigateWithScenario):
+    # pylint: disable=line-too-long
     txs = [
         'f863038820312dee7d65ae3b84350a0c41e2e194361ea685786b149f9c24441270bd1dacaa77634d89075f610f70ed20000081dd5484e4423593a0a8d00c66645ce492bd96f9ee4413c7456e5505918b519361d03c240b066b8f93883fc812c0aab1ef9ec0',
         'f86581c1880f0cb57503bcedd284f8802e37e2e19412f52ba49f646de3990b103428a71ca7adc2c46c8901a055690d9db8000081dd81bb84e91b5398a0763d0e6145ef2796985ff2c7dbef8d8568565f1a85045e7750f3085ea050f4e988eef7c7bb3754113ac0',
@@ -301,85 +194,78 @@ def test_sign_random_data_tx(device:Device, backend, navigator, test_name):
         'f844819888f12ffcf4b9cf05fc84141ae73be2e194112b92aab7cbd8de92c62968d3fb3c868d5c3ee38903afb087b87690000081dd4c84490a6ff780886ea995750faafb77c0',
         'f86481bc882e7c3f301deaaefd840ca96561e2e194e46e6f82694e8dc277e0ab2272a1a9dcc4d1507c890805e99fdcc5d0000081dd4184a3e1e8e9a0baa86d8a405891a18eb7985324f0e5d7d69e10532449214624d9f4830032358888c0238d90002645fcc0'
     ]
+    # pylint: enable=line-too-long
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
     # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
-    settingEnables(device,navigator.navigate,NavInsID,NavIns)
+    navigator = scenario_navigator.navigator
+    settingEnables(backend.device, navigator)
 
-    for _, tx in enumerate(txs):
+    if backend.device.is_nano:
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    else:
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM]
+    for i, tx in enumerate(txs):
         encoded = bytes.fromhex(tx)
         # Send the sign device instruction.
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
         with client.sign_tx(path=path, transaction=encoded):
-            # Validate the on-screen request by performing the navigation appropriate for this device
-            if device.is_nano:
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                [NavInsID.BOTH_CLICK],
-                                                "Data present",
-                                                screen_change_before_first_instruction=False)
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
-                                                        "Accept",
-                                                        screen_change_before_first_instruction=False)
-            else:
-                navigator.navigate([
-                    NavInsID.USE_CASE_CHOICE_CONFIRM,
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_CONFIRM,
-                    NavInsID.USE_CASE_STATUS_DISMISS
-                ])
+            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                           f"{scenario_navigator.test_name}/warning",
+                                           instructions,
+                                           screen_change_after_last_instruction=False)
+            scenario_navigator.review_approve(do_comparison=i==0)
+
         # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response().data
+        response1 = client.get_async_response()
+        assert response1 and response1.status == Errors.SW_SUCCESS
 
         if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(public_key, response, encoded)
+            assert check_signature_validity(public_key, response1.data, encoded)
 
 # In this test we send to the device random generated transaction to sign and validate it on screen
-def test_sign_random_multi_clause_tx(device:Device, backend, navigator, test_name):
+def test_sign_random_multi_clause_tx(scenario_navigator: NavigateWithScenario):
+    # pylint: disable=line-too-long
     txs = [
         'f86681e2880e59815845390282841c65ac49f842e09424b1bbd76f700fae1d736d7c537cc96ec2be7c32890719fd7deea82c000080e0942a9c6ecd335aa760fb99c3c276353094bde34a0389019274b259f6540000808192843913fb3080888f21637f05dab2fac0',
         'f88581cb88e4c6e1417e96d1cf8440db74edf842e094a118111565bf2ee6d2b90e3a55e6f298540d2566890bfafdb9178154000080e0943db9897787c1c25286f20cfba98dc371105d17a78903782dace9d9000000801984af58c954a0ab98a30da49a3f914ccd8f6f448666c35cbdf209f7a8638f98768df878e003ba88f30d157c556de7cec0',
         'f8857788f60d1375f3eb119684533463a2f842e094aab17c3037bdb00daf5984b35280160579765be38901ae361fc1451c000080e09400e701a79a897d018142cc8f232528d8217070a589089e917994f71c00008081818443bf4f8ba0ea94b093830b112163d8baec31c431e9762a81b02063a46ee331ae3a141828ea88c80af759dac2145dc0'
     ]
+    # pylint: enable=line-too-long
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
     # get public key from device
     response = client.get_public_key(path=path).data
     _, public_key = unpack_get_public_key_response(response)
-    settingEnables(device,navigator.navigate,NavInsID,NavIns)
+    navigator = scenario_navigator.navigator
+    settingEnables(backend.device, navigator)
 
-    for _, tx in enumerate(txs):
+    if backend.device.is_nano:
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    else:
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM]
+    for i, tx in enumerate(txs):
         encoded = bytes.fromhex(tx)
         # Send the sign device instruction.
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
         with client.sign_tx(path=path, transaction=encoded):
-            # Validate the on-screen request by performing the navigation appropriate for this device
-            if device.is_nano:
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                [NavInsID.BOTH_CLICK],
-                                                "Multiple Clauses",
-                                                screen_change_before_first_instruction=False)
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
-                                                        "Accept",
-                                                        screen_change_before_first_instruction=False)
-            else:
-                navigator.navigate([
-                    NavInsID.USE_CASE_CHOICE_CONFIRM,
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_CONFIRM,
-                    NavInsID.USE_CASE_STATUS_DISMISS
-                ])
+            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                           f"{scenario_navigator.test_name}/warning",
+                                           instructions,
+                                           screen_change_after_last_instruction=False)
+            scenario_navigator.review_approve(do_comparison=i==0)
+
         # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response().data
+        response1 = client.get_async_response()
+        assert response1 and response1.status == Errors.SW_SUCCESS
 
         if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(public_key, response, encoded)
+            assert check_signature_validity(public_key, response1.data, encoded)

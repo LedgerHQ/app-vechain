@@ -1,2 +1,4 @@
 ragger[tests,speculos]>=1.7.0
 thor_devkit
+ledgered
+ecdsa

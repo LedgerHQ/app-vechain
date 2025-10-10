@@ -32,6 +32,7 @@ class Errors(IntEnum):
     SW_TRANSACTION_CANCELLED  = 0x6985
     SW_NON_ZERO_AMOUNT        = 0x6A87
     SW_UNKNOWN_DESTINATION    = 0x6A88
+    SW_SUCCESS                = 0x9000
 
 def split_message(message: bytes, max_size: int) -> List[bytes]:
     return [message[x:x + max_size] for x in range(0, len(message), max_size)]
@@ -75,7 +76,7 @@ class VechainClient:
     def __init__(self, backend: BackendInterface):
         self._backend = backend
 
-    def get_app_configuration(self) -> Tuple[int, int, int]:
+    def get_app_configuration(self) -> Tuple[int, int, int, int]:
         rapdu: RAPDU = self._backend.exchange(cla=CLA,
                                               ins=InsType.INS_GET_APP_CONFIGURATION,
                                               p1=P1.P1_START,
@@ -108,7 +109,7 @@ class VechainClient:
             yield response
 
     @contextmanager
-    def sign_certificate(self, path: str, data: bytes) -> RAPDU:
+    def sign_certificate(self, path: str, data: bytes) -> Generator[None, None, None]:
         with self._backend.exchange_async(cla=CLA,
                                         ins=InsType.INS_SIGN_CERTIFICATE,
                                         p1=P1.P1_START,
@@ -117,7 +118,7 @@ class VechainClient:
             yield response
 
     @contextmanager
-    def sign_message(self, path: str, data: bytes) -> RAPDU:
+    def sign_message(self, path: str, data: bytes) -> Generator[None, None, None]:
         with self._backend.exchange_async(cla=CLA,
                                         ins=InsType.INS_SIGN_PERSONAL_MESSAGE,
                                         p1=P1.P1_START,
@@ -145,7 +146,7 @@ class VechainClient:
                                     p1= P1.P1_START if i==0 else P2.P2_MORE,
                                     p2= P2.P2_LAST,
                                     data=messages[i])
-            except Exception as e:
+            except Exception:
                 pass
 
         with self._backend.exchange_async(cla=CLA,
