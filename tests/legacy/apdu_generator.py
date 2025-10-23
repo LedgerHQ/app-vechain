@@ -3,7 +3,7 @@ import struct
 from decimal import Decimal
 from vetBase import Transaction, UnsignedTransaction, Clause
 from rlp import encode
-from rlp.utils import decode_hex
+from eth_utils import decode_hex
 
 
 def parse_bip32_path(path):
@@ -26,7 +26,7 @@ def _decimal_to_bytes(i):
     hex_basic = hex(int(i))[2:]
     hex_basic = hex_basic.replace("L", "")
     if len(hex_basic) % 2 == 1:
-        hex_basic = "0{}".format(hex_basic)
+        hex_basic = f"0{hex_basic}"
     return decode_hex(hex_basic)
 
 

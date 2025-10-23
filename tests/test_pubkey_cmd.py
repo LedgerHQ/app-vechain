@@ -1,109 +1,63 @@
-from ledgered.devices import Device, DeviceType
+import pytest
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
 from ragger.backend import SpeculosBackend, RaisePolicy
-from ragger.navigator import NavInsID, NavIns
-from utils import ROOT_SCREENSHOT_PATH
+from ragger.backend.interface import BackendInterface
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 from vechain_client import VechainClient, unpack_get_public_key_response, Errors
-import ragger as r
+
+
 # In this test we check that the GET_PUBLIC_KEY works in non-confirmation mode
-def test_get_public_key_no_confirm(backend):
-    if isinstance(backend, SpeculosBackend):
-        for path in ["m/44'/818'/0'/0/0", "m/44'/1'/0/0/0"]:
-            client = VechainClient(backend)
-            response = client.get_public_key(path=path).data
-            _, public_key = unpack_get_public_key_response(response)
-            ref_public_key, _ = calculate_public_key_and_chaincode(CurveChoice.Secp256k1, path=path)
-            assert public_key.hex() == ref_public_key
+def test_get_public_key_no_confirm(backend: BackendInterface):
+    if not isinstance(backend, SpeculosBackend):
+        pytest.skip("Skipped as this test is only for Speculos")
+    client = VechainClient(backend)
+
+    for path in ["m/44'/818'/0'/0/0", "m/44'/1'/0/0/0"]:
+        response = client.get_public_key(path=path).data
+        _, public_key = unpack_get_public_key_response(response)
+        ref_public_key, _ = calculate_public_key_and_chaincode(CurveChoice.Secp256k1, path=path)
+        assert public_key.hex() == ref_public_key
 
 
  # In this test we check that the GET_PUBLIC_KEY works in confirmation mode
-def test_get_public_key_confirm(device:Device, backend, navigator, test_name):
-    if isinstance(backend, SpeculosBackend):
-        for path in ["m/44'/818'/0'/0/0"]:
-            client = VechainClient(backend)
+def test_get_public_key_confirm(scenario_navigator: NavigateWithScenario):
+    backend = scenario_navigator.backend
+    if not isinstance(backend, SpeculosBackend):
+        pytest.skip("Skipped as this test is only for Speculos")
 
-            # Send the get pub key instruction.
-            # As it requires on-screen validation, the function is asynchronous.
-            # It will yield the result when the navigation is done
-            with client.get_public_key_with_confirmation(path=path):
+    client = VechainClient(backend)
 
-                # Validate the on-screen request by performing the navigation appropriate for this device
-                if device.is_nano:
-                    navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                            [NavInsID.BOTH_CLICK],
-                                                            "Approve",
-                                                            ROOT_SCREENSHOT_PATH,
-                                                            test_name)
-                else: # stax and flex
-                    instructions = [
-                        NavInsID.USE_CASE_REVIEW_TAP,
-                        NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
-                    ]
-                    navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
-                                                test_name,
-                                                instructions)
-
-            response = client.get_async_response().data
-            _, public_key = unpack_get_public_key_response(response)
-            ref_public_key, _ = calculate_public_key_and_chaincode(CurveChoice.Secp256k1, path=path)
-            assert public_key.hex() == ref_public_key
-
-# In this test we check that the GET_PUBLIC_KEY in confirmation mode replies an error if the user refuses
-def test_get_public_confirm_refused(device:Device, backend, navigator, test_name):
     for path in ["m/44'/818'/0'/0/0"]:
-        client = VechainClient(backend)
-
         # Send the get pub key instruction.
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
         with client.get_public_key_with_confirmation(path=path):
-            # Disable raising when trying to unpack an error APDU
-            backend.raise_policy = RaisePolicy.RAISE_NOTHING
-
-            # Validate the on-screen request by performing the navigation appropriate for this device
-            if device.is_nano:
-                navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
-                                                        "Reject",
-                                                        ROOT_SCREENSHOT_PATH,
-                                                        test_name)
-            else:
-                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,test_name + "_first", [
-                    NavInsID.USE_CASE_REVIEW_REJECT,
-                    NavInsID.USE_CASE_STATUS_DISMISS
-                ])
+            scenario_navigator.address_review_approve()
 
         response = client.get_async_response()
+        assert response and response.status == Errors.SW_SUCCESS
 
-        # Assert that we have received a refusal
-        assert response.status == Errors.SW_TRANSACTION_CANCELLED
-        assert len(response.data) == 0
+        _, public_key = unpack_get_public_key_response(response.data)
+        ref_public_key, _ = calculate_public_key_and_chaincode(CurveChoice.Secp256k1, path=path)
+        assert public_key.hex() == ref_public_key
+
 
 # In this test we check that the GET_PUBLIC_KEY in confirmation mode replies an error if the user refuses
-def test_get_public_confirm_refused_2(device: Device, backend, navigator, test_name):
-    if not device.is_nano:
-        for path in ["m/44'/818'/0'/0/0"]:
-            client = VechainClient(backend)
+def test_get_public_confirm_refused(scenario_navigator: NavigateWithScenario):
+    backend = scenario_navigator.backend
+    # Disable raising when trying to unpack an error APDU
+    backend.raise_policy = RaisePolicy.RAISE_NOTHING
+    client = VechainClient(backend)
 
-            # Send the get pub key instruction.
-            # As it requires on-screen validation, the function is asynchronous.
-            # It will yield the result when the navigation is done
-            with client.get_public_key_with_confirmation(path=path):
-                # Disable raising when trying to unpack an error APDU
-                backend.raise_policy = RaisePolicy.RAISE_NOTHING
+    for path in ["m/44'/818'/0'/0/0"]:
+        # Send the get pub key instruction.
+        # As it requires on-screen validation, the function is asynchronous.
+        # It will yield the result when the navigation is done
+        with client.get_public_key_with_confirmation(path=path):
+            scenario_navigator.address_review_reject()
 
-                # Validate the on-screen request by performing the navigation appropriate for this device
-                instructions = [
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL,
-                    NavInsID.USE_CASE_STATUS_DISMISS]
+        response = client.get_async_response()
+        assert response and response.status == Errors.SW_TRANSACTION_CANCELLED
 
-                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
-                                            test_name,
-                                            instructions)
-
-            response = client.get_async_response()
-
-            # Assert that we have received a refusal
-            assert response.status == Errors.SW_TRANSACTION_CANCELLED
-            assert len(response.data) == 0
+        # Assert that we have received a refusal
+        assert len(response.data) == 0

@@ -1,10 +1,7 @@
-from operator import is_
 import struct
-from hashlib import blake2b
 from ragger.backend import RaisePolicy, SpeculosBackend
-from ragger.navigator import NavInsID
-from ledgered.devices import Device, DeviceType
-from utils import ROOT_SCREENSHOT_PATH, check_signature_validity
+from ragger.navigator.navigation_scenario import NavigateWithScenario
+from utils import check_signature_validity
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
  # Certificate to sign (Json format)
@@ -23,19 +20,13 @@ path: str = "m/44'/818'/0'/0/0"
 
 # In this test we send to the device a certificate to sign and validate it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_certificate(device:Device, backend, navigator, test_name):
+def test_sign_certificate(scenario_navigator: NavigateWithScenario):
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
-    message_encoded = CERTIFICATE_TO_SIGN.encode()
-
-    # compute the reference hash for certificate
-    hash_cert = blake2b(digest_size=32)
-    hash_cert.update(message_encoded)
-    hash_cert = hash_cert.digest().hex()
-    hash_part_to_check = hash_cert[:4]
-
     # prepare the message to send
+    message_encoded = CERTIFICATE_TO_SIGN.encode()
     message_bytes = struct.pack(">I", len(message_encoded))
     message_bytes += message_encoded
 
@@ -47,134 +38,47 @@ def test_sign_certificate(device:Device, backend, navigator, test_name):
     # As it requires on-screen validation, the function is asynchronous.
     # It will yield the result when the navigation is done
     with client.sign_certificate(path=path, data=message_bytes):
+        scenario_navigator.review_approve(custom_screen_text="Sign certificate")
 
-        # Validate the on-screen request by performing the navigation appropriate for this device
-        if device.is_nano:
-            # check that the certificate hash computed on device is the same as the
-            # reference one (check only the first displayed digits)
-            navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                      [NavInsID.BOTH_CLICK],
-                                                      str(hash_part_to_check).upper(),
-                                                      ROOT_SCREENSHOT_PATH,
-                                                      test_name,
-                                                      screen_change_after_last_instruction=False)
-
-            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                            [NavInsID.BOTH_CLICK],
-                                            "Sign",
-                                            screen_change_before_first_instruction=False)
-        else:
-            # check that the certificate hash computed on device is the same as the
-            # reference one (check only the first displayed digits)
-            navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name,[
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ])
     # The device as yielded the result, parse it and ensure that the signature is correct
-    response = client.get_async_response().data
+    response1 = client.get_async_response()
+    assert response1 and response1.status == Errors.SW_SUCCESS
 
     if isinstance(backend, SpeculosBackend):
-        assert check_signature_validity(public_key, response, message_encoded)
+        assert check_signature_validity(public_key, response1.data, message_encoded)
 
 
 # In this test we send to the device a certificate to sign and cancel it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
-def test_sign_certificate_cancel(device:Device, backend, navigator, test_name):
+def test_sign_certificate_cancel(scenario_navigator: NavigateWithScenario):
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
-    message_encoded = CERTIFICATE_TO_SIGN.encode()
-
-    # compute the reference hash for certificate
-    hash_cert = blake2b(digest_size=32)
-    hash_cert.update(message_encoded)
-    hash_cert = hash_cert.digest().hex()
-    hash_part_to_check = hash_cert[:4]
-
     # prepare the message to send
+    message_encoded = CERTIFICATE_TO_SIGN.encode()
     message_bytes = struct.pack(">I", len(message_encoded))
     message_bytes += message_encoded
 
     # Disable raising when trying to unpack an error APDU
     backend.raise_policy = RaisePolicy.RAISE_NOTHING
 
-    if device.is_nano:
-        # Send the sign device instruction.
-        # As it requires on-screen validation, the function is asynchronous.
-        # It will yield the result when the navigation is done
-        with client.sign_certificate(path=path, data=message_bytes):
-            # check that the certificate hash computed on device is the same as the
-            # reference one (check only the first disapled digitis)
-            navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                            [NavInsID.BOTH_CLICK],
-                                            str(hash_part_to_check).upper(),
-                                            screen_change_after_last_instruction=False)
+    with client.sign_certificate(path=path, data=message_bytes):
+        scenario_navigator.review_reject()
 
-            navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
-                                                        "Cancel",
-                                                        ROOT_SCREENSHOT_PATH,
-                                                        test_name,
-                                                        screen_change_before_first_instruction=False)
+    # The device as yielded the result, parse it and ensure that the signature is correct
+    response = client.get_async_response()
 
-        # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response()
-
-        # Assert that we have received a refusal
-        assert response.status == Errors.SW_TRANSACTION_CANCELLED
-        assert len(response.data) == 0
-
-    else:
-        instructions_list = [
-            [
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ],
-            [
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ],
-            [
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_TAP,
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ],
-            [
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_REJECT,
-                NavInsID.USE_CASE_REVIEW_REJECT,
-                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS
-            ]
-        ]
-
-        for i, instructions in enumerate(instructions_list):
-            # Send the sign device instruction.
-            # As it requires on-screen validation, the function is asynchronous.
-            # It will yield the result when the navigation is done
-            with client.sign_certificate(path=path, data=message_bytes):
-                # Validate the on-screen request by performing the navigation appropriate for this device
-                navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name + f"/part{i}", instructions)
-
-            # The device as yielded the result, parse it and ensure that the signature is correct
-            response = client.get_async_response()
-
-            # Assert that we have received a refusal
-            assert response.status == Errors.SW_TRANSACTION_CANCELLED
-            assert len(response.data) == 0
+    # Assert that we have received a refusal
+    assert response and response.status == Errors.SW_TRANSACTION_CANCELLED
+    assert len(response.data) == 0
 
 # In this test we generated some random certificate for the device to sign and validate it on screen.
-def test_sign_random_certificate(device:Device, backend, navigator, test_name):
+def test_sign_random_certificate(scenario_navigator: NavigateWithScenario):
+    # pylint: disable=line-too-long
     certificates = [
         '{"domain":"oblong-nephew.name","payload":{"content":"pressurise once opossum oof","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}', 
+        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"jovial-head.com","payload":{"content":"pish before optimal dramatic scrummage","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"quirky-ethics.com","payload":{"content":"self-assured ack after usually","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"tinted-toothpaste.biz","payload":{"content":"approve utterly amid forbid instead","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
@@ -192,7 +96,9 @@ def test_sign_random_certificate(device:Device, backend, navigator, test_name):
         '{"domain":"sane-sculpture.info","payload":{"content":"euphoric gadzooks telecommute but","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
         '{"domain":"closed-nightgown.net","payload":{"content":"pooh incidentally boo trouble ill-fated","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}'
     ]
+    # pylint: enable=line-too-long
     # Use the app interface instead of raw interface
+    backend = scenario_navigator.backend
     client = VechainClient(backend)
 
     # get public key from device
@@ -202,17 +108,11 @@ def test_sign_random_certificate(device:Device, backend, navigator, test_name):
 
     for i, cert in enumerate(certificates):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and (device.type == DeviceType.STAX or device.type == DeviceType.FLEX):
+        if i>4 and backend.device.touchable:
             break
 
-        message_encoded = cert.encode()
-        # compute the reference hash for certificate
-        hash_cert = blake2b(digest_size=32)
-        hash_cert.update(message_encoded)
-        hash_cert = hash_cert.digest().hex()
-        hash_part_to_check = hash_cert[:4]
-
         # prepare the message to send
+        message_encoded = cert.encode()
         message_bytes = struct.pack(">I", len(message_encoded))
         message_bytes += message_encoded
 
@@ -220,31 +120,11 @@ def test_sign_random_certificate(device:Device, backend, navigator, test_name):
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
         with client.sign_certificate(path=path, data=message_bytes):
-            # Validate the on-screen request by performing the navigation appropriate for this device
-            if device.is_nano:
-                # check that the certificate hash computed on device is the same as the
-                # reference one (check only the first displayed digits)
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                        [NavInsID.BOTH_CLICK],
-                                                        str(hash_part_to_check).upper(),
-                                                        screen_change_after_last_instruction=False)
-
-                navigator.navigate_until_text(NavInsID.RIGHT_CLICK,
-                                                [NavInsID.BOTH_CLICK],
-                                                "Sign",
-                                                screen_change_before_first_instruction=False)
-            else:
-                # working with stax and flex 
-                navigator.navigate([
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_TAP,
-                    NavInsID.USE_CASE_REVIEW_CONFIRM,
-                    NavInsID.USE_CASE_STATUS_DISMISS
-                ])
-
+            scenario_navigator.review_approve(custom_screen_text="Sign certificate", do_comparison=i==0)
 
         # The device as yielded the result, parse it and ensure that the signature is correct
-        response = client.get_async_response().data
+        response1 = client.get_async_response()
+        assert response1 and response1.status == Errors.SW_SUCCESS
 
         if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(public_key, response, message_encoded)
+            assert check_signature_validity(public_key, response1.data, message_encoded)

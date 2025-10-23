@@ -1,20 +1,20 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
-*   (c) 2018 Totient Labs
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue
+ *   (c) 2016 Ledger
+ *   (c) 2018 Totient Labs
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "tokens.h"
 
@@ -31,20 +31,19 @@ const tokenDefinition_t TOKENS[NUM_TOKENS] = {
       0xef, 0x13, 0xc5, 0xbf, 0xee, 0x38, 0x52, 0x2f, 0x2e, 0x1f},
      "PLA ",
      18},
-    {{0x1b, 0x8e, 0xc6, 0xc2, 0xa4, 0x5c, 0xca, 0x48, 0x1d, 0xa6, 
+    {{0x1b, 0x8e, 0xc6, 0xc2, 0xa4, 0x5c, 0xca, 0x48, 0x1d, 0xa6,
       0xf2, 0x43, 0xdf, 0x0d, 0x7a, 0x57, 0x44, 0xaf, 0xc1, 0xf8},
      "DBET ",
      18},
-    {{0xb6, 0x9d, 0xed, 0x9f, 0x0d, 0xa1, 0x5d, 0x24, 0x0e, 0xe6, 
+    {{0xb6, 0x9d, 0xed, 0x9f, 0x0d, 0xa1, 0x5d, 0x24, 0x0e, 0xe6,
       0x80, 0x3d, 0xac, 0xd7, 0xfc, 0xf6, 0x87, 0x44, 0xe8, 0xff},
      "VET+ ",
      18},
-    {{0x5d, 0xb3, 0xc8, 0xa9, 0x42, 0x33, 0x3f, 0x64, 0x68, 0x17, 
+    {{0x5d, 0xb3, 0xc8, 0xa9, 0x42, 0x33, 0x3f, 0x64, 0x68, 0x17,
       0x6a, 0x87, 0x0d, 0xb3, 0x6e, 0xef, 0x12, 0x0a, 0x34, 0xdc},
      "SHA ",
      18},
     {{0x46, 0x20, 0x9d, 0x5e, 0x5a, 0x49, 0xc1, 0xd4, 0x03, 0xf4,
       0xee, 0x3a, 0x0a, 0x88, 0xc3, 0xa2, 0x7e, 0x29, 0xe5, 0x8d},
      "JUR ",
-     18}
-};
+     18}};

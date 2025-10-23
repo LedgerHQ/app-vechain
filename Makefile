@@ -19,139 +19,97 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-include $(BOLOS_SDK)/Makefile.defines
-endif
-APP_LOAD_PARAMS  = --curve secp256k1
+include $(BOLOS_SDK)/Makefile.target
 
+########################################
+#        Mandatory configuration       #
+########################################
+# Application name
+APPNAME = "VeChain"
+
+# Application version
+APPVERSION_M = 1
+APPVERSION_N = 3
+APPVERSION_P = 1
+APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
+
+APP_SOURCE_PATH += src common
+
+# Application icons
+ICON_NANOX = icons/nanox_app_vechain.gif
+ICON_NANOSP = icons/nanox_app_vechain.gif
+ICON_STAX = icons/stax_app_vechain_32px.gif
+ICON_FLEX = icons/flex_app_vechain_40px.gif
+ICON_APEX_P = icons/apex_app_vechain_32px.png
+
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
+    # With the Nano NBGL Design, the Home Screen icon is the reverse of the App icon:
+    ICON_HOME_NANO = glyphs/home_vechain_14px.gif
+endif
+
+# Application allowed derivation curves.
+CURVE_APP_LOAD_PARAMS = secp256k1
+
+# Application allowed derivation paths.
+PATH_APP_LOAD_PARAMS = "44'/818'" "44'/1'"
+
+# Setting to allow building variant applications
 VARIANT_PARAM = COIN
 VARIANT_VALUES = vechain
 ifndef COIN
     COIN=vechain
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
+# Enabling DEBUG flag will enable PRINTF and disable optimizations
+#DEBUG = 1
+
+########################################
+#     Application custom permissions   #
+########################################
+# See SDK `include/appflags.h` for the purpose of each permission
+#HAVE_APPLICATION_FLAG_DERIVE_MASTER = 1
+#HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX TARGET_APEX_P))
     HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
 endif
-APP_LOAD_PARAMS += --path "44'/818'" --path "44'/1'"
-APPNAME = "VeChain"
-DEFINES += APPNAME=\"$(APPNAME)\"
+#HAVE_APPLICATION_FLAG_LIBRARY = 1
 
-APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
+########################################
+# Application communication interfaces #
+########################################
+ENABLE_BLUETOOTH = 1
+#ENABLE_NFC = 1
+ENABLE_NBGL_FOR_NANO_DEVICES = 1
 
-APPVERSION_M = 1
-APPVERSION_N = 2
-APPVERSION_P = 2
-APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
-
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-    ICONNAME=icons/nanos_app_vechain.gif
-else ifeq ($(TARGET_NAME),TARGET_STAX)
-    ICONNAME=icons/stax_app_vechain_32px.gif
-else ifeq ($(TARGET_NAME),TARGET_FLEX)
-    ICONNAME=icons/flex_app_vechain_40px.gif
-else
-    ICONNAME=icons/nanox_app_vechain.gif
+########################################
+#         NBGL custom features         #
+########################################
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_P))
+    ENABLE_NBGL_QRCODE = 1
 endif
+#ENABLE_NBGL_KEYBOARD = 1
+#ENABLE_NBGL_KEYPAD = 1
 
-all: default
-
-DEFINES += $(DEFINES_LIB)
-DEFINES += APPVERSION=\"$(APPVERSION)\"
-DEFINES += MAJOR_VERSION=$(APPVERSION_M) MINOR_VERSION=$(APPVERSION_N) PATCH_VERSION=$(APPVERSION_P)
-DEFINES += OS_IO_SEPROXYHAL
-DEFINES += HAVE_SPRINTF HAVE_SNPRINTF_FORMAT_U
-DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_HID_EP_LENGTH=64 HAVE_USB_APDU
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-    DEFINES += IO_USB_MAX_ENDPOINTS=6 NOT_STANDARD_APP
-endif
-DEFINES += USB_SEGMENT_SIZE=64
-DEFINES += BLE_SEGMENT_SIZE=32
-
-DEFINES    += HAVE_U2F HAVE_IO_U2F
-DEFINES    += U2F_PROXY_MAGIC=\"VeX\"
-WEBUSB_URL  = www.ledgerwallet.com
-DEFINES    += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
-
-DEFINES += UNUSED\(x\)=\(void\)x
-
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-    DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000 HAVE_BLE_APDU
-endif
-
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
-else
-    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-endif
-
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-    DEFINES += NBGL_QRCODE
-    SDK_SOURCE_PATH += qrcode
-else
-    DEFINES += HAVE_BAGL HAVE_UX_FLOW
-    ifneq ($(TARGET_NAME),TARGET_NANOS)
-        DEFINES += HAVE_GLO096
-        DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
-        DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
-        DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-        DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-        DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-    endif
-endif
-
-DEBUG = 0
-ifneq ($(DEBUG),0)
-    DEFINES += HAVE_PRINTF
-    ifeq ($(TARGET_NAME),TARGET_NANOS)
-        DEFINES += PRINTF=screen_printf
-    else
-        DEFINES += PRINTF=mcu_usb_printf
-    endif
-else
-        DEFINES += PRINTF\(...\)=
-endif
-
-CC      := $(CLANGPATH)clang
-AS      := $(GCCPATH)arm-none-eabi-gcc
-LD      := $(GCCPATH)arm-none-eabi-gcc
-LDLIBS  += -lm -lgcc -lc
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-include $(BOLOS_SDK)/Makefile.glyphs
-endif
-
-APP_SOURCE_PATH += src
-SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
-
-APP_SOURCE_PATH  += common
-SDK_SOURCE_PATH  += lib_u2f
+########################################
+#          Features disablers          #
+########################################
+# These advanced settings allow to disable some feature that are by
+# default enabled in the SDK `Makefile.standard_app`.
+#DISABLE_STANDARD_APP_FILES = 1
+#DISABLE_DEFAULT_IO_SEPROXY_BUFFER_SIZE = 1 # To allow custom size declaration
+#DISABLE_STANDARD_APP_DEFINES = 1 # Will set all the following disablers
+#DISABLE_STANDARD_SNPRINTF = 1
+#DISABLE_STANDARD_USB = 1
+#DISABLE_STANDARD_WEBUSB = 1
+#DISABLE_DEBUG_LEDGER_ASSERT = 1
+#DISABLE_DEBUG_THROW = 1
 
 
-ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-SDK_SOURCE_PATH += lib_ux
-endif
+########################################
+#        Main app configuration        #
+########################################
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
-    SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
-endif
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
-load: all
-	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
+DEFINES += U2F_PROXY_MAGIC=\"VeX\"
+APP_WEBUSB_URL = www.ledgerwallet.com
 
-load-offline: all
-	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS) --offline
-
-delete:
-	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
-
-include $(BOLOS_SDK)/Makefile.rules
-
-dep/%.d: %.c Makefile
-
-listvariants:
-	@echo VARIANTS COIN vechain
-endif
-
-ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOS))
 include $(BOLOS_SDK)/Makefile.standard_app
-endif

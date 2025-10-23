@@ -18,38 +18,37 @@
 *  limitations under the License.
 ********************************************************************************
 """
-from ledgerblue.comm import getDongle
-from ledgerblue.commException import CommException
 import argparse
 import struct
+from ledgerblue.comm import getDongle
 
 def parse_bip32_path(path):
-	if len(path) == 0:
-		return ""
-	result = ""
-	elements = path.split('/')
-	for pathElement in elements:
-		element = pathElement.split('\'')
-		if len(element) == 1:
-			result = result + struct.pack(">I", int(element[0]))			
-		else:
-			result = result + struct.pack(">I", 0x80000000 | int(element[0]))
-	return result
+    if len(path) == 0:
+        return ""
+    res = ""
+    elements = path.split('/')
+    for pathElement in elements:
+        element = pathElement.split('\'')
+        if len(element) == 1:
+            res = res + struct.pack(">I", int(element[0]))
+        else:
+            res = res + struct.pack(">I", 0x80000000 | int(element[0]))
+    return res
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', help="BIP 32 path to retrieve")
 args = parser.parse_args()
 
-if args.path == None:
-	args.path = "44'/818'/0'/0/0"
+if args.path is None:
+    args.path = "44'/818'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
-apdu = "e0020100".decode('hex') + chr(len(donglePath) + 1) + chr(len(donglePath) / 4) + donglePath
+apdu = bytes.fromhex("e0020100") + bytes([len(donglePath) + 1]) + bytes([len(donglePath) // 4]) + donglePath
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 offset = 1 + result[0]
 address = result[offset + 1 : offset + 1 + result[offset]]
 
-print "Public key " + str(result[1 : 1 + result[0]]).encode('hex')
-print "Address 0x" + str(address)
+print(f"Public key {result[1 : 1 + result[0]].hex()}")
+print(f"Address 0x{str(address)}")

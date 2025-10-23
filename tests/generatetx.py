@@ -1,11 +1,11 @@
 # pyenv local 3.10
-# thor_devkit (rlp 1.2.0) conflict with legacy/apdu_generator.py (rlp <0.6.0) 
-from thor_devkit import cry, transaction, rlp
-from thor_devkit.rlp import DictWrapper, HomoListWrapper, ComplexCodec, NumericKind, CompactFixedBlobKind, NoneableFixedBlobKind, BlobKind, BytesKind
+# thor_devkit (rlp 1.2.0) conflict with legacy/apdu_generator.py (rlp <0.6.0)
 import random
 import argparse
-from copy import deepcopy
 from enum import IntEnum
+from thor_devkit import cry, transaction
+from thor_devkit.rlp import DictWrapper, HomoListWrapper, NumericKind
+from thor_devkit.rlp import CompactFixedBlobKind, NoneableFixedBlobKind, BlobKind, BytesKind
 
 _params = [
     ("chainTag", NumericKind(1)),
@@ -58,16 +58,16 @@ class Errors(IntEnum):
 def get_packed_path_bytes(path: str) -> bytes:
     components = path.split('/')
     packed_path = bytearray()
-    
+
     for component in components:
         if component.startswith("m"):
             continue
-        elif component.endswith("'"):  # Hardened key
+        if component.endswith("'"):  # Hardened key
             index = int(component[:-1]) + 0x80000000
         else:
             index = int(component)
         packed_path.extend(index.to_bytes(4, byteorder='big'))
-    
+
     packed_path = bytearray.fromhex("05") + packed_path
     return bytes(packed_path)
 
@@ -77,11 +77,12 @@ def split_message(message: bytes, max_size: int) -> list[bytes]:
 def split_tx(path:str, tx:transaction.Transaction):
     return split_message(get_packed_path_bytes(path) + tx.encode(), MAX_APDU_LEN)
 
-def generateAPDUs(path, tx)-> list[str]:
+def generateAPDUs(path, tx:transaction.Transaction)-> list[str]:
     messages = split_tx(path,tx)
     codesAPDU = []
-    for i, msg in enumerate(messages):
-        codesAPDU.append((bytes([CLA, InsType.INS_SIGN, P1.P1_START if i==0 else P2.P2_MORE, P2.P2_LAST, len(msg)]) + msg).hex())
+    for idx, msg in enumerate(messages):
+        codesAPDU.append(
+            (bytes([CLA, InsType.INS_SIGN, P1.P1_START if idx==0 else P2.P2_MORE, P2.P2_LAST, len(msg)]) + msg).hex())
     return codesAPDU
 
 def randomHex(length, prefix=True):
@@ -89,7 +90,7 @@ def randomHex(length, prefix=True):
     return start+ "".join([random.choice(
         ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
         # ["a"]
-        ) for i in range(0, int(length)*2)])
+        ) for idx in range(0, int(length)*2)])
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', help="BIP 32 path to sign with")
@@ -129,7 +130,7 @@ if args.nonce is None:
 
 if args.data is None:
     # ! empty string returns error
-    args.data = "0x00" 
+    args.data = "0x00"
     if args.length is not None:
         args.data = randomHex(args.length)
 
@@ -138,9 +139,10 @@ args.to = ["0xd6FdBEB6d0FBC690DaBD352cF93b2f8D782A46B5","0xDEADBEB6d0FBC690DaBD3
 if args.clauses is None:
     args.clauses = 1
 else:
-    args.clauses = int(args.clauses) 
-    if args.clauses > 2:
-        [args.to.append("0xd6FdBEB6d0FBC690DaBD352cF93b2f8D782A46B5") for _ in range(0, args.clauses-2)]
+    args.clauses = int(args.clauses)
+    # disabled because args.clauses is set to 2 above
+    # if args.clauses > 2:
+    #     [args.to.append("0xd6FdBEB6d0FBC690DaBD352cF93b2f8D782A46B5") for _ in range(0, args.clauses-2)]
 
 args.amount = 500
 if args.amount is None:
@@ -149,6 +151,7 @@ args.blockref = "0xabe47d18daa1301d"
 
 # See: https://docs.vechain.org/thor/learn/transaction-model.html#model
 
+# pylint: disable=line-too-long
 # used for the test
 # body = {
 #     "chainTag": int('0x4a', 16), # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
@@ -160,6 +163,7 @@ args.blockref = "0xabe47d18daa1301d"
 #     "dependsOn": None,
 #     "nonce": 12345678
 # }
+# pylint: enable=line-too-long
 body = {
     "chainTag": args.chaintag, # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
     "blockRef": args.blockref,
@@ -169,12 +173,12 @@ body = {
             "to": "0x5fb35692c9a5025a995beceaebccf2304b2b3383",
             "value": "44800000000000000000",
             "data": "0xc2db2c4200000000000000000000000000000000000000000000000000000000ee6b4b6d"
-        }, 
+        },
         {
             "to": "0x5fb35692c9a5025a995beceaebccf2304b2b3383",
             "value": "54800000000000000000",
             "data": "0xc2db2c4200000000000000000000000000000000000000000000000000000000ee6b4b6d"
-        }, 
+        },
     ],
         # [{"to":args.to[i], "value":args.amount, "data":args.data} for i in range(0, args.clauses)],
     "gasPriceCoef": int(args.gaspricecoef),
@@ -183,13 +187,14 @@ body = {
     "nonce": int(args.nonce, 16)
 }
 # Construct an unsigned transaction.
-tx = transaction.Transaction(body)
-path: str = "m/44'/818'/0'/0/0"
-print(f"tx: {tx.encode().hex()}")
+tx_body = transaction.Transaction(body)
+derivation_path: str = "m/44'/818'/0'/0/0"
+print(f"tx: {tx_body.encode().hex()}")
 print()
-for i, codeAPDU in enumerate(generateAPDUs(path, tx)):
+for i, codeAPDU in enumerate(generateAPDUs(derivation_path, tx_body)):
     print(f"{i+1} APDU: {codeAPDU}")
-    
+
 print()
-tx.set_signature(cry.secp256k1.sign(tx.get_signing_hash(), bytes.fromhex('C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F')))
-print(f"signature: {tx.get_signature().hex()}")
+tx_body.set_signature(cry.secp256k1.sign(tx_body.get_signing_hash(),
+                                         bytes.fromhex('C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F')))
+print(f"signature: {tx_body.get_signature().hex()}")
