@@ -42,9 +42,20 @@ static const char *const INFO_TYPES[SETTING_INFO_NB] = {"Version", "Developer"};
 static const char *const INFO_CONTENTS[SETTING_INFO_NB] = {APPVERSION, "Vechain foundation"};
 
 // settings switches definitions
-enum { CONTRACT_DATA_SWITCH_TOKEN = FIRST_USER_TOKEN, MULTI_CLAUSE_SWITCH_TOKEN };
+enum {
+    CONTRACT_DATA_SWITCH_TOKEN = FIRST_USER_TOKEN,
+    MULTI_CLAUSE_SWITCH_TOKEN,
+    EIP712_SWITCH_TOKEN,
+    BLIND_SIGN_712_SWITCH_TOKEN
+};
 
-enum { CONTRACT_DATA_SWITCH_ID = 0, MULTI_CLAUSE_SWITCH_ID, SETTINGS_SWITCHES_NB };
+enum {
+    CONTRACT_DATA_SWITCH_ID = 0,
+    MULTI_CLAUSE_SWITCH_ID,
+    EIP712_SWITCH_ID,
+    BLIND_SIGN_712_SWITCH_ID,
+    SETTINGS_SWITCHES_NB
+};
 
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
 
@@ -85,6 +96,14 @@ static void controls_callback(int token, uint8_t index, int page) {
         switches[MULTI_CLAUSE_SWITCH_ID].initState = (nbgl_state_t) switch_value;
         // store the new setting value in NVM
         nvm_write((void *) &N_storage.multiClauseAllowed, &switch_value, 1);
+    } else if (token == EIP712_SWITCH_TOKEN) {
+        switch_value = !N_storage.eip712Allowed;
+        switches[EIP712_SWITCH_ID].initState = (nbgl_state_t) switch_value;
+        nvm_write((void *) &N_storage.eip712Allowed, &switch_value, 1);
+    } else if (token == BLIND_SIGN_712_SWITCH_TOKEN) {
+        switch_value = !N_storage.blindSign712;
+        switches[BLIND_SIGN_712_SWITCH_ID].initState = (nbgl_state_t) switch_value;
+        nvm_write((void *) &N_storage.blindSign712, &switch_value, 1);
     }
 }
 
@@ -104,6 +123,22 @@ void ui_menu_main(void) {
     switches[MULTI_CLAUSE_SWITCH_ID].token = MULTI_CLAUSE_SWITCH_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[MULTI_CLAUSE_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[EIP712_SWITCH_ID].initState = (nbgl_state_t) N_storage.eip712Allowed;
+    switches[EIP712_SWITCH_ID].text = "EIP-712 signing";
+    switches[EIP712_SWITCH_ID].subText = "Allow EIP-712 typed\ndata signatures";
+    switches[EIP712_SWITCH_ID].token = EIP712_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[EIP712_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[BLIND_SIGN_712_SWITCH_ID].initState = (nbgl_state_t) N_storage.blindSign712;
+    switches[BLIND_SIGN_712_SWITCH_ID].text = "Blind sign 712";
+    switches[BLIND_SIGN_712_SWITCH_ID].subText = "Allow EIP-712 v0\nblind signing";
+    switches[BLIND_SIGN_712_SWITCH_ID].token = BLIND_SIGN_712_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[BLIND_SIGN_712_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     nbgl_useCaseHomeAndSettings(APPNAME,
@@ -261,6 +296,88 @@ void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type) {
                            "Sign certificate",
                            review_cert_choice);
     }
+}
+
+//  -----------------------------------------------------------
+//  --------------------- EIP-712 V0 FLOW ---------------------
+//  -----------------------------------------------------------
+
+#define EIP712_V0_TAG_VALUE_PAIRS 2
+static nbgl_layoutTagValue_t eip712_v0_pairs[EIP712_V0_TAG_VALUE_PAIRS];
+static nbgl_layoutTagValueList_t eip712_v0_pair_list = {0};
+
+static void review_eip712_v0_choice(bool confirm) {
+    if (confirm) {
+        io_seproxyhal_touch_eip712_ok();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_menu_main);
+    } else {
+        io_seproxyhal_touch_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_menu_main);
+    }
+}
+
+static void ui_display_eip712_v0(void) {
+    eip712_v0_pairs[0].item = "Domain hash";
+    eip712_v0_pairs[0].value = (const char *) fullAddress;
+    eip712_v0_pairs[1].item = "Message hash";
+    eip712_v0_pairs[1].value = (const char *) fullAmount;
+
+    eip712_v0_pair_list.nbMaxLinesForValue = 0;
+    eip712_v0_pair_list.nbPairs = EIP712_V0_TAG_VALUE_PAIRS;
+    eip712_v0_pair_list.pairs = eip712_v0_pairs;
+
+    nbgl_useCaseReview(TYPE_MESSAGE,
+                       &eip712_v0_pair_list,
+                       &ICON_APP_HOME,
+                       "Review typed data",
+                       NULL,
+                       "Sign typed data",
+                       review_eip712_v0_choice);
+}
+
+static void review_eip712_v0_warning_choice(bool confirm) {
+    if (confirm) {
+        review_eip712_v0_choice(false);
+    } else {
+        ui_display_eip712_v0();
+    }
+}
+
+void ui_display_action_sign_eip712_v0_flow(void) {
+    nbgl_useCaseChoice(&ICON_APP_WARNING,
+                       "Blind signing",
+                       "This typed data is\nshown only as a hash.\nProceed at your own risk.",
+                       "Cancel",
+                       "I understand, continue",
+                       review_eip712_v0_warning_choice);
+}
+
+//  -----------------------------------------------------------
+//  --------------------- EIP-712 V1 FLOW ---------------------
+//  -----------------------------------------------------------
+
+#include "context_712.h"
+
+static void review_eip712_v1_choice(bool confirm) {
+    if (confirm) {
+        io_seproxyhal_touch_eip712_ok();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_menu_main);
+    } else {
+        io_seproxyhal_touch_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_menu_main);
+    }
+}
+
+void ui_display_action_sign_eip712_v1_flow(void) {
+    nbgl_layoutTagValueList_t *list = eip712_get_display_list();
+
+    nbgl_useCaseReview(TYPE_MESSAGE,
+                       list,
+                       &ICON_APP_HOME,
+                       "Review typed data",
+                       NULL,
+                       "Sign typed data",
+                       review_eip712_v1_choice);
 }
 
 #endif

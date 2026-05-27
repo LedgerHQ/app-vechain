@@ -20,6 +20,8 @@
 #include "io.h"
 #include "os_io_seproxyhal.h"
 #include "main.h"
+#include "handlers.h"
+#include "crypto.h"
 
 /**
  * @brief Appends the given status word (SW) to the APDU buffer.
@@ -106,8 +108,8 @@ unsigned int io_seproxyhal_touch_address_ok() {
  */
 unsigned int io_seproxyhal_touch_tx_ok() {
     uint32_t tx = 0;
-    uint8_t sig_r[32];
-    uint8_t sig_s[32];
+    uint8_t sig_r[SECP256K1_RS_LEN];
+    uint8_t sig_s[SECP256K1_RS_LEN];
     uint8_t v = 0;
     int error;
 
@@ -121,14 +123,14 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     }
 
     // Move signature components to the APDU buffer
-    memmove(G_io_apdu_buffer, sig_r, 32);
-    memmove(G_io_apdu_buffer + 32, sig_s, 32);
-    tx = 64;
+    memmove(G_io_apdu_buffer, sig_r, SECP256K1_RS_LEN);
+    memmove(G_io_apdu_buffer + SECP256K1_RS_LEN, sig_s, SECP256K1_RS_LEN);
+    tx = 2 * SECP256K1_RS_LEN;
     G_io_apdu_buffer[tx++] = v & 0x01;
 
     // Clear the signature components from memory after use.
-    memset(sig_r, 0, 32);
-    memset(sig_s, 0, 32);
+    memset(sig_r, 0, SECP256K1_RS_LEN);
+    memset(sig_s, 0, SECP256K1_RS_LEN);
     v = 0;
 
     // Add success status code
@@ -136,4 +138,33 @@ unsigned int io_seproxyhal_touch_tx_ok() {
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     return 0;  // do not redraw the widget
+}
+
+unsigned int io_seproxyhal_touch_eip712_ok() {
+    uint32_t tx = 0;
+    uint8_t sig_r[SECP256K1_RS_LEN];
+    uint8_t sig_s[SECP256K1_RS_LEN];
+    uint8_t v = 0;
+    int error;
+
+    io_seproxyhal_io_heartbeat();
+    error = crypto_sign_hash(tmpCtx.transactionContext.hash, sig_r, sig_s, &v);
+    io_seproxyhal_io_heartbeat();
+
+    if (error != 0) {
+        THROW(error);
+    }
+
+    memmove(G_io_apdu_buffer, sig_r, SECP256K1_RS_LEN);
+    memmove(G_io_apdu_buffer + SECP256K1_RS_LEN, sig_s, SECP256K1_RS_LEN);
+    tx = 2 * SECP256K1_RS_LEN;
+    G_io_apdu_buffer[tx++] = v & 0x01;
+
+    explicit_bzero(sig_r, SECP256K1_RS_LEN);
+    explicit_bzero(sig_s, SECP256K1_RS_LEN);
+    v = 0;
+
+    apdu_buffer_append_state(&tx, SWO_SUCCESS);
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    return 0;
 }

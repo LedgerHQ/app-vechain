@@ -29,8 +29,8 @@ APPNAME = "VeChain"
 
 # Application version
 APPVERSION_M = 1
-APPVERSION_N = 3
-APPVERSION_P = 1
+APPVERSION_N = 4
+APPVERSION_P = 0
 APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 APP_SOURCE_PATH += src common
@@ -112,4 +112,38 @@ endif
 DEFINES += U2F_PROXY_MAGIC=\"VeX\"
 APP_WEBUSB_URL = www.ledgerwallet.com
 
+# EIP-712 needs dynamic allocation (linked-list typed-data registry,
+# nested struct hash context stack, paths/field hash buffers).
+ENABLE_DYNAMIC_ALLOC = 1
+
+# Heap size dedicated to the EIP-712 typed-data parser. Larger on touchscreen
+# targets (Stax/Flex/Apex P) where flash and RAM budgets are bigger.
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_P))
+    DEFINES += APP_MEM_BUFFER_SIZE=16384
+else
+    DEFINES += APP_MEM_BUFFER_SIZE=8192
+endif
+
+########################################
+#       Build flags: validation        #
+########################################
+# Set EIP712_MEMORY_PROFILING=1 on the make command line to enable runtime
+# heap usage logs from lib_alloc (printed on the Speculos debug output).
+ifeq ($(EIP712_MEMORY_PROFILING),1)
+    DEFINES += HAVE_MEMORY_PROFILING
+endif
+
 include $(BOLOS_SDK)/Makefile.standard_app
+
+########################################
+#       Helper validation targets      #
+########################################
+# `make size` prints the .text and .data section size of the linked ELF so it
+# is easy to track flash and RAM footprint regressions across phases.
+.PHONY: size
+size: $(BUILD_DIR)/bin/app.elf
+	@echo "==== app.elf section sizes ===="
+	@$(SIZE) $(BUILD_DIR)/bin/app.elf || size $(BUILD_DIR)/bin/app.elf
+	@echo
+	@echo "==== sections > 256 bytes ===="
+	@$(OBJDUMP) -h $(BUILD_DIR)/bin/app.elf | awk '/^[ ]+[0-9]+/ && strtonum("0x"$$3) > 256 { print $$2, $$3 }' || true

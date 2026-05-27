@@ -8,6 +8,8 @@
 typedef struct internalStorage_t {
     uint8_t dataAllowed;
     uint8_t multiClauseAllowed;
+    uint8_t eip712Allowed;
+    uint8_t blindSign712;
     uint8_t initialized;
 } internalStorage_t;
 
