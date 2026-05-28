@@ -12,9 +12,11 @@ public "tear down the EIP-712 context" APDU.
 
 Probes:
 
-* path depth   -> nested custom structs N levels deep  (MAX_PATH_DEPTH = 8)
-* array depth  -> single `uint256[][][]...` field      (MAX_ARRAY_DEPTH = 4)
-* flat fields  -> N uint256 fields in the primary type (MAX_DISPLAY_PAIRS = 24)
+* path depth   -> nested custom structs N levels deep  (MAX_PATH_DEPTH = 16
+                  architectural, ~13 practical on Nano due to 8 KB arena)
+* array depth  -> single `uint256[][][]...` field      (MAX_ARRAY_DEPTH = 8)
+* flat fields  -> N uint256 fields in the primary type (cap target-dependent:
+                  24 on Nano, 48 on touchscreen)
 * struct count -> N single-field structs in the registry (arena pressure)
 """
 from __future__ import annotations
@@ -142,10 +144,22 @@ def _setup(scenario_navigator: NavigateWithScenario) -> VechainClient:
 # ---------------------------------------------------------------------------
 # Path depth
 # ---------------------------------------------------------------------------
-# Hard limit: MAX_PATH_DEPTH = 16 (src/eip712/path.h, aligned with
+# Architectural hard cap: MAX_PATH_DEPTH = 16 (src/eip712/path.h, aligned with
 # LedgerHQ/app-ethereum). The root struct itself counts as depth 1.
+#
+# On Nano (NanoS+/NanoX) APP_MEM_BUFFER_SIZE = 8 KB (vs 16 KB on touchscreen,
+# see Makefile). Each nested custom struct level allocates a fresh cx_sha3_t
+# (~200 bytes + arena header) for the hash context stack, plus the type
+# registry entry, so the arena runs out around depth 14 — well before the
+# architectural cap of 16. Empirically depths 1..13 succeed, 14+ return
+# SWO_INCORRECT_DATA (0x6A80) from `push_new_hash_depth` -> APP_MEM_CALLOC
+# failure that bubbles up to `eip712_dispatch.c`.
 
-@pytest.mark.parametrize("n,expect_ok", [
+def _practical_path_depth_cap(scenario_navigator: NavigateWithScenario) -> int:
+    return 13 if scenario_navigator.backend.device.is_nano else 16
+
+
+@pytest.mark.parametrize("n,architectural_ok", [
     (1,  True),
     (8,  True),
     (15, True),
@@ -154,10 +168,12 @@ def _setup(scenario_navigator: NavigateWithScenario) -> VechainClient:
     (20, False),
 ])
 def test_eip712_limit_path_depth(scenario_navigator: NavigateWithScenario,
-                                 n: int, expect_ok: bool) -> None:
+                                 n: int, architectural_ok: bool) -> None:
     client = _setup(scenario_navigator)
     sw = _stream(client, _typed_path_depth(n))
     print(f"[path_depth] n={n} sw={sw if sw is None else hex(sw)}")
+    practical_cap = _practical_path_depth_cap(scenario_navigator)
+    expect_ok = architectural_ok and n <= practical_cap
     if expect_ok:
         assert sw is None, f"depth={n}: expected SW_SUCCESS, got 0x{sw:04X}"
     else:
