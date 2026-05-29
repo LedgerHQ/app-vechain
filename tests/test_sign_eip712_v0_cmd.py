@@ -7,13 +7,13 @@ against the device public key on Speculos.
 import pytest
 
 from Cryptodome.Hash import keccak
+from ecdsa.curves import SECP256k1
+from ecdsa.keys import VerifyingKey
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator import NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import ROOT_SCREENSHOT_PATH, enable_eip712_settings
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
-from ecdsa.curves import SECP256k1
-from ecdsa.keys import VerifyingKey
 
 # Reference EIP-712 typed-data: a minimal Permit-style message used as a known
 # good blind-sign payload. The actual domainSeparator and hashStruct values

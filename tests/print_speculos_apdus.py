@@ -7,9 +7,10 @@ Usage:
 """
 from __future__ import annotations
 
-from generate_eip712 import build_eip712_apdus
 from Cryptodome.Hash import keccak
 from eth_account.messages import encode_typed_data
+
+from generate_eip712 import build_eip712_apdus
 
 
 def eip712_digest(typed_data: dict) -> bytes:

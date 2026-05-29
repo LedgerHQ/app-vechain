@@ -166,13 +166,13 @@ static void format_int(const uint8_t *value, size_t v_len, char *out, size_t out
         magnitude[start + i] = (uint8_t) ~value[i];
     }
     for (size_t i = 32; i > 0; i--) {
-        magnitude[i - 1] = (uint8_t)(magnitude[i - 1] + 1);
+        magnitude[i - 1] = (uint8_t) (magnitude[i - 1] + 1);
         if (magnitude[i - 1] != 0) break;
     }
     out[0] = '-';
     uint256_t big;
     readu256BE(magnitude, &big);
-    if (!tostring256(&big, 10, out + 1, (uint32_t)(out_size - 1))) {
+    if (!tostring256(&big, 10, out + 1, (uint32_t) (out_size - 1))) {
         format_hex_bytes(value, v_len, out, out_size);
     }
 }

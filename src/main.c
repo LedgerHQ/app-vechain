@@ -50,6 +50,7 @@ void app_main(void) {
     // the heap, and only EIP-712 (master switch OFF by default) does.
     bool eip712_heap_ready = app_mem_init();
     PRINTF("eip712_heap_ready=%d\n", (int) eip712_heap_ready);
+    (void) eip712_heap_ready;
 
     // Initialize the display context.
     display_reset();

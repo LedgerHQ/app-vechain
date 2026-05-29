@@ -119,7 +119,6 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
     if (cursor + key_len > length) goto fail;
     field->key_name = intern_string(data + cursor, key_len);
     if (field->key_name == NULL) goto fail;
-    cursor += key_len;
 
     flist_push_back((flist_node_t **) &g_current_struct->fields, (flist_node_t *) field);
     return true;
