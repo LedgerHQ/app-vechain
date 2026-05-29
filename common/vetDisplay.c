@@ -35,19 +35,25 @@ void addressToDisplayString(uint8_t *address, uint8_t *displayString) {
     getVetAddressStringFromBinary(address, displayString + 2);
 }
 
-void sendAmountToDisplayString(txInt256_t *sendAmount,
+bool sendAmountToDisplayString(txInt256_t *sendAmount,
                                const uint8_t *ticker,
                                uint8_t decimals,
-                               uint8_t *displayString) {
+                               uint8_t *displayString,
+                               size_t displayStringSize) {
     uint256_t sendAmount256;
     convertUint256BE(sendAmount->value, sendAmount->length, &sendAmount256);
-    amountToDisplayString(&sendAmount256, ticker, decimals, displayString);
+    return amountToDisplayString(&sendAmount256,
+                                 ticker,
+                                 decimals,
+                                 displayString,
+                                 displayStringSize);
 }
 
-void maxFeeToDisplayString(txInt256_t *gaspricecoef,
+bool maxFeeToDisplayString(txInt256_t *gaspricecoef,
                            txInt256_t *gas,
                            feeComputationContext_t *feeComputationContext,
-                           uint8_t *displayString) {
+                           uint8_t *displayString,
+                           size_t displayStringSize) {
     convertUint256BE(MAX_GAS_COEF, sizeof(MAX_GAS_COEF), &feeComputationContext->maxGasCoef);
     convertUint256BE(BASE_GAS_PRICE, sizeof(BASE_GAS_PRICE), &feeComputationContext->baseGasPrice);
     convertUint256BE(gaspricecoef->value,
@@ -73,42 +79,66 @@ void maxFeeToDisplayString(txInt256_t *gaspricecoef,
            &feeComputationContext->gas,
            &feeComputationContext->maxFee);
 
-    amountToDisplayString(&feeComputationContext->maxFee,
-                          TICKER_VTHO,
-                          DECIMALS_VTHO,
-                          displayString);
+    return amountToDisplayString(&feeComputationContext->maxFee,
+                                 TICKER_VTHO,
+                                 DECIMALS_VTHO,
+                                 displayString,
+                                 displayStringSize);
 }
-void maxFeeVIP251ToDisplayString(const txInt256_t *maxFeePerGas,
+bool maxFeeVIP251ToDisplayString(const txInt256_t *maxFeePerGas,
                                  const txInt256_t *gas,
                                  feeComputationContext_t *feeComputationContext,
-                                 uint8_t *displayString) {
+                                 uint8_t *displayString,
+                                 size_t displayStringSize) {
     convertUint256BE(maxFeePerGas->value, maxFeePerGas->length, &feeComputationContext->maxGasCoef);
     convertUint256BE(gas->value, gas->length, &feeComputationContext->gas);
     mul256(&feeComputationContext->maxGasCoef,
            &feeComputationContext->gas,
            &feeComputationContext->maxFee);
-    amountToDisplayString(&feeComputationContext->maxFee,
-                          TICKER_VTHO,
-                          DECIMALS_VTHO,
-                          displayString);
+    return amountToDisplayString(&feeComputationContext->maxFee,
+                                 TICKER_VTHO,
+                                 DECIMALS_VTHO,
+                                 displayString,
+                                 displayStringSize);
 }
 
-void amountToDisplayString(uint256_t *amount256,
+bool amountToDisplayString(uint256_t *amount256,
                            const uint8_t *ticker,
                            uint8_t decimals,
-                           uint8_t *displayString) {
+                           uint8_t *displayString,
+                           size_t displayStringSize) {
+    if (displayString == NULL || ticker == NULL || displayStringSize == 0) {
+        return false;
+    }
+    // Always leave the destination NUL-terminated, even if we bail out early,
+    // so that any subsequent display read sees an empty string rather than
+    // stale data.
+    displayString[0] = '\0';
+
     uint8_t decimalAmount[100];
     uint8_t adjustedAmount[100];
-    tostring256(amount256, 10, (char *) decimalAmount, 100);
-    adjustDecimals((char *) decimalAmount,
-                   strlen((const char *) decimalAmount),
-                   (char *) adjustedAmount,
-                   100,
-                   decimals);
+    if (!tostring256(amount256, 10, (char *) decimalAmount, sizeof(decimalAmount))) {
+        return false;
+    }
+    if (!adjustDecimals((char *) decimalAmount,
+                        strlen((const char *) decimalAmount),
+                        (char *) adjustedAmount,
+                        sizeof(adjustedAmount),
+                        decimals)) {
+        return false;
+    }
 
-    uint32_t tickerLength = strlen((const char *) ticker);
-    uint32_t adjustedAmountLength = strlen((const char *) adjustedAmount);
+    size_t tickerLength = strlen((const char *) ticker);
+    size_t adjustedAmountLength = strlen((const char *) adjustedAmount);
+    // Refuse silently-truncating writes: a hardware wallet must never display
+    // a partial amount and ask the user to sign. The caller is expected to
+    // turn this into SWO_INCORRECT_DATA / SWO_INSUFFICIENT_MEMORY so the host
+    // sees the failure and the user is never prompted with a corrupt review.
+    if (tickerLength + adjustedAmountLength + 1 > displayStringSize) {
+        return false;
+    }
     memmove(displayString, ticker, tickerLength);
     memmove(displayString + tickerLength, adjustedAmount, adjustedAmountLength);
     displayString[tickerLength + adjustedAmountLength] = '\0';
+    return true;
 }

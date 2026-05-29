@@ -325,18 +325,34 @@ void handleSign(uint8_t p1,
     // Add address
     addressToDisplayString(clauseContent.to, (uint8_t *) fullAddress);
 
-    // Add amount in ethers or tokens
-    sendAmountToDisplayString(&clauseContent.value, ticker, decimals, (uint8_t *) fullAmount);
+    // Add amount in ethers or tokens. Refuse the TX if the formatted amount
+    // would not fit in the display buffer: an HSM that silently truncates
+    // here would let the host trick the user into approving a number that is
+    // shorter than what gets actually signed.
+    bool amount_ok = sendAmountToDisplayString(&clauseContent.value,
+                                               ticker,
+                                               decimals,
+                                               (uint8_t *) fullAmount,
+                                               sizeof(fullAmount));
+    bool fee_ok;
     if (displayContext.txFullContext.txContext.txType == VIP251) {
-        maxFeeVIP251ToDisplayString(&tmpContent.txContent.maxFeePerGas,
-                                    &tmpContent.txContent.gas,
-                                    &displayContext.feeComputationContext,
-                                    (uint8_t *) maxFee);
+        fee_ok = maxFeeVIP251ToDisplayString(&tmpContent.txContent.maxFeePerGas,
+                                             &tmpContent.txContent.gas,
+                                             &displayContext.feeComputationContext,
+                                             (uint8_t *) maxFee,
+                                             sizeof(maxFee));
     } else {
-        maxFeeToDisplayString(&tmpContent.txContent.gaspricecoef,
-                              &tmpContent.txContent.gas,
-                              &displayContext.feeComputationContext,
-                              (uint8_t *) maxFee);
+        fee_ok = maxFeeToDisplayString(&tmpContent.txContent.gaspricecoef,
+                                       &tmpContent.txContent.gas,
+                                       &displayContext.feeComputationContext,
+                                       (uint8_t *) maxFee,
+                                       sizeof(maxFee));
+    }
+    if (!amount_ok || !fee_ok) {
+        PRINTF("Display formatting overflow (amount_ok=%d fee_ok=%d)\n",
+               (int) amount_ok,
+               (int) fee_ok);
+        THROW(SWO_INCORRECT_DATA);
     }
 
     ui_display_action_sign_tx_flow();
@@ -439,9 +455,20 @@ void handleSignCertificate(uint8_t p1,
                        &tmpCtx.transactionContext.pathLength,
                        tmpCtx.transactionContext.bip32Path);
 
-        // Extract and parse the remaining length
+        // The first chunk must carry the 4-byte length AND at least the
+        // opening '{' of the JSON certificate. Without these checks the
+        // length read OOB-reads past the host data and `dataLength -= 4`
+        // underflows the uint16_t.
+        if (dataLength < 5) {
+            PRINTF("Missing certificate length / opening byte\n");
+            THROW(SWO_INCORRECT_DATA);
+        }
+
+        // Extract and parse the remaining length (cast to uint32_t to avoid
+        // `int` promotion UB when bit 7 of the high byte is set).
         tmpCtx.messageSigningContext.remainingLength =
-            (workBuffer[0] << 24) | (workBuffer[1] << 16) | (workBuffer[2] << 8) | (workBuffer[3]);
+            ((uint32_t) workBuffer[0] << 24) | ((uint32_t) workBuffer[1] << 16) |
+            ((uint32_t) workBuffer[2] << 8) | (uint32_t) workBuffer[3];
         workBuffer += 4;
         dataLength -= 4;
 
@@ -548,9 +575,19 @@ void handleSignPersonalMessage(uint8_t p1,
                        &tmpCtx.transactionContext.pathLength,
                        tmpCtx.transactionContext.bip32Path);
 
-        // Parse remaining message length
+        // Reject APDUs that don't carry the full 4-byte big-endian message
+        // length. Skipping this check used to underflow `dataLength` (uint16_t)
+        // to ~65532 and caused a downstream OOB read inside cx_hash_no_throw.
+        if (dataLength < 4) {
+            PRINTF("Missing message length\n");
+            THROW(SWO_INCORRECT_DATA);
+        }
+
+        // Parse remaining message length (cast each byte to uint32_t to avoid
+        // implementation-defined `int` promotion when bit 7 is set).
         tmpCtx.messageSigningContext.remainingLength =
-            (workBuffer[0] << 24) | (workBuffer[1] << 16) | (workBuffer[2] << 8) | (workBuffer[3]);
+            ((uint32_t) workBuffer[0] << 24) | ((uint32_t) workBuffer[1] << 16) |
+            ((uint32_t) workBuffer[2] << 8) | (uint32_t) workBuffer[3];
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
