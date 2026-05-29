@@ -22,6 +22,8 @@
 
 static const char HEX_DIGITS[] = "0123456789abcdef";
 
+extern void ui_display_action_sign_eip712_v1_flow(void);
+
 typedef struct {
     char *current_key;
     uint8_t *current_value;
@@ -273,6 +275,5 @@ void ui_712_finalize_field(void) {
 }
 
 void ui_712_present_review(void) {
-    extern void ui_display_action_sign_eip712_v1_flow(void);
     ui_display_action_sign_eip712_v1_flow();
 }

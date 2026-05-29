@@ -81,7 +81,6 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
     field->type_is_array = (type_desc & ARRAY_MASK) != 0;
 
     if (field->type == TYPE_CUSTOM) {
-        if (cursor >= length) goto fail;
         uint8_t name_len = data[cursor++];
         if (cursor + name_len > length) goto fail;
         field->type_name = intern_string(data + cursor, name_len);
