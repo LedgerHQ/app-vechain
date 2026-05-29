@@ -27,7 +27,7 @@ def enable_eip712_settings(device: Device, navigator: Navigator,
     already calibrated in `settingEnables`).
     """
     if device.is_nano:
-        seq = [
+        seq: list[NavInsID | NavIns] = [
             NavInsID.RIGHT_CLICK,   # home -> "Settings" header
             NavInsID.BOTH_CLICK,    # enter Settings (page: Contract data)
             NavInsID.RIGHT_CLICK,   # -> Multi-clauses
@@ -59,7 +59,7 @@ def enable_eip712_settings(device: Device, navigator: Navigator,
         return False
     x, y_row1, y_row2 = layout["x"], layout["y_row1"], layout["y_row2"]
 
-    seq: list[NavInsID | NavIns] = [
+    seq = [
         NavInsID.USE_CASE_HOME_SETTINGS,
         NavInsID.USE_CASE_SETTINGS_NEXT,
         NavIns(NavInsID.TOUCH, (x, y_row1)),
