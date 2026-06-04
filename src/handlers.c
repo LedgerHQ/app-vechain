@@ -238,6 +238,16 @@ void handleSign(uint8_t p1,
                &blake2b,
                NULL);
 
+        // The first chunk must carry at least one transaction byte after the
+        // BIP32 path. Without this check, reading workBuffer[0] runs past the
+        // host data and the VIP251 branch's `dataLength--` underflows the
+        // uint16_t to ~65535, which is then fed as commandLength to processTx
+        // and triggers an out-of-bounds read in the RLP parser.
+        if (dataLength < 1) {
+            PRINTF("Missing transaction payload\n");
+            THROW(SWO_INCORRECT_DATA);
+        }
+
         // VIP252: TransactionType might be present before the TransactionPayload.
         tx_type = workBuffer[0];
         if (tx_type == VIP251) {
