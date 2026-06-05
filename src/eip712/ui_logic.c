@@ -30,6 +30,7 @@ typedef struct {
     uint16_t current_value_len;
     uint16_t current_value_cap;
     uint8_t current_field_type;
+    uint8_t current_field_type_size;
     bool field_active;
 } s_ui_712_state;
 
@@ -66,6 +67,7 @@ bool ui_712_show_raw_key(const s_struct_712_field *field_ptr) {
     if (ui_712_state.current_key == NULL) return false;
     memmove(ui_712_state.current_key, raw_key, klen + 1);
     ui_712_state.current_field_type = field_ptr->type;
+    ui_712_state.current_field_type_size = field_ptr->type_size;
     ui_712_state.field_active = true;
     return true;
 }
@@ -149,16 +151,24 @@ static void format_uint(const uint8_t *value, size_t v_len, char *out, size_t ou
     }
 }
 
-// Signed-integer formatter. The host sends the two's-complement representation
-// in `v_len` bytes (it strips leading 0x00 for positive values; negative values
-// always retain their MSByte with the high bit set, so checking that bit is
-// enough to detect sign without needing the original typesize).
-static void format_int(const uint8_t *value, size_t v_len, char *out, size_t out_size) {
+// Signed-integer formatter. The host minimises positive values (it strips
+// leading 0x00 bytes) but streams negative values at the full type width
+// (`type_size` bytes). encode_field.c::encode_int() relies on the same
+// convention: it only sign-extends when `length == type_size`. So a value is
+// negative ONLY when it spans the full type width AND its top bit is set.
+// Inferring the sign from the top bit alone is wrong: a minimised positive
+// such as int256(128) arrives as a single 0x80 byte, which encode_int() hashes
+// as +128 but the old logic rendered as -128 -> display/signature mismatch.
+static void format_int(const uint8_t *value,
+                       size_t v_len,
+                       uint8_t type_size,
+                       char *out,
+                       size_t out_size) {
     if (v_len == 0 || v_len > 32 || out_size < 3) {
         format_hex_bytes(value, v_len, out, out_size);
         return;
     }
-    if ((value[0] & 0x80) == 0) {
+    if ((value[0] & 0x80) == 0 || v_len != type_size) {
         format_uint(value, v_len, out, out_size);
         return;
     }
@@ -206,6 +216,7 @@ static void format_string(const uint8_t *value, size_t v_len, char *out, size_t 
 static void format_value(uint8_t type,
                          const uint8_t *value,
                          size_t v_len,
+                         uint8_t type_size,
                          char *out,
                          size_t out_size) {
     if (out_size == 0) return;
@@ -215,7 +226,7 @@ static void format_value(uint8_t type,
             format_uint(value, v_len, out, out_size);
             break;
         case TYPE_SOL_INT:
-            format_int(value, v_len, out, out_size);
+            format_int(value, v_len, type_size, out, out_size);
             break;
         case TYPE_SOL_ADDRESS:
             format_address(value, v_len, out, out_size);
@@ -246,7 +257,12 @@ void ui_712_finalize_field(void) {
     if (val == NULL) {
         val = (const uint8_t *) "";
     }
-    format_value(ui_712_state.current_field_type, val, val_len, value_buf, sizeof(value_buf));
+    format_value(ui_712_state.current_field_type,
+                 val,
+                 val_len,
+                 ui_712_state.current_field_type_size,
+                 value_buf,
+                 sizeof(value_buf));
 
     const char *key_interned = eip712_intern_string(ui_712_state.current_key);
     const char *value_interned = eip712_intern_string(value_buf);
