@@ -241,10 +241,15 @@ void ui_712_finalize_field(void) {
     if (!ui_712_state.field_active) return;
 
     char value_buf[EIP712_DISPLAY_VALUE_MAX];
+    const uint8_t *val = ui_712_state.current_value;
+    size_t val_len = (val != NULL) ? ui_712_state.current_value_len : 0;
+    if (val == NULL) {
+        val = (const uint8_t *) "";
+    }
     format_value(
         ui_712_state.current_field_type,
-        ui_712_state.current_value != NULL ? ui_712_state.current_value : (const uint8_t *) "",
-        ui_712_state.current_value_len,
+        val,
+        val_len,
         value_buf,
         sizeof(value_buf));
 
