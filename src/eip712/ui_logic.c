@@ -246,12 +246,7 @@ void ui_712_finalize_field(void) {
     if (val == NULL) {
         val = (const uint8_t *) "";
     }
-    format_value(
-        ui_712_state.current_field_type,
-        val,
-        val_len,
-        value_buf,
-        sizeof(value_buf));
+    format_value(ui_712_state.current_field_type, val, val_len, value_buf, sizeof(value_buf));
 
     const char *key_interned = eip712_intern_string(ui_712_state.current_key);
     const char *value_interned = eip712_intern_string(value_buf);
