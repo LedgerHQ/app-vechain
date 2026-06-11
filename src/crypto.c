@@ -138,11 +138,14 @@ cx_err_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
  *
  * @return Error code indicating the success or failure of the operation.
  */
-int crypto_sign_message(uint8_t sig_r[static 32], uint8_t sig_s[static 32], uint8_t v[static 1]) {
+int crypto_sign_hash(const uint8_t hash[static SECP256K1_HASH_LEN],
+                     uint8_t sig_r[static SECP256K1_RS_LEN],
+                     uint8_t sig_s[static SECP256K1_RS_LEN],
+                     uint8_t v[static 1]) {
     cx_ecfp_private_key_t private_key = {0};
     uint32_t info = 0;
-    memset(sig_r, 0, 32);
-    memset(sig_s, 0, 32);
+    memset(sig_r, 0, SECP256K1_RS_LEN);
+    memset(sig_s, 0, SECP256K1_RS_LEN);
     memset(v, 0, 1);
 
     // derive private key according to BIP32 path
@@ -155,21 +158,21 @@ int crypto_sign_message(uint8_t sig_r[static 32], uint8_t sig_s[static 32], uint
         return error;
     }
 
-    // Sign the message using the private key
+    // Sign the provided hash using the private key
     error = cx_ecdsa_sign_rs_no_throw(&private_key,
                                       CX_RND_RFC6979 | CX_LAST,
                                       CX_SHA256,
-                                      tmpCtx.messageSigningContext.hash,
-                                      sizeof(tmpCtx.messageSigningContext.hash),
-                                      32,
+                                      hash,
+                                      SECP256K1_HASH_LEN,
+                                      SECP256K1_RS_LEN,
                                       sig_r,
                                       sig_s,
                                       &info);
 
     // Clear the private key from memory after use for security
     explicit_bzero(&private_key, sizeof(private_key));
-    PRINTF("Signature: %.*H\n", 32, sig_r);
-    PRINTF("%.*H\n", 32, sig_s);
+    PRINTF("Signature: %.*H\n", SECP256K1_RS_LEN, sig_r);
+    PRINTF("%.*H\n", SECP256K1_RS_LEN, sig_s);
     PRINTF("%.*H\n", 1, &info);
 
     // Determine the V component based on the signature information
@@ -181,6 +184,12 @@ int crypto_sign_message(uint8_t sig_r[static 32], uint8_t sig_s[static 32], uint
     PRINTF("%.*H\n", 1, v);
 
     return error;
+}
+
+int crypto_sign_message(uint8_t sig_r[static SECP256K1_RS_LEN],
+                        uint8_t sig_s[static SECP256K1_RS_LEN],
+                        uint8_t v[static 1]) {
+    return crypto_sign_hash(tmpCtx.messageSigningContext.hash, sig_r, sig_s, v);
 }
 
 /**

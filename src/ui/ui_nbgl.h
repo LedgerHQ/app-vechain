@@ -26,6 +26,22 @@ void ui_display_action_sign_tx_flow(void);
  */
 void ui_display_action_sign_msg_cert(transactionType_t p_transaction_type);
 
+/**
+ * Show the EIP-712 v0 (blind sign) review flow.
+ *
+ * Expects fullAddress to contain the truncated domain hash and fullAmount the
+ * truncated message hash, formatted via eip712_format_hash_preview().
+ */
+void ui_display_action_sign_eip712_v0_flow(void);
+
+/**
+ * Show the EIP-712 v1 (clear sign) review flow.
+ *
+ * Expects the EIP-712 context to have been populated with the field display
+ * pairs accumulated during SEND_STRUCT_IMPLEMENTATION processing.
+ */
+void ui_display_action_sign_eip712_v1_flow(void);
+
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #define ICON_APP_HOME C_home_vechain_14px
 #elif defined(TARGET_STAX) || defined(TARGET_FLEX)

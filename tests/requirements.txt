@@ -1,4 +1,11 @@
 ragger[tests,speculos]>=1.7.0
-thor_devkit
 ledgered
 ecdsa
+pycryptodome
+bitarray>=2.7
+eth_account>=0.10
+# thor_devkit is only needed by tests/generatetx.py / generatetx_vip251.py
+# helpers used to craft fixture APDUs offline. It pulls older deps that
+# conflict with ragger>=1.8 so install it manually in a separate venv if
+# you need to regenerate the fixtures:
+#   python3 -m venv .thor && .thor/bin/pip install thor_devkit

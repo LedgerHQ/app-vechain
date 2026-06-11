@@ -20,6 +20,7 @@
 #include "io.h"
 #include "main.h"
 #include "handlers.h"
+#include "mem_buffer.h"
 
 /**
  * @brief Main function for processing incoming APDU commands and dispatching them to handlers.
@@ -44,14 +45,23 @@ void app_main(void) {
 
     io_init();
 
+    // Initialize the dynamic allocator used by the EIP-712 typed-data parser.
+    // Failure here is non-fatal: the legacy tx/message/cert flows do not need
+    // the heap, and only EIP-712 (master switch OFF by default) does.
+    bool eip712_heap_ready = app_mem_init();
+    PRINTF("eip712_heap_ready=%d\n", (int) eip712_heap_ready);
+    (void) eip712_heap_ready;
+
     // Initialize the display context.
     display_reset();
 
     // If the storage is uninitialized, initialize it with default settings.
     if (N_storage.initialized != 0x01) {
         internalStorage_t storage;
-        storage.dataAllowed = 0x00;         // CONFIG_DATA_ENABLED;
-        storage.multiClauseAllowed = 0x00;  // CONFIG_MULTICLAUSE_ENABLED;
+        storage.dataAllowed = 0x00;
+        storage.multiClauseAllowed = 0x00;
+        storage.eip712Allowed = 0x00;  // EIP-712 master switch (disabled)
+        storage.blindSign712 = 0x00;   // EIP-712 v0 blind signing (disabled)
         storage.initialized = 0x01;
         nvm_write((void *) &N_storage, &storage, sizeof(internalStorage_t));
     }

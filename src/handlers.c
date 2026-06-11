@@ -24,6 +24,8 @@
 #include "tokens.h"
 #include "ui_callback.h"
 #include "ui_nbgl.h"
+#include "eip712_common.h"
+#include "eip712_dispatch.h"
 
 #define HASH_LENGTH 2
 #define HASH_OFFSET (HASH_LENGTH * 2 + 3)
@@ -34,15 +36,19 @@
 #define INS_GET_APP_CONFIGURATION 0x06
 #define INS_SIGN_PERSONAL_MESSAGE 0x08
 #define INS_SIGN_CERTIFICATE      0x09
-#define P1_CONFIRM                0x01
-#define P1_NON_CONFIRM            0x00
-#define P2_NO_CHAINCODE           0x00
-#define P2_CHAINCODE              0x01
-#define P1_FIRST                  0x00
-#define P1_MORE                   0x80
+// EIP-712 INS values are declared in eip712/eip712_common.h
+// (INS_SIGN_EIP_712 0x0C, INS_EIP712_SEND_STRUCT_DEFINITION 0x1A,
+//  INS_EIP712_SEND_STRUCT_IMPL 0x1C)
+#define P1_CONFIRM      0x01
+#define P1_NON_CONFIRM  0x00
+#define P2_NO_CHAINCODE 0x00
+#define P2_CHAINCODE    0x01
+#define P1_FIRST        0x00
+#define P1_MORE         0x80
 
 #define CONFIG_DATA_ENABLED        0x01
 #define CONFIG_MULTICLAUSE_ENABLED 0x01
+#define CONFIG_EIP712_ENABLED      0x01
 
 /* Constants related to this dependencies to send apdu codes to app-vechain
     https://github.com/dinn2018/hw-app-vet/blob/master/src/index.ts#L137-L168
@@ -232,6 +238,16 @@ void handleSign(uint8_t p1,
                &blake2b,
                NULL);
 
+        // The first chunk must carry at least one transaction byte after the
+        // BIP32 path. Without this check, reading workBuffer[0] runs past the
+        // host data and the VIP251 branch's `dataLength--` underflows the
+        // uint16_t to ~65535, which is then fed as commandLength to processTx
+        // and triggers an out-of-bounds read in the RLP parser.
+        if (dataLength < 1) {
+            PRINTF("Missing transaction payload\n");
+            THROW(SWO_INCORRECT_DATA);
+        }
+
         // VIP252: TransactionType might be present before the TransactionPayload.
         tx_type = workBuffer[0];
         if (tx_type == VIP251) {
@@ -319,18 +335,34 @@ void handleSign(uint8_t p1,
     // Add address
     addressToDisplayString(clauseContent.to, (uint8_t *) fullAddress);
 
-    // Add amount in ethers or tokens
-    sendAmountToDisplayString(&clauseContent.value, ticker, decimals, (uint8_t *) fullAmount);
+    // Add amount in ethers or tokens. Refuse the TX if the formatted amount
+    // would not fit in the display buffer: an HSM that silently truncates
+    // here would let the host trick the user into approving a number that is
+    // shorter than what gets actually signed.
+    bool amount_ok = sendAmountToDisplayString(&clauseContent.value,
+                                               ticker,
+                                               decimals,
+                                               (uint8_t *) fullAmount,
+                                               sizeof(fullAmount));
+    bool fee_ok;
     if (displayContext.txFullContext.txContext.txType == VIP251) {
-        maxFeeVIP251ToDisplayString(&tmpContent.txContent.maxFeePerGas,
-                                    &tmpContent.txContent.gas,
-                                    &displayContext.feeComputationContext,
-                                    (uint8_t *) maxFee);
+        fee_ok = maxFeeVIP251ToDisplayString(&tmpContent.txContent.maxFeePerGas,
+                                             &tmpContent.txContent.gas,
+                                             &displayContext.feeComputationContext,
+                                             (uint8_t *) maxFee,
+                                             sizeof(maxFee));
     } else {
-        maxFeeToDisplayString(&tmpContent.txContent.gaspricecoef,
-                              &tmpContent.txContent.gas,
-                              &displayContext.feeComputationContext,
-                              (uint8_t *) maxFee);
+        fee_ok = maxFeeToDisplayString(&tmpContent.txContent.gaspricecoef,
+                                       &tmpContent.txContent.gas,
+                                       &displayContext.feeComputationContext,
+                                       (uint8_t *) maxFee,
+                                       sizeof(maxFee));
+    }
+    if (!amount_ok || !fee_ok) {
+        PRINTF("Display formatting overflow (amount_ok=%d fee_ok=%d)\n",
+               (int) amount_ok,
+               (int) fee_ok);
+        THROW(SWO_INCORRECT_DATA);
     }
 
     ui_display_action_sign_tx_flow();
@@ -348,11 +380,11 @@ void handleSign(uint8_t p1,
  * - Sets the outgoing APDU buffer with the configuration settings and version information.
  * - Sets the outgoing APDU buffer size to indicate the number of bytes transmitted.
  *
- * @note Settings values:
- * - 0: Both data and multiple clauses disabled.
- * - 1: Data enabled, multiple clauses disabled.
- * - 2: Data disabled, multiple clauses enabled.
- * - 3: Both data and multiple clauses enabled.
+ * @note Settings flag bits:
+ * - bit 0 (0x01): contract data signature allowed.
+ * - bit 1 (0x02): multiple clauses transactions allowed.
+ * - bit 2 (0x04): EIP-712 typed-data signing allowed (master switch).
+ * - bit 3 (0x08): EIP-712 v0 (blind signing) allowed.
  *
  * @param[in] p1 Instruction parameter 1 (P1), currently unused.
  * @param[in] p2 Instruction parameter 2 (P2), currently unused.
@@ -373,9 +405,12 @@ void handleGetAppConfiguration(uint8_t p1,
     UNUSED(dataLength);
     UNUSED(flags);
 
-    // Retrieve configuration settings
-    G_io_apdu_buffer[0] = ((N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) |
-                           (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED << 1 : 0x00));
+    // Retrieve configuration settings (see doc/vetapp.asc for the bit layout)
+    G_io_apdu_buffer[0] =
+        (uint8_t) ((N_storage.dataAllowed ? CONFIG_DATA_ENABLED : 0x00) |
+                   (N_storage.multiClauseAllowed ? CONFIG_MULTICLAUSE_ENABLED << 1 : 0x00) |
+                   (N_storage.eip712Allowed ? CONFIG_EIP712_ENABLED << 2 : 0x00) |
+                   (N_storage.blindSign712 ? 0x08 : 0x00));
 
     // Retrieve version information
     G_io_apdu_buffer[1] = MAJOR_VERSION;
@@ -430,9 +465,20 @@ void handleSignCertificate(uint8_t p1,
                        &tmpCtx.transactionContext.pathLength,
                        tmpCtx.transactionContext.bip32Path);
 
-        // Extract and parse the remaining length
+        // The first chunk must carry the 4-byte length AND at least the
+        // opening '{' of the JSON certificate. Without these checks the
+        // length read OOB-reads past the host data and `dataLength -= 4`
+        // underflows the uint16_t.
+        if (dataLength < 5) {
+            PRINTF("Missing certificate length / opening byte\n");
+            THROW(SWO_INCORRECT_DATA);
+        }
+
+        // Extract and parse the remaining length (cast to uint32_t to avoid
+        // `int` promotion UB when bit 7 of the high byte is set).
         tmpCtx.messageSigningContext.remainingLength =
-            (workBuffer[0] << 24) | (workBuffer[1] << 16) | (workBuffer[2] << 8) | (workBuffer[3]);
+            ((uint32_t) workBuffer[0] << 24) | ((uint32_t) workBuffer[1] << 16) |
+            ((uint32_t) workBuffer[2] << 8) | (uint32_t) workBuffer[3];
         workBuffer += 4;
         dataLength -= 4;
 
@@ -539,9 +585,19 @@ void handleSignPersonalMessage(uint8_t p1,
                        &tmpCtx.transactionContext.pathLength,
                        tmpCtx.transactionContext.bip32Path);
 
-        // Parse remaining message length
+        // Reject APDUs that don't carry the full 4-byte big-endian message
+        // length. Skipping this check used to underflow `dataLength` (uint16_t)
+        // to ~65532 and caused a downstream OOB read inside cx_hash_no_throw.
+        if (dataLength < 4) {
+            PRINTF("Missing message length\n");
+            THROW(SWO_INCORRECT_DATA);
+        }
+
+        // Parse remaining message length (cast each byte to uint32_t to avoid
+        // implementation-defined `int` promotion when bit 7 is set).
         tmpCtx.messageSigningContext.remainingLength =
-            (workBuffer[0] << 24) | (workBuffer[1] << 16) | (workBuffer[2] << 8) | (workBuffer[3]);
+            ((uint32_t) workBuffer[0] << 24) | ((uint32_t) workBuffer[1] << 16) |
+            ((uint32_t) workBuffer[2] << 8) | (uint32_t) workBuffer[3];
         workBuffer += 4;
         dataLength -= 4;
         // Initialize message header + length
@@ -701,6 +757,18 @@ void handleApdu(volatile uint32_t flags[static 1], volatile uint32_t tx[static 1
                                           G_io_apdu_buffer[OFFSET_LC],
                                           flags,
                                           tx);
+                    break;
+
+                case INS_SIGN_EIP_712:
+                case INS_EIP712_SEND_STRUCT_DEFINITION:
+                case INS_EIP712_SEND_STRUCT_IMPL:
+                    eip712_dispatch_apdu(G_io_apdu_buffer[OFFSET_INS],
+                                         G_io_apdu_buffer[OFFSET_P1],
+                                         G_io_apdu_buffer[OFFSET_P2],
+                                         G_io_apdu_buffer + OFFSET_CDATA,
+                                         G_io_apdu_buffer[OFFSET_LC],
+                                         flags,
+                                         tx);
                     break;
 
                 default:
