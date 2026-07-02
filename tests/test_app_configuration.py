@@ -5,6 +5,7 @@ from utils import verify_version
 # DEFAULT_FLAGS_SETTING = 0x03
 DEFAULT_FLAGS_SETTING = 0x00
 
+
 # In this test we check that the get_configuration replies the right application version and
 # right configuration flags
 def test_app_configuration(backend):

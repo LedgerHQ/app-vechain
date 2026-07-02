@@ -10,9 +10,9 @@ def parse_bip32_path(path):
     if len(path) == 0:
         return ""
     result = ""
-    elements = path.split('/')
+    elements = path.split("/")
     for path_element in elements:
-        element = path_element.split('\'')
+        element = path_element.split("'")
         if len(element) == 1:
             result = result + struct.pack(">I", int(element[0]))
         else:
@@ -31,20 +31,20 @@ def _decimal_to_bytes(i):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', help="BIP 32 path to sign with")
-parser.add_argument('--chaintag', help="Chaintag")
-parser.add_argument('--blockref', help="Block reference, hex encoded")
-parser.add_argument('--expiration', help="Expiration (# of blocks)")
+parser.add_argument("--path", help="BIP 32 path to sign with")
+parser.add_argument("--chaintag", help="Chaintag")
+parser.add_argument("--blockref", help="Block reference, hex encoded")
+parser.add_argument("--expiration", help="Expiration (# of blocks)")
 
-parser.add_argument('--gaspricecoef', help="Network gas price coef")
-parser.add_argument('--gas', help="Gas limit", default='21000')
-parser.add_argument('--dependson', help="Tx ID, hex encoded")
-parser.add_argument('--nonce', help="Nonce associated to the account")
+parser.add_argument("--gaspricecoef", help="Network gas price coef")
+parser.add_argument("--gas", help="Gas limit", default="21000")
+parser.add_argument("--dependson", help="Tx ID, hex encoded")
+parser.add_argument("--nonce", help="Nonce associated to the account")
 
 
-parser.add_argument('--amount', help="Amount to send in ether")
-parser.add_argument('--to', help="Destination address")
-parser.add_argument('--data', help="Data to add, hex encoded")
+parser.add_argument("--amount", help="Amount to send in ether")
+parser.add_argument("--to", help="Destination address")
+parser.add_argument("--data", help="Data to add, hex encoded")
 
 
 args = parser.parse_args()
@@ -92,11 +92,11 @@ tx = Transaction(
     nonce=args.nonce,
     clauses=[
         Clause(to=decode_hex(args.to[2:]), value=args.amount, data=args.data),
-        Clause(to=decode_hex(args.to2[2:]), value=args.amount, data=args.data)
-           ],
-    reserved=[]
+        Clause(to=decode_hex(args.to2[2:]), value=args.amount, data=args.data),
+    ],
+    reserved=[],
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
 
-print("APDU: "+str(encodedTx.hex()))
+print("APDU: " + str(encodedTx.hex()))

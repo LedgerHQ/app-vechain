@@ -18,6 +18,7 @@
 *  limitations under the License.
 ********************************************************************************
 """
+
 import argparse
 import struct
 from decimal import Decimal
@@ -34,9 +35,9 @@ def parse_bip32_path(path):
     if len(path) == 0:
         return ""
     res = ""
-    elements = path.split('/')
+    elements = path.split("/")
     for pathElement in elements:
-        element = pathElement.split('\'')
+        element = pathElement.split("'")
         if len(element) == 1:
             res = res + struct.pack(">I", int(element[0]))
         else:
@@ -55,20 +56,20 @@ def _decimal_to_bytes(i):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', help="BIP 32 path to sign with")
-parser.add_argument('--chaintag', help="Chaintag")
-parser.add_argument('--blockref', help="Block reference, hex encoded")
-parser.add_argument('--expiration', help="Expiration (# of blocks)")
+parser.add_argument("--path", help="BIP 32 path to sign with")
+parser.add_argument("--chaintag", help="Chaintag")
+parser.add_argument("--blockref", help="Block reference, hex encoded")
+parser.add_argument("--expiration", help="Expiration (# of blocks)")
 
-parser.add_argument('--gaspricecoef', help="Network gas price coef")
-parser.add_argument('--gas', help="Gas limit", default='21000')
-parser.add_argument('--dependson', help="Tx ID, hex encoded")
-parser.add_argument('--nonce', help="Nonce associated to the account")
+parser.add_argument("--gaspricecoef", help="Network gas price coef")
+parser.add_argument("--gas", help="Gas limit", default="21000")
+parser.add_argument("--dependson", help="Tx ID, hex encoded")
+parser.add_argument("--nonce", help="Nonce associated to the account")
 
 
-parser.add_argument('--amount', help="Amount to send in ether")
-parser.add_argument('--to', help="Destination address")
-parser.add_argument('--data', help="Data to add, hex encoded")
+parser.add_argument("--amount", help="Amount to send in ether")
+parser.add_argument("--to", help="Destination address")
+parser.add_argument("--data", help="Data to add, hex encoded")
 
 
 args = parser.parse_args()
@@ -112,7 +113,7 @@ tx = Transaction(
     clauses=[
         Clause(to=decode_hex(args.to[2:]), value=args.amount, data=args.data),
     ],
-    reserved=[]
+    reserved=[],
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
@@ -132,9 +133,12 @@ tx = Transaction(
     gas=tx.gas,
     dependson=tx.dependson,
     nonce=tx.nonce,
-    clauses=[Clause(to=clause.to, value=clause.value, data=clause.data) for clause in tx.clauses],
+    clauses=[
+        Clause(to=clause.to, value=clause.value, data=clause.data)
+        for clause in tx.clauses
+    ],
     reserved=tx.reserved,
-    signature=signature
+    signature=signature,
 )
 
 print("Signed transaction " + encode_hex(encode(tx)))

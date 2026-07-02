@@ -4,18 +4,22 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import check_signature_validity
 from vechain_client import VechainClient, Errors, unpack_get_public_key_response
 
- # Message to sign (plain text format)
+# Message to sign (plain text format)
 MESSAGE_TO_SIGN = "Hello Ledger !"
 
 # pylint: disable=line-too-long
-REF_MESSAGE_SIGNATURE = bytes.fromhex("7fb1187fe1699224ce4121765ccec1d7ee7885f098da7c66697ea9642df4179c66705366600613981702db18e52c037f5d9940113d362678576351fe23d84a9f01")
+REF_MESSAGE_SIGNATURE = bytes.fromhex(
+    "7fb1187fe1699224ce4121765ccec1d7ee7885f098da7c66697ea9642df4179c66705366600613981702db18e52c037f5d9940113d362678576351fe23d84a9f01"
+)
 # pylint: enable=line-too-long
 
 # The path used for all tests
 path: str = "m/44'/818'/0'/0/0"
 
+
 def toPersonalMessage(msg):
-    return b"\x19VeChain Signed Message:\n"+str(len(msg)).encode()+msg.encode()
+    return b"\x19VeChain Signed Message:\n" + str(len(msg)).encode() + msg.encode()
+
 
 # In this test we send to the device a message to sign and validate it on screen
 # We will ensure that the displayed information is correct by using screenshots comparison
@@ -44,7 +48,9 @@ def test_sign_message(scenario_navigator: NavigateWithScenario):
     assert response1 and response1.status == Errors.SW_SUCCESS
 
     if isinstance(backend, SpeculosBackend):
-        assert check_signature_validity(public_key, response1.data, toPersonalMessage(MESSAGE_TO_SIGN))
+        assert check_signature_validity(
+            public_key, response1.data, toPersonalMessage(MESSAGE_TO_SIGN)
+        )
 
 
 # In this test we send to the device a message to sign and cancel it on screen
@@ -115,7 +121,7 @@ def test_sign_random_message(scenario_navigator: NavigateWithScenario):
         "duh grizzled instead vice incidentally attitude sociable",
         "yowza fig range whoever",
         "phooey but if because ack patiently painfully athwart",
-        "famously boo throughout powerfully inside or zowie but"
+        "famously boo throughout powerfully inside or zowie but",
     ]
 
     # Use the app interface instead of raw interface
@@ -130,7 +136,7 @@ def test_sign_random_message(scenario_navigator: NavigateWithScenario):
 
     for i, msg in enumerate(messages):
         # as stax tests takes more time, run the first 5 tests only
-        if i>4 and backend.device.touchable:
+        if i > 4 and backend.device.touchable:
             break
 
         # prepare the message to send
@@ -142,11 +148,13 @@ def test_sign_random_message(scenario_navigator: NavigateWithScenario):
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
         with client.sign_message(path=path, data=message_bytes):
-            scenario_navigator.review_approve(do_comparison=i==0)
+            scenario_navigator.review_approve(do_comparison=i == 0)
 
         # The device as yielded the result, parse it and ensure that the signature is correct
         response1 = client.get_async_response()
         assert response1 and response1.status == Errors.SW_SUCCESS
 
         if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(public_key, response1.data, toPersonalMessage(msg))
+            assert check_signature_validity(
+                public_key, response1.data, toPersonalMessage(msg)
+            )
