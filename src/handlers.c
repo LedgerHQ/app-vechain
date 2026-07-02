@@ -557,8 +557,7 @@ void handleSignPersonalMessage(uint8_t p1,
         // Calculate the index for message header + length
         for (index = 1; (((index * base) <= tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
-             index *= base)
-            ;
+             index *= base);
 
         // Generate the message header + length as a string
         for (; index; index /= base) {
