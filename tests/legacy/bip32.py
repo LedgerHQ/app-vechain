@@ -24,10 +24,10 @@ DEFAULT_VET_BIP32_PATH = "44'/818'/0'/0/0"
 
 def _parse_bip32_path(path):
     if len(path) == 0:
-        return b''
-    result = b''
-    for pathElement in path.split('/'):
-        element = pathElement.split('\'')
+        return b""
+    result = b""
+    for pathElement in path.split("/"):
+        element = pathElement.split("'")
         if len(element) == 1:
             result = result + struct.pack(">I", int(element[0]))
         else:

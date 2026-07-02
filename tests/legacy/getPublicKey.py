@@ -18,32 +18,40 @@
 *  limitations under the License.
 ********************************************************************************
 """
+
 import argparse
 import struct
 from ledgerblue.comm import getDongle
+
 
 def parse_bip32_path(path):
     if len(path) == 0:
         return ""
     res = ""
-    elements = path.split('/')
+    elements = path.split("/")
     for pathElement in elements:
-        element = pathElement.split('\'')
+        element = pathElement.split("'")
         if len(element) == 1:
             res = res + struct.pack(">I", int(element[0]))
         else:
             res = res + struct.pack(">I", 0x80000000 | int(element[0]))
     return res
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', help="BIP 32 path to retrieve")
+parser.add_argument("--path", help="BIP 32 path to retrieve")
 args = parser.parse_args()
 
 if args.path is None:
     args.path = "44'/818'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
-apdu = bytes.fromhex("e0020100") + bytes([len(donglePath) + 1]) + bytes([len(donglePath) // 4]) + donglePath
+apdu = (
+    bytes.fromhex("e0020100")
+    + bytes([len(donglePath) + 1])
+    + bytes([len(donglePath) // 4])
+    + donglePath
+)
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
