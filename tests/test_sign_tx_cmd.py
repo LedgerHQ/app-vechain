@@ -1,9 +1,9 @@
 import pytest
-from ragger.navigator import NavInsID
 from ragger.backend import RaisePolicy, SpeculosBackend
+from ragger.navigator import NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import ROOT_SCREENSHOT_PATH, check_signature_validity, settingEnables
-from vechain_client import VechainClient, Errors, unpack_get_public_key_response
+from vechain_client import Errors, VechainClient, unpack_get_public_key_response
 
 # Tests inputs (transactions) have been generated with tests/legacy/apdu_generator.py
 
@@ -120,14 +120,10 @@ def test_sign_tx_short_tx_reject(scenario_navigator: NavigateWithScenario):
         (2, "Accept"),
     ],
 )
-def test_sign_tx_short_tx_data_and_multiple_clauses(
-    scenario_navigator: NavigateWithScenario, idx: int, directory: str
-):
+def test_sign_tx_short_tx_data_and_multiple_clauses(scenario_navigator: NavigateWithScenario, idx: int, directory: str):
     backend = scenario_navigator.backend
     if not isinstance(backend, SpeculosBackend):
-        input(
-            "Please confirm that multi-clauses and contract data are enabled in app settings?"
-        )
+        input("Please confirm that multi-clauses and contract data are enabled in app settings?")
 
     # Use the app interface instead of raw interface
     client = VechainClient(backend)
@@ -145,9 +141,7 @@ def test_sign_tx_short_tx_data_and_multiple_clauses(
     data = transaction_multi_clauses_and_data[idx]
     with client.sign_tx(path=path, transaction=data):
         navigator.navigate(instructions, screen_change_after_last_instruction=False)
-        scenario_navigator.review_approve(
-            test_name=f"{scenario_navigator.test_name}/{directory}"
-        )
+        scenario_navigator.review_approve(test_name=f"{scenario_navigator.test_name}/{directory}")
 
     # The device as yielded the result, parse it and ensure that the signature is correct
     response1 = client.get_async_response()

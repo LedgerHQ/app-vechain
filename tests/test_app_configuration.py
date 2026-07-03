@@ -1,5 +1,5 @@
-from vechain_client import VechainClient
 from utils import verify_version
+from vechain_client import VechainClient
 
 # multi-clauses and data not allowed by default
 # DEFAULT_FLAGS_SETTING = 0x03

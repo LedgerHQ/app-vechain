@@ -17,14 +17,13 @@
 ********************************************************************************
 """
 
-import traceback
 import binascii
 import struct
-
-from ledgerblue.commException import CommException
-from rlp import encode
+import traceback
 
 from bip32 import bip32_path_message
+from ledgerblue.commException import CommException
+from rlp import encode
 from vetBase import Transaction
 
 APDU_PREFIX_SIGN_TX_INITIAL = binascii.unhexlify("e0040000")
@@ -34,10 +33,7 @@ APDU_MAX_DATA_BYTES = 150
 
 
 def _split_message(message):
-    return [
-        message[i : i + APDU_MAX_DATA_BYTES]
-        for i in range(0, len(message), APDU_MAX_DATA_BYTES)
-    ]
+    return [message[i : i + APDU_MAX_DATA_BYTES] for i in range(0, len(message), APDU_MAX_DATA_BYTES)]
 
 
 def _apdu(prefix, data):
@@ -55,11 +51,7 @@ def _send_tx_to_ledger(message, dongle):
     result = None
     initial_message = True
     for msg in _split_message(message):
-        prefix = (
-            APDU_PREFIX_SIGN_TX_INITIAL
-            if initial_message
-            else APDU_PREFIX_SIGN_TX_CONTINUED
-        )
+        prefix = APDU_PREFIX_SIGN_TX_INITIAL if initial_message else APDU_PREFIX_SIGN_TX_CONTINUED
         apdu = _apdu(prefix, msg)
         result = dongle.exchange(apdu)
         initial_message = False
@@ -93,9 +85,7 @@ def verify(tx, dongle):
     if v not in {37, 38}:
         raise IncorrectTxFormatException()
 
-    return Transaction(
-        tx.nonce, tx.gasprice, tx.startgas, tx.to, tx.value, tx.data, v, r, s
-    )
+    return Transaction(tx.nonce, tx.gasprice, tx.startgas, tx.to, tx.value, tx.data, v, r, s)
 
 
 def app_version(dongle):
@@ -103,7 +93,7 @@ def app_version(dongle):
         result = _send_single_to_ledger(APDU_PREFIX_APP_VERSION, b"", dongle)
     except CommException:
         return None  # Ledger is in Dashboard
-    except IOError:
+    except OSError:
         dongle.close()
         return None  # Ledger switched App, reconnect
     except Exception:

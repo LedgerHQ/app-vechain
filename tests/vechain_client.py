@@ -1,7 +1,8 @@
-from enum import IntEnum
-from typing import Tuple, Generator, List, Optional
+from collections.abc import Generator
 from contextlib import contextmanager
-from ragger.backend.interface import BackendInterface, RAPDU
+from enum import IntEnum
+
+from ragger.backend.interface import RAPDU, BackendInterface
 from ragger.bip import pack_derivation_path
 
 CLA = 0xE0
@@ -39,7 +40,7 @@ class Errors(IntEnum):
     SW_SUCCESS = 0x9000
 
 
-def split_message(message: bytes, max_size: int) -> List[bytes]:
+def split_message(message: bytes, max_size: int) -> list[bytes]:
     return [message[x : x + max_size] for x in range(0, len(message), max_size)]
 
 
@@ -49,20 +50,20 @@ def split_tx(path: str, tx: bytes):
 
 
 # remainder, data_len, data
-def pop_size_prefixed_buf_from_buf(buffer: bytes) -> Tuple[bytes, int, bytes]:
+def pop_size_prefixed_buf_from_buf(buffer: bytes) -> tuple[bytes, int, bytes]:
     data_len = buffer[0]
     return buffer[1 + data_len :], data_len, buffer[1 : data_len + 1]
 
 
 # remainder, data_len, data
-def pop_sized_buf_from_buffer(buffer: bytes, size: int) -> Tuple[bytes, bytes]:
+def pop_sized_buf_from_buffer(buffer: bytes, size: int) -> tuple[bytes, bytes]:
     return buffer[size:], buffer[0:size]
 
 
 # Unpack from response:
 # response = pub_key_len (1)
 #            pub_key (var)
-def unpack_get_public_key_response(response: bytes) -> Tuple[int, bytes]:
+def unpack_get_public_key_response(response: bytes) -> tuple[int, bytes]:
     response, pub_key_len, pub_key = pop_size_prefixed_buf_from_buf(response)
 
     assert pub_key_len == 65
@@ -73,7 +74,7 @@ def unpack_get_public_key_response(response: bytes) -> Tuple[int, bytes]:
 # response = der_sig_len (1)
 #            der_sig (var)
 #            v (1)
-def unpack_sign_tx_response(response: bytes) -> Tuple[int, bytes, int]:
+def unpack_sign_tx_response(response: bytes) -> tuple[int, bytes, int]:
     response, der_sig_len, der_sig = pop_size_prefixed_buf_from_buf(response)
     response, buf = pop_sized_buf_from_buffer(response, 1)
 
@@ -86,7 +87,7 @@ class VechainClient:
     def __init__(self, backend: BackendInterface):
         self._backend = backend
 
-    def get_app_configuration(self) -> Tuple[int, int, int, int]:
+    def get_app_configuration(self) -> tuple[int, int, int, int]:
         rapdu: RAPDU = self._backend.exchange(
             cla=CLA,
             ins=InsType.INS_GET_APP_CONFIGURATION,
@@ -113,9 +114,7 @@ class VechainClient:
         )
 
     @contextmanager
-    def get_public_key_with_confirmation(
-        self, path: str
-    ) -> Generator[None, None, None]:
+    def get_public_key_with_confirmation(self, path: str) -> Generator[None, None, None]:
         with self._backend.exchange_async(
             cla=CLA,
             ins=InsType.INS_GET_PUBLIC_KEY,
@@ -159,9 +158,7 @@ class VechainClient:
             yield response
 
     @contextmanager
-    def sing_tx_long(
-        self, path: str, transaction: bytes
-    ) -> Generator[None, None, None]:
+    def sing_tx_long(self, path: str, transaction: bytes) -> Generator[None, None, None]:
         messages = split_tx(path, transaction)
 
         for i in range(0, len(messages) - 1):
@@ -185,5 +182,5 @@ class VechainClient:
         ) as response:
             yield response
 
-    def get_async_response(self) -> Optional[RAPDU]:
+    def get_async_response(self) -> RAPDU | None:
         return self._backend.last_async_response

@@ -1,9 +1,10 @@
 import argparse
 import struct
 from decimal import Decimal
-from vetBase import Transaction, UnsignedTransaction, Clause
-from rlp import encode
+
 from eth_utils import decode_hex
+from rlp import encode
+from vetBase import Clause, Transaction, UnsignedTransaction
 
 
 def parse_bip32_path(path):

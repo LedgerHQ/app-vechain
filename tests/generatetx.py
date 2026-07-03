@@ -1,15 +1,18 @@
 # pyenv local 3.10
 # thor_devkit (rlp 1.2.0) conflict with legacy/apdu_generator.py (rlp <0.6.0)
-import random
 import argparse
+import random
 from enum import IntEnum
+
 from thor_devkit import cry, transaction
-from thor_devkit.rlp import DictWrapper, HomoListWrapper, NumericKind
 from thor_devkit.rlp import (
-    CompactFixedBlobKind,
-    NoneableFixedBlobKind,
     BlobKind,
     BytesKind,
+    CompactFixedBlobKind,
+    DictWrapper,
+    HomoListWrapper,
+    NoneableFixedBlobKind,
+    NumericKind,
 )
 
 _params = [
@@ -200,7 +203,18 @@ args.blockref = "0xabe47d18daa1301d"
 #     "chainTag": int('0x4a', 16), # 0x4a/0x27/0xa4 See: https://docs.vechain.org/others/miscellaneous.html#network-identifier
 #     "blockRef": '0x00000000aabbccdd',
 #     "expiration": 32,
-#     "clauses": [{"to":"0x07479F2710d16a0bACbE6C25b9b32447364C0A33","data":"0x00" + "1"*500,"value":"133147841714334850862"},{"to":"0x1c8Adf6d8E6302d042b1f09baD0c7f65dE3660eA","data":"0x8b4dfa75fbbbb8f06fc95406de4591d302ec0e3d3892c4c5e542e01a150eceb2a982762c000000000000000000000000105199a26b10e55300cb71b46c5b5e867b7df427000000000000000000000000105199a26b10e55300cb71b46c5b5e867b7df427","value":0}],
+#     "clauses": [
+#           {
+#               "to":"0x07479F2710d16a0bACbE6C25b9b32447364C0A33",
+#               "data":"0x00" + "1"*500,
+#               "value":"133147841714334850862"
+#           },
+#           {
+#               "to":"0x1c8Adf6d8E6302d042b1f09baD0c7f65dE3660eA",
+#               "data":"0x8b4dfa75fbbbb8f06fc95406de4591d302ec0e3d3892c4c5e542e01a150eceb2a982762c000000000000000000000000105199a26b10e55300cb71b46c5b5e867b7df427000000000000000000000000105199a26b10e55300cb71b46c5b5e867b7df427",  # noqa: E501
+#               "value":0
+#           }
+#       ],
 #     "gasPriceCoef": 128,
 #     "gas": 21000,
 #     "dependsOn": None,
@@ -241,9 +255,7 @@ print()
 tx_body.set_signature(
     cry.secp256k1.sign(
         tx_body.get_signing_hash(),
-        bytes.fromhex(
-            "C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F"
-        ),
+        bytes.fromhex("C3346001F58ADFFB5928F52DD2B4680E22DD01917F5E233FC8ABB6BCCA46C15F"),
     )
 )
 print(f"signature: {tx_body.get_signature().hex()}")

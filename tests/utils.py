@@ -1,19 +1,17 @@
-from pathlib import Path
-from hashlib import blake2b
 import re
+from hashlib import blake2b
+from pathlib import Path
 
-from ragger.navigator import Navigator, NavInsID, NavIns
-from ledgered.devices import Device, DeviceType
 from ecdsa.curves import SECP256k1
 from ecdsa.keys import VerifyingKey
+from ledgered.devices import Device, DeviceType
+from ragger.navigator import Navigator, NavIns, NavInsID
 
 ROOT_SCREENSHOT_PATH = Path(__file__).parent.resolve()
 
 
 # Check if a signature of a given message is valid
-def check_signature_validity(
-    public_key: bytes, signature: bytes, message: bytes
-) -> bool:
+def check_signature_validity(public_key: bytes, signature: bytes, message: bytes) -> bool:
     pk: VerifyingKey = VerifyingKey.from_string(
         public_key,
         curve=SECP256k1,
@@ -101,6 +99,6 @@ def _read_makefile() -> list[str]:
 
     parent = Path(__file__).parent.parent.resolve()
     makefile = f"{parent}/Makefile"
-    with open(makefile, "r", encoding="utf-8") as f_p:
+    with open(makefile, encoding="utf-8") as f_p:
         lines = f_p.readlines()
     return lines
