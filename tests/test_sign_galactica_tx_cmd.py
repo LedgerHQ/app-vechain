@@ -1,8 +1,8 @@
 from ragger.backend import SpeculosBackend
-from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.logger import get_default_logger
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import check_signature_validity
-from vechain_client import VechainClient, Errors, unpack_get_public_key_response
+from vechain_client import Errors, VechainClient, unpack_get_public_key_response
 
 # pylint: disable=line-too-long
 transaction: bytes = bytes.fromhex(
@@ -37,9 +37,7 @@ def test_sign_galactica_tx_short_tx(scenario_navigator: NavigateWithScenario):
     assert response1 and response1.status == Errors.SW_SUCCESS
 
     logger.info("Response: %s", response1.data.hex())
-    logger.info(
-        "Check: %s", check_signature_validity(public_key, response1.data, transaction)
-    )
+    logger.info("Check: %s", check_signature_validity(public_key, response1.data, transaction))
 
     if isinstance(backend, SpeculosBackend):
         assert check_signature_validity(public_key, response1.data, transaction)

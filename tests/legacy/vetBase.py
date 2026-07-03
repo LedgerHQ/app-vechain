@@ -19,34 +19,25 @@
 ********************************************************************************
 """
 
-from rlp.sedes import big_endian_int, binary, Binary, CountableList
+from typing import ClassVar
+
+from eth_utils import keccak
 from rlp import Serializable
-
-try:
-    from Crypto.Hash import keccak
-
-    def sha3_256(x):
-        return keccak.new(digest_bits=256, data=x).digest()
-except ImportError:
-    import sha3 as _sha3
-
-    def sha3_256(x):
-        return _sha3.sha3_256(x).digest()
-
+from rlp.sedes import Binary, CountableList, big_endian_int, binary
 
 address = Binary.fixed_length(20, allow_empty=True)
 
 
 def sha3(seed):
-    return sha3_256(str(seed))
+    return keccak(str(seed))
 
 
 class Clause(Serializable):
-    fields = [("to", address), ("value", binary), ("data", binary)]
+    fields: ClassVar = [("to", address), ("value", binary), ("data", binary)]
 
 
 class Transaction(Serializable):
-    fields = [
+    fields: ClassVar = [
         ("chaintag", big_endian_int),
         ("blockref", binary),
         ("expiration", big_endian_int),

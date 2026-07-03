@@ -1,8 +1,9 @@
 import struct
+
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import check_signature_validity
-from vechain_client import VechainClient, Errors, unpack_get_public_key_response
+from vechain_client import Errors, VechainClient, unpack_get_public_key_response
 
 # Certificate to sign (Json format)
 CERTIFICATE_TO_SIGN = str(
@@ -78,24 +79,24 @@ def test_sign_certificate_cancel(scenario_navigator: NavigateWithScenario):
 def test_sign_random_certificate(scenario_navigator: NavigateWithScenario):
     # pylint: disable=line-too-long
     certificates = [
-        '{"domain":"oblong-nephew.name","payload":{"content":"pressurise once opossum oof","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"jovial-head.com","payload":{"content":"pish before optimal dramatic scrummage","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"quirky-ethics.com","payload":{"content":"self-assured ack after usually","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"tinted-toothpaste.biz","payload":{"content":"approve utterly amid forbid instead","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"recent-disembodiment.org","payload":{"content":"stretcher promise exist for","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"incomplete-athletics.com","payload":{"content":"orchid ouch discipline ethical memorize","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"jealous-training.com","payload":{"content":"frivolous ultimately wherever a","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"confused-fragrance.org","payload":{"content":"ack nearer provided boo","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"worn-kit.biz","payload":{"content":"mortified voluntarily delouse plagiarise likely","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"bossy-alternative.biz","payload":{"content":"why ferociously step-father sans","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"utilized-blessing.name","payload":{"content":"accouter pro violation violently prestigious","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"serious-way.com","payload":{"content":"colorfully helpfully gator as","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"odd-application.name","payload":{"content":"unless pfft apud astride","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"incomplete-dip.org","payload":{"content":"pro quietly even abaft","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"velvety-running.biz","payload":{"content":"kite excluding besides disgusting after","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"sane-sculpture.info","payload":{"content":"euphoric gadzooks telecommute but","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
-        '{"domain":"closed-nightgown.net","payload":{"content":"pooh incidentally boo trouble ill-fated","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',
+        '{"domain":"oblong-nephew.name","payload":{"content":"pressurise once opossum oof","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"elastic-fairy.com","payload":{"content":"over separately evergreen anenst","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"jovial-head.com","payload":{"content":"pish before optimal dramatic scrummage","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"quirky-ethics.com","payload":{"content":"self-assured ack after usually","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"tinted-toothpaste.biz","payload":{"content":"approve utterly amid forbid instead","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"recent-disembodiment.org","payload":{"content":"stretcher promise exist for","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"incomplete-athletics.com","payload":{"content":"orchid ouch discipline ethical memorize","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"jealous-training.com","payload":{"content":"frivolous ultimately wherever a","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"confused-fragrance.org","payload":{"content":"ack nearer provided boo","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"worn-kit.biz","payload":{"content":"mortified voluntarily delouse plagiarise likely","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"bossy-alternative.biz","payload":{"content":"why ferociously step-father sans","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"utilized-blessing.name","payload":{"content":"accouter pro violation violently prestigious","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"serious-way.com","payload":{"content":"colorfully helpfully gator as","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"odd-application.name","payload":{"content":"unless pfft apud astride","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"incomplete-dip.org","payload":{"content":"pro quietly even abaft","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"velvety-running.biz","payload":{"content":"kite excluding besides disgusting after","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"sane-sculpture.info","payload":{"content":"euphoric gadzooks telecommute but","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
+        '{"domain":"closed-nightgown.net","payload":{"content":"pooh incidentally boo trouble ill-fated","type":"text"},"purpose":"identification","signer":"0xf077b491b355e64048ce21e3a6fc4751eeea77fa","timestamp":1545035330}',  # noqa: E501
     ]
     # pylint: enable=line-too-long
     # Use the app interface instead of raw interface
@@ -120,9 +121,7 @@ def test_sign_random_certificate(scenario_navigator: NavigateWithScenario):
         # As it requires on-screen validation, the function is asynchronous.
         # It will yield the result when the navigation is done
         with client.sign_certificate(path=path, data=message_bytes):
-            scenario_navigator.review_approve(
-                custom_screen_text="Sign certificate", do_comparison=i == 0
-            )
+            scenario_navigator.review_approve(custom_screen_text="Sign certificate", do_comparison=i == 0)
 
         # The device as yielded the result, parse it and ensure that the signature is correct
         response1 = client.get_async_response()

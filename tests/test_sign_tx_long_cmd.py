@@ -1,8 +1,8 @@
-from ragger.navigator import NavInsID
 from ragger.backend import SpeculosBackend
+from ragger.navigator import NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import ROOT_SCREENSHOT_PATH, settingEnables
-from vechain_client import VechainClient, Errors
+from vechain_client import Errors, VechainClient
 
 # Tests inputs (transactions) have been generated with tests/generatetx.py
 # Input

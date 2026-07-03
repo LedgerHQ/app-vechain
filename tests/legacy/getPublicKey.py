@@ -21,6 +21,7 @@
 
 import argparse
 import struct
+
 from ledgerblue.comm import getDongle
 
 
@@ -46,12 +47,7 @@ if args.path is None:
     args.path = "44'/818'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
-apdu = (
-    bytes.fromhex("e0020100")
-    + bytes([len(donglePath) + 1])
-    + bytes([len(donglePath) // 4])
-    + donglePath
-)
+apdu = bytes.fromhex("e0020100") + bytes([len(donglePath) + 1]) + bytes([len(donglePath) // 4]) + donglePath
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
@@ -59,4 +55,4 @@ offset = 1 + result[0]
 address = result[offset + 1 : offset + 1 + result[offset]]
 
 print(f"Public key {result[1 : 1 + result[0]].hex()}")
-print(f"Address 0x{str(address)}")
+print(f"Address 0x{address!s}")

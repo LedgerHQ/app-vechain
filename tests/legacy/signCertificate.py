@@ -1,7 +1,8 @@
 import argparse
-import struct
 import codecs
+import struct
 from hashlib import blake2b
+
 from ledgerblue.comm import getDongle
 
 

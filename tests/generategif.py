@@ -1,4 +1,5 @@
 import os
+
 import imageio
 
 
@@ -24,14 +25,9 @@ for x in os.listdir(rootPath):
         if y.startswith("part"):
             hasSubDir = True
             print(x, y)
-            gifFiles = [
-                os.path.join(rootPath, x, y, f)
-                for f in os.listdir(os.path.join(rootPath, x, y))
-            ]
+            gifFiles = [os.path.join(rootPath, x, y, f) for f in os.listdir(os.path.join(rootPath, x, y))]
             makeGif(os.path.join(gifPath, f"{x}_{y}"), gifFiles)
     if not hasSubDir:
         print(x)
-        gifFiles = [
-            os.path.join(rootPath, x, f) for f in os.listdir(os.path.join(rootPath, x))
-        ]
+        gifFiles = [os.path.join(rootPath, x, f) for f in os.listdir(os.path.join(rootPath, x))]
         makeGif(os.path.join(gifPath, x), gifFiles)

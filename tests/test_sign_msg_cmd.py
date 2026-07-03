@@ -1,8 +1,9 @@
 import struct
+
 from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import check_signature_validity
-from vechain_client import VechainClient, Errors, unpack_get_public_key_response
+from vechain_client import Errors, VechainClient, unpack_get_public_key_response
 
 # Message to sign (plain text format)
 MESSAGE_TO_SIGN = "Hello Ledger !"
@@ -48,9 +49,7 @@ def test_sign_message(scenario_navigator: NavigateWithScenario):
     assert response1 and response1.status == Errors.SW_SUCCESS
 
     if isinstance(backend, SpeculosBackend):
-        assert check_signature_validity(
-            public_key, response1.data, toPersonalMessage(MESSAGE_TO_SIGN)
-        )
+        assert check_signature_validity(public_key, response1.data, toPersonalMessage(MESSAGE_TO_SIGN))
 
 
 # In this test we send to the device a message to sign and cancel it on screen
@@ -155,6 +154,4 @@ def test_sign_random_message(scenario_navigator: NavigateWithScenario):
         assert response1 and response1.status == Errors.SW_SUCCESS
 
         if isinstance(backend, SpeculosBackend):
-            assert check_signature_validity(
-                public_key, response1.data, toPersonalMessage(msg)
-            )
+            assert check_signature_validity(public_key, response1.data, toPersonalMessage(msg))

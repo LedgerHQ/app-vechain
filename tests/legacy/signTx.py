@@ -22,13 +22,13 @@
 import argparse
 import struct
 from decimal import Decimal
-from ledgerblue.comm import getDongle
 
-from ledger import _send_tx_to_ledger
-from vetBase import Transaction, UnsignedTransaction, Clause
-from rlp import encode
-from eth_utils import decode_hex, encode_hex
 from bip32 import bip32_path_message
+from eth_utils import decode_hex, encode_hex
+from ledger import _send_tx_to_ledger
+from ledgerblue.comm import getDongle
+from rlp import encode
+from vetBase import Clause, Transaction, UnsignedTransaction
 
 
 def parse_bip32_path(path):
@@ -133,10 +133,7 @@ tx = Transaction(
     gas=tx.gas,
     dependson=tx.dependson,
     nonce=tx.nonce,
-    clauses=[
-        Clause(to=clause.to, value=clause.value, data=clause.data)
-        for clause in tx.clauses
-    ],
+    clauses=[Clause(to=clause.to, value=clause.value, data=clause.data) for clause in tx.clauses],
     reserved=tx.reserved,
     signature=signature,
 )
