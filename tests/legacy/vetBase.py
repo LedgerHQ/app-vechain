@@ -19,42 +19,37 @@
 ********************************************************************************
 """
 
-from rlp.sedes import big_endian_int, binary, Binary, CountableList
-from rlp import Serializable
+from typing import ClassVar
 
-try:
-    from Crypto.Hash import keccak
-    def sha3_256(x):
-        return keccak.new(digest_bits=256, data=x).digest()
-except ImportError:
-    import sha3 as _sha3
-    def sha3_256(x):
-        return _sha3.sha3_256(x).digest()
+from eth_utils import keccak
+from rlp import Serializable
+from rlp.sedes import Binary, CountableList, big_endian_int, binary
+
 address = Binary.fixed_length(20, allow_empty=True)
 
+
 def sha3(seed):
-    return sha3_256(str(seed))
+    return keccak(str(seed))
+
 
 class Clause(Serializable):
-    fields = [
-        ('to', address),
-        ('value', binary),
-        ('data', binary)
-    ]
+    fields: ClassVar = [("to", address), ("value", binary), ("data", binary)]
+
 
 class Transaction(Serializable):
-    fields = [
-        ('chaintag', big_endian_int),
-        ('blockref', binary),
-        ('expiration', big_endian_int),
-        ('clauses', CountableList(Clause)),
-        ('gaspricecoef', big_endian_int),
-        ('gas', big_endian_int),
-        ('dependson', binary),
-        ('nonce', binary),
-        ('reserved', CountableList(binary)),
-        ('signature', binary),
+    fields: ClassVar = [
+        ("chaintag", big_endian_int),
+        ("blockref", binary),
+        ("expiration", big_endian_int),
+        ("clauses", CountableList(Clause)),
+        ("gaspricecoef", big_endian_int),
+        ("gas", big_endian_int),
+        ("dependson", binary),
+        ("nonce", binary),
+        ("reserved", CountableList(binary)),
+        ("signature", binary),
     ]
+
 
 # UnsignedTransaction = Transaction.exclude(['signature'])
 UnsignedTransaction = Transaction

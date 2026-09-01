@@ -1,14 +1,17 @@
 from ragger.backend import SpeculosBackend
-from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.logger import get_default_logger
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 from utils import check_signature_validity
-from vechain_client import VechainClient, Errors, unpack_get_public_key_response
+from vechain_client import Errors, VechainClient, unpack_get_public_key_response
 
 # pylint: disable=line-too-long
-transaction : bytes = bytes.fromhex("51f83e2788014c77760591ab6864e0df9475a6a29db80bd8a64d3d4b19b29d09bb2245a97f880de0b6b3a7640000808086095e27d758008252088084e788d52ec0")
+transaction: bytes = bytes.fromhex(
+    "51f83e2788014c77760591ab6864e0df9475a6a29db80bd8a64d3d4b19b29d09bb2245a97f880de0b6b3a7640000808086095e27d758008252088084e788d52ec0"
+)
 # pylint: enable=line-too-long
 # The path used for all tests
 path: str = "m/44'/818'/0'/0/0"
+
 
 # In this test we send to the device a transaction to sign and validate it on screen
 # The transaction is short and will be sent in one chunk

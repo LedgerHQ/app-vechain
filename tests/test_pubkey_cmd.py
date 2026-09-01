@@ -1,9 +1,9 @@
 import pytest
-from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
-from ragger.backend import SpeculosBackend, RaisePolicy
+from ragger.backend import RaisePolicy, SpeculosBackend
 from ragger.backend.interface import BackendInterface
+from ragger.bip import CurveChoice, calculate_public_key_and_chaincode
 from ragger.navigator.navigation_scenario import NavigateWithScenario
-from vechain_client import VechainClient, unpack_get_public_key_response, Errors
+from vechain_client import Errors, VechainClient, unpack_get_public_key_response
 
 
 # In this test we check that the GET_PUBLIC_KEY works in non-confirmation mode
@@ -19,7 +19,7 @@ def test_get_public_key_no_confirm(backend: BackendInterface):
         assert public_key.hex() == ref_public_key
 
 
- # In this test we check that the GET_PUBLIC_KEY works in confirmation mode
+# In this test we check that the GET_PUBLIC_KEY works in confirmation mode
 def test_get_public_key_confirm(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     if not isinstance(backend, SpeculosBackend):

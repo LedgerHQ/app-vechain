@@ -17,24 +17,23 @@
 ********************************************************************************
 """
 
-import traceback
 import binascii
 import struct
-
-from ledgerblue.commException import CommException
-from rlp import encode
+import traceback
 
 from bip32 import bip32_path_message
+from ledgerblue.commException import CommException
+from rlp import encode
 from vetBase import Transaction
 
-APDU_PREFIX_SIGN_TX_INITIAL = binascii.unhexlify('e0040000')
-APDU_PREFIX_SIGN_TX_CONTINUED = binascii.unhexlify('e0048000')
-APDU_PREFIX_APP_VERSION = binascii.unhexlify('e0060000')
+APDU_PREFIX_SIGN_TX_INITIAL = binascii.unhexlify("e0040000")
+APDU_PREFIX_SIGN_TX_CONTINUED = binascii.unhexlify("e0048000")
+APDU_PREFIX_APP_VERSION = binascii.unhexlify("e0060000")
 APDU_MAX_DATA_BYTES = 150
 
 
 def _split_message(message):
-    return [message[i:i + APDU_MAX_DATA_BYTES] for i in range(0, len(message), APDU_MAX_DATA_BYTES)]
+    return [message[i : i + APDU_MAX_DATA_BYTES] for i in range(0, len(message), APDU_MAX_DATA_BYTES)]
 
 
 def _apdu(prefix, data):
@@ -80,8 +79,8 @@ def verify(tx, dongle):
     result = _send_tx_to_ledger(encoded_path + encoded_tx, dongle)
 
     v = result[0]
-    r = int(binascii.hexlify(result[1:1 + 32]), 16)
-    s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
+    r = int(binascii.hexlify(result[1 : 1 + 32]), 16)
+    s = int(binascii.hexlify(result[1 + 32 : 1 + 32 + 32]), 16)
 
     if v not in {37, 38}:
         raise IncorrectTxFormatException()
@@ -91,10 +90,10 @@ def verify(tx, dongle):
 
 def app_version(dongle):
     try:
-        result = _send_single_to_ledger(APDU_PREFIX_APP_VERSION, b'', dongle)
+        result = _send_single_to_ledger(APDU_PREFIX_APP_VERSION, b"", dongle)
     except CommException:
         return None  # Ledger is in Dashboard
-    except IOError:
+    except OSError:
         dongle.close()
         return None  # Ledger switched App, reconnect
     except Exception:
@@ -110,8 +109,8 @@ def app_version(dongle):
 
 def error_code_to_message(error_code):
     return {
-        0x6a88: "LEDGER_UNKNOWN_DESTINATION",
-        0x6a87: "LEDGER_NON_ZERO_AMOUNT",
+        0x6A88: "LEDGER_UNKNOWN_DESTINATION",
+        0x6A87: "LEDGER_NON_ZERO_AMOUNT",
         0x6985: "LEDGER_TRANSACTION_CANCELLED",
     }.get(error_code, f"UNRECOGNIZED_ERROR_CODE_{error_code:04X}")
 

@@ -18,25 +18,29 @@
 *  limitations under the License.
 ********************************************************************************
 """
+
 import argparse
 import struct
+
 from ledgerblue.comm import getDongle
+
 
 def parse_bip32_path(path):
     if len(path) == 0:
         return ""
     res = ""
-    elements = path.split('/')
+    elements = path.split("/")
     for pathElement in elements:
-        element = pathElement.split('\'')
+        element = pathElement.split("'")
         if len(element) == 1:
             res = res + struct.pack(">I", int(element[0]))
         else:
             res = res + struct.pack(">I", 0x80000000 | int(element[0]))
     return res
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', help="BIP 32 path to retrieve")
+parser.add_argument("--path", help="BIP 32 path to retrieve")
 args = parser.parse_args()
 
 if args.path is None:
@@ -51,4 +55,4 @@ offset = 1 + result[0]
 address = result[offset + 1 : offset + 1 + result[offset]]
 
 print(f"Public key {result[1 : 1 + result[0]].hex()}")
-print(f"Address 0x{str(address)}")
+print(f"Address 0x{address!s}")
